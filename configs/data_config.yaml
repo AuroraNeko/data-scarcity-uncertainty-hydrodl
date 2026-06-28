@@ -53,8 +53,7 @@ static_attributes:
 
 target:
   variable: streamflow_mm
-  # log1p == ln(1 + y) via numpy.log1p (NOT ln(y + 0.01) as stated in the paper).
-  # See docs/PAPER_REVISION_NOTES.md (#1).
+  # log1p == ln(1 + y) via numpy.log1p.
   transform: log1p   # log1p (ln(1+y)) or sqrt
   missing_marker: -999.0
 
