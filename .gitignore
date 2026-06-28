@@ -1,0 +1,62 @@
+# ─── Data ─────────────────────────────────────────────────────────────────
+# CAMELS-US is ~24 GB — download it yourself with `python download_camels.py`.
+data/
+
+# ─── Model checkpoints (binary weights) ───────────────────────────────────
+# Regenerate by running the training scripts.
+results/checkpoints/
+
+# ─── Python ───────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+.python-version
+
+# ─── Logs ─────────────────────────────────────────────────────────────────
+*.log
+
+# ─── LaTeX / paper build artifacts ────────────────────────────────────────
+# The manuscript lives outside this code repository.
+paper/
+*.aux
+*.bbl
+*.blg
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.lof
+*.lot
+
+# ─── Templates / archives that are not part of the code ───────────────────
+*.zip
+HESS_template/
+copernicus_pkg/
+copernicus_page.html
+elsarticle/
+
+# ─── Writing drafts (not code) ────────────────────────────────────────────
+paper.md
+paper_outline.md
+introduction_contributions_draft.md
+discussion_exchangeability_draft.md
+discussion_practitioner_guide.md
+review_revision_strategy.md
+
+# ─── Reference PDFs (copyrighted published papers — do NOT redistribute) ──
+pdf/
+
+# ─── Editors / OS ─────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ─── Local agent / tooling state ──────────────────────────────────────────
+.claude/

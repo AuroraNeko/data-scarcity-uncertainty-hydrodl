@@ -1,0 +1,69 @@
+# =============================================================================
+# Data configuration reference for LPU-Stream (CAMELS-US preprocessing).
+#
+# NOTE: this file documents the canonical preprocessing settings. The
+# preprocessing scripts in src/data currently hard-code the same values so they
+# can run standalone; nothing loads this YAML at runtime. Keep it in sync with
+# src/data/data_preprocessing.py and src/data/dataset.py when changing settings.
+# =============================================================================
+
+dataset:
+  name: camels_us
+  raw_dir: data/raw/camels_us
+  processed_dir: data/processed/camels_us
+  forcing_source: daymet  # daymet, maurer, nldas
+
+# Temporal splits (water-year aligned; match data_preprocessing.TRAIN/VAL/TEST_*).
+date_splits:
+  train_start: "1980-10-01"
+  train_end: "1995-09-30"      # 15-year training; truncated for scarcity runs
+  val_start: "1995-10-01"
+  val_end: "2000-09-30"        # also used as the CQR calibration period
+  test_start: "2000-10-01"
+  test_end: "2010-09-30"
+
+# 5 Daymet dynamic forcings (match DYNAMIC_VARS).
+dynamic_variables:
+  - prcp
+  - tmin
+  - tmax
+  - srad
+  - vp
+
+# 13 static catchment attributes (match STATIC_ATTR_FILES / dataset.STATIC_COLS).
+static_attributes:
+  topo:
+    - elev_mean
+    - slope_mean
+    - area_gages2
+  clim:
+    - p_mean
+    - pet_mean
+    - aridity
+    - frac_snow
+    - p_seasonality
+  soil:
+    - soil_depth_pelletier
+    - soil_porosity
+  vege:
+    - frac_forest
+    - lai_diff
+  geol:
+    - geol_porostiy   # spelling as in the original CAMELS dataset
+
+target:
+  variable: streamflow_mm
+  # log1p == ln(1 + y) via numpy.log1p (NOT ln(y + 0.01) as stated in the paper).
+  # See docs/PAPER_REVISION_NOTES.md (#1).
+  transform: log1p   # log1p (ln(1+y)) or sqrt
+  missing_marker: -999.0
+
+missing_values:
+  dynamic_method: linear_interpolation
+  dynamic_max_gap: 7
+  static_method: median_fill
+  streamflow: mask_only   # missing streamflow is masked, not filled
+
+normalization:
+  method: standard        # z-score
+  compute_from: train_period

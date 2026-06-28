@@ -1,0 +1,9 @@
+# Python dependencies for LPU-Stream (tested versions in parentheses).
+# A CUDA-enabled PyTorch is recommended for training; CPU works for analysis.
+
+torch>=2.0          # 2.11.0 (CUDA 12.8 build)
+numpy>=1.24         # 2.4.4
+pandas>=2.0         # 3.0.3
+matplotlib>=3.7     # 3.10.9  (figure generation)
+xgboost>=2.0        # 3.2.0   (XGBoost baseline)
+scipy>=1.10         # 1.17.1  (statistical tests in analysis)
