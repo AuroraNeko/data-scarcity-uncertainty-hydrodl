@@ -12,8 +12,8 @@ CAMELS-US 数据集（671 个流域）上发现：将训练数据从 15 年缩�
 诊断了退化机理（区间系统性偏窄、校准曲线变平、流量区间不对称），并证明 **共形分位回归
 （CQR）** 仅需一次前向传播、零额外训练成本，即可在所有数据量级别将覆盖率恢复到约 89%。
 
-> **状态：** 论文正准备投 HESS。代码以可复现为目的开源。仓库包含示例结果 JSON 与图表；
-> 24 GB 数据集与模型权重由下列脚本重新生成，不在仓库中。
+> **状态：** 水文深度学习中数据稀缺与不确定性研究的代码（论文撰写中）。仓库包含示例结果
+> JSON 与图表；24 GB 数据集与模型权重由下列脚本重新生成，不在仓库中。
 
 ---
 
@@ -126,30 +126,6 @@ python experiments/analysis/make_figures.py
 128 单元 LSTM 的每个时间步输入；线性头预测三个分位（0.05 / 0.50 / 0.95），用 pinball loss
 训练。CQR 在留出的校准期上做后处理校准。
 
-## 论文 ↔ 代码 说明
-
-论文 Methods 中有若干描述与代码不一致（目标变换、dropout 位置、批大小、早停判据、序列长度
-/ spin-up、流域抽样方式）。这些均不影响结论。逐条清单与建议措辞修订见
-**[docs/PAPER_REVISION_NOTES.md](docs/PAPER_REVISION_NOTES.md)**。
-
-## 引用
-
-```bibtex
-@article{zhang2026datascarcity,
-  title   = {How Data Scarcity Compromises Uncertainty Estimates in
-             Hydrological Deep Learning---and How to Fix It with
-             Conformalized Quantile Regression},
-  author  = {AuroraNeko and AuroraNeko},
-  journal = {Hydrology and Earth System Sciences (HESS), in preparation},
-  year    = {2026}
-}
-```
-
 ## 许可证
 
 MIT —— 见 [LICENSE](LICENSE)。
-
-## 致谢
-
-本工作部分受到国家自然科学基金（72271091）、河南省科学院开放合作项目（220901008）、
-水利部重大科技项目（SKS-2022029）资助。CAMELS-US 数据集可从 NCAR/UCAR 数据档案公开获取。
