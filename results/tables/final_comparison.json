@@ -1,0 +1,42 @@
+{
+  "deep_ensembles_fair": {
+    "n_ensemble": 5,
+    "seeds": [42, 123, 456, 789, 999],
+    "nse": 0.736,
+    "uncalibrated": {
+      "picp": 0.878,
+      "mpiw": 1.019,
+      "winkler_score": 1.659,
+      "coverage_low_flow": 0.876,
+      "coverage_normal_flow": 0.881,
+      "coverage_high_flow": 0.877
+    },
+    "calibrated": {
+      "picp": 0.926,
+      "mpiw": 1.150,
+      "winkler_score": 1.665,
+      "coverage_low_flow": 0.946,
+      "coverage_normal_flow": 0.934,
+      "coverage_high_flow": 0.898
+    },
+    "note": "15yr, 300 basins, same config as CQR. NSE lower than CQR because CQR uses 671 basins."
+  },
+  "cqr": {
+    "picp": 0.889,
+    "target_coverage": 0.9,
+    "mpiw": 0.857,
+    "winkler_score": 1.403,
+    "coverage_low_flow": 0.914,
+    "coverage_normal_flow": 0.879,
+    "coverage_high_flow": 0.875
+  },
+  "mc_dropout": {
+    "picp": 0.596,
+    "target_coverage": 0.9,
+    "mpiw": 0.391,
+    "winkler_score": 2.487,
+    "coverage_low_flow": 0.815,
+    "coverage_normal_flow": 0.481,
+    "coverage_high_flow": 0.494
+  }
+}

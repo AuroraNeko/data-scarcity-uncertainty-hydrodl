@@ -1,0 +1,23 @@
+{
+  "model": "transformer",
+  "config": {
+    "seq_len": 365,
+    "n_dynamic": 5,
+    "n_static": 13,
+    "seed": 42,
+    "d_model": 128,
+    "nhead": 4,
+    "num_layers": 2,
+    "dim_feedforward": 256,
+    "dropout": 0.2,
+    "batch_size": 128,
+    "learning_rate": 0.0005,
+    "epochs": 30
+  },
+  "best_epoch": 3,
+  "best_val_loss": 0.18937299727955825,
+  "test_loss": 0.1999801792081412,
+  "test_nse": 0.8050987720489502,
+  "n_params": 274881,
+  "timestamp": "2026-06-05T07:27:32.175808"
+}

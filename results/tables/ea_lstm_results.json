@@ -1,0 +1,19 @@
+{
+  "model": "ea_lstm",
+  "config": {
+    "seq_len": 365,
+    "n_dynamic": 5,
+    "n_static": 13,
+    "seed": 42,
+    "hidden_size": 128,
+    "dropout": 0.3,
+    "batch_size": 1024,
+    "learning_rate": 0.001,
+    "epochs": 30
+  },
+  "best_epoch": 9,
+  "best_val_loss": 0.1585468454822255,
+  "test_nse": 0.8358964323997498,
+  "n_params": 61569,
+  "timestamp": "2026-06-05T12:32:57.258948"
+}

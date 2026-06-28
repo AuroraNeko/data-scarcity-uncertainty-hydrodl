@@ -1,0 +1,9 @@
+{
+  "model": "Persistence",
+  "n_basins": 671,
+  "median_nse": 0.4689566763040781,
+  "mean_nse": 0.4351452765992073,
+  "nse_gt0": 560,
+  "nse_gt05": 317,
+  "timestamp": "2026-06-04T23:18:19.996742"
+}

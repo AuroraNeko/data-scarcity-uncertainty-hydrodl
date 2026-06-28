@@ -1,0 +1,9 @@
+{
+  "model": "Climatology",
+  "n_basins": 671,
+  "median_nse": 0.011571665162490974,
+  "mean_nse": 0.040274332503210906,
+  "nse_gt0": 359,
+  "nse_gt05": 56,
+  "timestamp": "2026-06-04T22:51:50.590875"
+}

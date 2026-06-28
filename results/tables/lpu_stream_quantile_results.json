@@ -1,0 +1,43 @@
+{
+  "model": "lpu_stream_quantile",
+  "config": {
+    "n_dynamic": 5,
+    "n_static": 13,
+    "hidden_size": 128,
+    "embed_dim": 32,
+    "dropout": 0.3,
+    "quantiles": [
+      0.05,
+      0.5,
+      0.95
+    ],
+    "seq_len": 365,
+    "batch_size": 1024,
+    "learning_rate": 0.001,
+    "epochs": 30,
+    "seed": 42,
+    "alpha": 0.1
+  },
+  "best_epoch": 9,
+  "q_cal": 0.0005884647252969444,
+  "test_nse": 0.844169020652771,
+  "test_uncalibrated": {
+    "picp": 0.8885714259770119,
+    "target_coverage": 0.9,
+    "mpiw": 0.8558173179626465,
+    "winkler_score": 1.4029890298843384,
+    "coverage_low_flow": 0.9131019206427825,
+    "coverage_normal_flow": 0.8779992094692761,
+    "coverage_high_flow": 0.8749332716956418
+  },
+  "test_calibrated": {
+    "picp": 0.8893019488479622,
+    "target_coverage": 0.9,
+    "mpiw": 0.8569943308830261,
+    "winkler_score": 1.4028589725494385,
+    "coverage_low_flow": 0.9142713664630455,
+    "coverage_normal_flow": 0.8787483441586189,
+    "coverage_high_flow": 0.8752056882783822
+  },
+  "timestamp": "2026-06-05T20:34:34.648682"
+}

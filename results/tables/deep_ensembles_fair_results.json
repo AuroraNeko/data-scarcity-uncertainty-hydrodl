@@ -1,0 +1,59 @@
+{
+  "n_ensemble": 5,
+  "seeds": [
+    42,
+    123,
+    456,
+    789,
+    999
+  ],
+  "n_basins": 300,
+  "ensemble": {
+    "nse": 0.735704779624939,
+    "q_cal": 0.06565611809492111,
+    "uncalibrated": {
+      "picp": 0.8778499148097079,
+      "target_coverage": 0.9,
+      "mpiw": 1.0188828706741333,
+      "winkler_score": 1.6586977243423462,
+      "coverage_low_flow": 0.875969994030806,
+      "coverage_normal_flow": 0.8808927963494974,
+      "coverage_high_flow": 0.8765946448242121
+    },
+    "calibrated": {
+      "picp": 0.9260377680346529,
+      "target_coverage": 0.9,
+      "mpiw": 1.1501951217651367,
+      "winkler_score": 1.6650944948196411,
+      "coverage_low_flow": 0.946301868911576,
+      "coverage_normal_flow": 0.9339003398455464,
+      "coverage_high_flow": 0.897671957020745
+    }
+  },
+  "comparison": {
+    "mc_dropout": {
+      "nse": 0.8423556685447693,
+      "metrics": {
+        "picp": 0.5956875995445242,
+        "target_coverage": 0.9,
+        "mpiw": 0.3909679353237152,
+        "winkler_score": 2.487447738647461,
+        "coverage_low_flow": 0.8151422596444885,
+        "coverage_normal_flow": 0.48091642808306984,
+        "coverage_high_flow": 0.49448012459619056
+      }
+    },
+    "cqr_single": {
+      "nse": 0.844169020652771,
+      "metrics": {
+        "picp": 0.8893019488479622,
+        "target_coverage": 0.9,
+        "mpiw": 0.8569943308830261,
+        "winkler_score": 1.4028589725494385,
+        "coverage_low_flow": 0.9142713664630455,
+        "coverage_normal_flow": 0.8787483441586189,
+        "coverage_high_flow": 0.8752056882783822
+      }
+    }
+  }
+}

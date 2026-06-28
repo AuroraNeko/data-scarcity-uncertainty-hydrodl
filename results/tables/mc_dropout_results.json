@@ -1,0 +1,18 @@
+{
+  "model": "mc_dropout",
+  "n_mc_samples": 50,
+  "test_nse": 0.8423556685447693,
+  "test_metrics": {
+    "picp": 0.5956875995445242,
+    "target_coverage": 0.9,
+    "mpiw": 0.3909679353237152,
+    "winkler_score": 2.487447738647461,
+    "coverage_low_flow": 0.8151422596444885,
+    "coverage_normal_flow": 0.48091642808306984,
+    "coverage_high_flow": 0.49448012459619056
+  },
+  "vs_cqr": {
+    "picp_diff": -0.2936,
+    "mpiw_diff": -0.466
+  }
+}
