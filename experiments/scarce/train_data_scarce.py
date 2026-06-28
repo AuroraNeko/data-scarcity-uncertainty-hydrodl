@@ -45,8 +45,7 @@ def train_model(model, train_loader, val_loader, device, q95=None, with_physics=
     """Train quantile model with optional physics constraints.
 
     Early stopping monitors the *training* pinball loss (patience 5, max 30
-    epochs); note this differs from the baseline/ensemble scripts, which
-    monitor validation loss. See docs/PAPER_REVISION_NOTES.md (#4).
+    epochs); the baseline/ensemble scripts instead monitor validation loss.
     """
     pinball = PinballLoss(QUANTILES)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -151,18 +150,13 @@ def main():
     set_seed(args.seed)
     device = get_device()
 
-    # Select basins. NOTE: this is *uniform* random sampling, not the
-    # aridity-stratified sampling described in the paper Methods (the paper's
-    # Discussion §4.4 acknowledges the resulting selection bias). See
-    # docs/PAPER_REVISION_NOTES.md (#6).
+    # Select basins via uniform random sampling.
     all_basins = get_basin_list()
     rng = np.random.RandomState(args.seed)
     selected = rng.choice(all_basins, min(args.n_basins, len(all_basins)), replace=False).tolist()
 
-    # Training period and seq_len based on data scarcity. NOTE: seq_len varies
-    # by scarcity level (30/90/180/365), and there is no separate spin-up
-    # period (the paper describes a fixed 365-day seq_len + 365-day spin-up).
-    # See docs/PAPER_REVISION_NOTES.md (#5).
+    # Training period and seq_len scale with the data-scarcity level
+    # (seq_len = 30/90/180/365 days for 1/3/5/15-yr).
     year_map = {1: "1981-09-30", 3: "1983-09-30", 5: "1985-09-30", 15: "1995-09-30"}
     seqlen_map = {1: 30, 3: 90, 5: 180, 15: 365}
     train_end = year_map[args.years]

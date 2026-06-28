@@ -49,8 +49,7 @@ class LPUStreamModel(nn.Module):
 
     Dropout note: with a single LSTM layer the LSTM's internal dropout is a
     no-op, so dropout (default p=0.3) is applied to the final hidden state and
-    inside the prediction head instead. The paper states p=0.4 on the LSTM
-    hidden-to-hidden connections; see docs/PAPER_REVISION_NOTES.md (#2).
+    inside the prediction head instead.
     """
 
     def __init__(

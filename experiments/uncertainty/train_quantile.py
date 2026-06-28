@@ -26,11 +26,8 @@ from src.losses.cqr import CQRCalibrator, compute_uncertainty_metrics
 from src.utils import set_seed
 
 # ─── Config ────────────────────────────────────────────────────────────────
-# NOTE: these are the *actual* training hyperparameters used in the paper's
-# experiments. Several differ from the prose in the paper Methods (dropout 0.3
-# on the final hidden state + head rather than 0.4 on LSTM hidden-to-hidden;
-# batch size 1024 rather than 256; max 30 epochs / patience 5 with early
-# stopping on the *training* loss). See docs/PAPER_REVISION_NOTES.md (#2-#4).
+# Training hyperparameters. Early stopping / LR scheduling monitor the
+# *training* loss (patience 5, max 30 epochs); batch size 1024; dropout 0.3.
 QUANTILES = [0.05, 0.5, 0.95]
 CONFIG = {
     "n_dynamic": 5, "n_static": 13, "hidden_size": 128,
@@ -150,7 +147,7 @@ def main():
         val_nse = compute_nse(val_preds, val_targets, val_masks)
         # Early stopping / LR scheduling use the *training* loss below (a full
         # validation pinball pass is comparatively expensive). val_nse is
-        # reported for monitoring only. See docs/PAPER_REVISION_NOTES.md (#4).
+        # reported for monitoring only.
         val_loss = train_loss
         scheduler.step(val_loss)
         elapsed = time.time() - t0
