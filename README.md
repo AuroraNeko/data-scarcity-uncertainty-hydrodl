@@ -8,13 +8,15 @@ Regression."**
 
 We study how the amount of training data affects the *reliability of
 uncertainty estimates* (not just point accuracy) in deep-learning streamflow
-prediction on the CAMELS-US dataset (671 basins). Reducing training data from
-15 years to 1 year drops 90 % prediction-interval coverage from 89 % to 72 %
-— far more than the corresponding NSE decline (0.844 → 0.665). We diagnose the
-mechanism (systematic interval narrowing, flattened calibration curves,
-flow-regime asymmetry) and show that **Conformalized Quantile Regression (CQR)**
-restores coverage to ~89 % across all scarcity levels with a single forward
-pass and zero extra training cost.
+prediction on the CAMELS-US dataset (671 basins, three forcing products).
+Reducing training data from 15 years to 1 year drops 90 % prediction-interval
+coverage from 83 % to 67 % — far more than the corresponding NSE decline
+(0.884 → 0.719). We diagnose the mechanism (systematic interval narrowing,
+flattened calibration curves, flow-regime asymmetry) and show that
+**Conformalized Quantile Regression (CQR)** restores coverage to ~0.87 across
+all scarcity levels with a single forward pass and zero extra training cost.
+We further show that global CQR fixes *marginal* but not high-flow
+*conditional* coverage, and that per-regime conditional CQR closes the gap.
 
 > **Status:** Research code for a study on data scarcity and uncertainty in
 > hydrological deep learning. Example result JSONs and figures are included;
@@ -24,15 +26,27 @@ pass and zero extra training cost.
 
 ## Key result
 
-| Training data | NSE | PICP (uncalibrated) | PICP (CQR) | $q_{\text{cal}}$ | MPIW |
+| Training data | NSE | PICP (uncal.) | PICP (CQR) | $q_{\text{cal}}$ | MPIW |
 |---|---|---|---|---|---|
-| 1 year  | 0.665 | 0.720 | **0.890** | 0.313 | 1.418 |
-| 3 years | 0.788 | 0.809 | **0.894** | 0.105 | 1.059 |
-| 5 years | 0.818 | 0.786 | **0.880** | 0.093 | 1.039 |
-| 15 years (671 basins) | 0.844 | 0.889 | **0.889** | 0.001 | 0.857 |
+| 1 year  | 0.719 | 0.671 | **0.883** | 0.341 | 1.298 |
+| 3 years | 0.813 | 0.741 | **0.869** | 0.155 | 0.968 |
+| 5 years | 0.843 | 0.774 | **0.866** | 0.096 | 0.833 |
+| 15 years (matched 50 basins) | 0.884 | 0.828 | **0.876** | 0.042 | 0.662 |
 
 Uncertainty coverage degrades **far more** than point accuracy under data
-scarcity, and CQR robustly recovers the target coverage.
+scarcity, and CQR robustly recovers near-target coverage. All four rows use the
+same 50 basins (seed-matched), giving a clean within-set data-volume gradient.
+
+### Marginal vs. conditional coverage
+
+| Flow regime | Uncalibrated | Global CQR | Per-regime CQR |
+|---|---|---|---|
+| Low | 0.91 | 0.996 | 0.885 |
+| Normal | 0.56 | 0.938 | 0.876 |
+| **High (flood)** | **0.50** | **0.736** | **0.888** |
+
+Global CQR restores marginal coverage but leaves high-flow (flood) intervals
+under-covered (0.736 < 0.90). Per-regime conditional CQR restores all regimes.
 
 <p align="center">
   <img src="results/figures/fig1_degradation.png" width="90%"><br>
@@ -41,8 +55,8 @@ scarcity, and CQR robustly recovers the target coverage.
 </p>
 <p align="center">
   <img src="results/figures/fig2_method_comparison.png" width="90%"><br>
-  <em>Among MC Dropout, Deep Ensembles and CQR, only CQR reaches the 90 %
-  target with the narrowest intervals and best Winkler score.</em>
+  <em>Among MC Dropout, Deep Ensembles and CQR, only CQR reaches near-target
+  coverage with the narrowest intervals and best Winkler score.</em>
 </p>
 
 ---
@@ -55,8 +69,9 @@ cd data-scarcity-uncertainty-hydrodl
 pip install -r requirements.txt
 ```
 
-A CUDA GPU is recommended for training (experiments used a single RTX 4090); the
-analysis scripts also run on CPU. Tested with Python 3.11, PyTorch 2.11.
+A CUDA GPU is recommended for training (experiments used a single NVIDIA RTX
+5060 Ti); the analysis scripts also run on CPU. Tested with Python 3.11,
+PyTorch 2.x.
 
 ## Data setup (CAMELS-US, ~24 GB)
 
@@ -68,60 +83,72 @@ python download_camels.py
 python src/data/data_preprocessing.py
 ```
 
-This produces `data/processed/camels_us/<basin_id>.csv` (671 basins) and
-normalization statistics in `data/metadata/`. The dataset is **not** tracked by
-git (see `.gitignore`).
+This produces `data/processed/camels_us/<basin_id>.csv` (671 basins, 15 dynamic
+features from three forcing products) and normalization statistics in
+`data/metadata/`. The dataset is **not** tracked by git (see `.gitignore`).
 
 ## Repository structure
 
 ```
 .
 ├── download_camels.py            # Fetch CAMELS-US from Zenodo
-├── configs/data_config.yaml      # Reference preprocessing settings (documented)
 ├── src/
 │   ├── utils.py                  # Shared helpers: get_device(), set_seed()
-│   ├── data/                     # data_preprocessing.py, dataset.py (6-tuple loader)
+│   ├── data/                     # data_preprocessing.py (3-forcing), dataset.py, compute_perbasin_stats.py
 │   ├── models/                   # lstm, ea_lstm, tcn, transformer, lpu_stream
 │   └── losses/                   # pinball_loss, physics_loss, cqr (calibrator + metrics)
 ├── experiments/
-│   ├── baseline/                 # baselines: climatology, persistence, XGBoost, train_model.py
-│   ├── scarce/                   # data-scarcity experiments (1/3/5/15 yr)
-│   ├── uncertainty/              # quantile+CQR, MC Dropout, Deep Ensembles
-│   ├── physics_guided/           # physics-constrained training
-│   └── analysis/                 # degradation / cross-region / figures / stats
+│   ├── baseline/                 # train_model.py (DL baselines), train_xgboost.py
+│   ├── scarce/                   # data-scarcity experiments (1/3/5/15 yr, 50 basins)
+│   ├── uncertainty/              # quantile+CQR, MC Dropout, Deep Ensembles, fair eval
+│   ├── physics_guided/           # physics-constrained training (auxiliary)
+│   ├── analysis/                 # figures, verification, diagnosis, cross-region, stability
+│   └── orchestrator.py           # Full-pipeline driver (resumable, with verification gates)
+├── paper/                        # manuscript.tex + figures (HESS / Copernicus format)
 └── results/
-    ├── tables/                   # Example output JSONs (committed)
+    ├── tables/                   # Result JSONs (committed, verified by verify_manuscript.py)
     └── figures/                  # Generated figures PNG + PDF (committed)
 ```
 
 ## Reproducing the experiments
 
-The pipeline is **preprocess → train → analyze**. Training writes checkpoints
-to `results/checkpoints/` (git-ignored); the analysis scripts load them.
+### Full pipeline (automated)
+
+```bash
+python experiments/orchestrator.py
+```
+
+This runs all stages sequentially — preprocessing (skip if cached), baseline
+training, quantile + ensemble training, uncertainty evaluation, scarcity +
+cross-region experiments, figure generation, and manuscript verification — with
+per-stage resumability and timeout protection.
+
+### Step-by-step
 
 ```bash
 # Point-prediction baselines (LSTM, EA-LSTM, TCN, Transformer, LPU-Stream)
 python experiments/baseline/train_model.py --model lpu_stream
-python experiments/baseline/train_climatology.py
-python experiments/baseline/train_persistence.py
-python experiments/baseline/train_xgboost.py
+python experiments/baseline/train_xgboost.py          # XGBoost (single-forcing lag features)
+
+# Per-basin NSE evaluation (standard CAMELS metric + bootstrap CIs)
+python experiments/analysis/eval_point_perbasin.py
 
 # Main uncertainty result: quantile regression + CQR calibration
-python experiments/uncertainty/train_quantile.py        # -> lpu_stream_quantile_best.pt
-python experiments/uncertainty/mc_dropout.py            # MC Dropout baseline
-python experiments/uncertainty/train_ensembles_fair.py  # Deep Ensembles (5 seeds)
+python experiments/uncertainty/train_quantile.py                  # single quantile model + CQR
+python experiments/uncertainty/retrain_ensembles_correct.py       # 5-member Deep Ensembles
+python experiments/uncertainty/eval_fair_671.py                   # fair 671-basin comparison (CQR/MC/Ens)
 
-# Data-scarcity experiments (1/3/5/15 yr)
+# Data-scarcity experiments (matched 50 basins, 1/3/5/15 yr)
 python experiments/scarce/train_data_scarce.py --years 1
 python experiments/scarce/train_data_scarce.py --years 1 --no-static   # ablation
 
-# Physics-constrained variant
-python experiments/physics_guided/train_physics.py
-
-# Analysis & figures (require the trained quantile checkpoint above)
-python experiments/analysis/analyze_degradation.py
-python experiments/analysis/cross_region_validation.py
-python experiments/analysis/make_figures.py
+# Analysis & figures
+python experiments/analysis/diagnose_1yr.py             # coverage degradation diagnosis + CQR per-regime
+python experiments/analysis/cross_region_validation.py   # cross-region robustness
+python experiments/analysis/stability_1yr.py             # multi-seed stability
+python experiments/analysis/confidence_levels.py         # 90/95/99 % calibration
+python experiments/analysis/make_figures.py              # regenerate all figures from JSONs
+python experiments/analysis/verify_manuscript.py         # verify all manuscript numbers vs JSONs (101 checks)
 ```
 
 The committed `results/tables/*.json` and `results/figures/*` are example
@@ -129,11 +156,12 @@ outputs from these runs.
 
 ## Model — LPU-Stream
 
-A lightweight recurrent network (98,979 parameters): 13 static catchment
-attributes are embedded into a 32-d vector (MLP 64→32) and concatenated to each
-time step of a 128-unit LSTM; a linear head predicts the three quantiles
-(0.05 / 0.50 / 0.95) trained with the pinball loss. CQR is applied post-hoc on
-a held-out calibration period.
+A lightweight recurrent network (103,969 parameters): 15 dynamic meteorological
+inputs (five variables × three CAMELS forcing products: Daymet, Maurer, NLDAS)
+are processed by a 128-unit LSTM; 13 static catchment attributes are embedded
+into a 32-d vector (MLP 64→32) and concatenated to each time step. A linear
+head predicts the three quantiles (0.05 / 0.50 / 0.95) trained with the pinball
+loss. CQR is applied post-hoc on a held-out 5-year calibration period.
 
 ## License
 
