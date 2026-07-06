@@ -1,0 +1,31 @@
+{
+  "experiment": "data_scarce",
+  "years": 15,
+  "n_basins": 50,
+  "train_samples": 255650,
+  "train_period": "1980-10-01 to 1995-09-30",
+  "test_nse": 0.8840014934539795,
+  "q_cal": 0.04179912805557251,
+  "n_params": 104099,
+  "best_epoch": 30,
+  "train_time_s": 469.9144802093506,
+  "test_uncalibrated": {
+    "picp": 0.8281573498964804,
+    "target_coverage": 0.9,
+    "mpiw": 0.5779445171356201,
+    "winkler_score": 1.346647024154663,
+    "coverage_low_flow": 0.9334867493133397,
+    "coverage_normal_flow": 0.7420941672522839,
+    "coverage_high_flow": 0.8114639986635235
+  },
+  "test_calibrated": {
+    "picp": 0.8757886483638992,
+    "target_coverage": 0.9,
+    "mpiw": 0.6615427136421204,
+    "winkler_score": 1.3085129261016846,
+    "coverage_low_flow": 0.9688961472793408,
+    "coverage_normal_flow": 0.8222606627385264,
+    "coverage_high_flow": 0.8378037235721048
+  },
+  "timestamp": "2026-07-06T12:42:46.390068"
+}

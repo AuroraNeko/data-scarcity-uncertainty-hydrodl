@@ -15,7 +15,7 @@ class LSTMModel(nn.Module):
 
     def __init__(
         self,
-        n_dynamic: int = 5,
+        n_dynamic: int = 15,
         n_static: int = 13,
         hidden_size: int = 128,
         num_layers: int = 1,

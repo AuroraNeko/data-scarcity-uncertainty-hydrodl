@@ -1,7 +1,7 @@
 {
   "model": "lpu_stream_quantile",
   "config": {
-    "n_dynamic": 5,
+    "n_dynamic": 15,
     "n_static": 13,
     "hidden_size": 128,
     "embed_dim": 32,
@@ -18,26 +18,27 @@
     "seed": 42,
     "alpha": 0.1
   },
-  "best_epoch": 9,
-  "q_cal": 0.0005884647252969444,
-  "test_nse": 0.844169020652771,
+  "n_params": 104099,
+  "best_epoch": 30,
+  "q_cal": 0.026521747931838036,
+  "test_nse": 0.8761102557182312,
   "test_uncalibrated": {
-    "picp": 0.8885714259770119,
+    "picp": 0.8107419097656697,
     "target_coverage": 0.9,
-    "mpiw": 0.8558173179626465,
-    "winkler_score": 1.4029890298843384,
-    "coverage_low_flow": 0.9131019206427825,
-    "coverage_normal_flow": 0.8779992094692761,
-    "coverage_high_flow": 0.8749332716956418
+    "mpiw": 0.6595226526260376,
+    "winkler_score": 1.3989193439483643,
+    "coverage_low_flow": 0.8556050850255902,
+    "coverage_normal_flow": 0.7413736005469618,
+    "coverage_high_flow": 0.837349414166763
   },
   "test_calibrated": {
-    "picp": 0.8893019488479622,
+    "picp": 0.8482410244209846,
     "target_coverage": 0.9,
-    "mpiw": 0.8569943308830261,
-    "winkler_score": 1.4028589725494385,
-    "coverage_low_flow": 0.9142713664630455,
-    "coverage_normal_flow": 0.8787483441586189,
-    "coverage_high_flow": 0.8752056882783822
+    "mpiw": 0.7125661373138428,
+    "winkler_score": 1.362058162689209,
+    "coverage_low_flow": 0.8987493808816246,
+    "coverage_normal_flow": 0.7945394624391078,
+    "coverage_high_flow": 0.8530615221207769
   },
-  "timestamp": "2026-06-05T20:34:34.648682"
+  "timestamp": "2026-07-05T12:45:53.311777"
 }

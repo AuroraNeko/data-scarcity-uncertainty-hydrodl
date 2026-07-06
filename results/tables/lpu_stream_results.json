@@ -2,9 +2,9 @@
   "model": "lpu_stream",
   "config": {
     "seq_len": 365,
-    "n_dynamic": 5,
+    "n_dynamic": 15,
     "n_static": 13,
-    "seed": 456,
+    "seed": 42,
     "hidden_size": 128,
     "embed_dim": 32,
     "dropout": 0.3,
@@ -12,10 +12,10 @@
     "learning_rate": 0.001,
     "epochs": 30
   },
-  "best_epoch": 8,
-  "best_val_loss": 0.14835591243083798,
-  "test_loss": 0.16018007041505494,
-  "test_nse": 0.8438880443572998,
-  "n_params": 98849,
-  "timestamp": "2026-06-06T13:32:08.648308"
+  "best_epoch": 17,
+  "best_val_loss": 0.08677565700805319,
+  "test_loss": 0.12533443603485914,
+  "test_nse": 0.8778486847877502,
+  "n_params": 103969,
+  "timestamp": "2026-07-04T15:47:08.276811"
 }

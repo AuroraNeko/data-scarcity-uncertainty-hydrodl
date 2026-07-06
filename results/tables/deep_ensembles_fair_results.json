@@ -1,59 +1,94 @@
 {
-  "n_ensemble": 5,
-  "seeds": [
-    42,
-    123,
-    456,
-    789,
-    999
-  ],
-  "n_basins": 300,
+  "experiment": "deep_ensembles_fair_correct",
+  "n_basins": 671,
+  "procedure": "train_loss_selection",
   "ensemble": {
-    "nse": 0.735704779624939,
-    "q_cal": 0.06565611809492111,
-    "uncalibrated": {
-      "picp": 0.8778499148097079,
+    "n_members": 5,
+    "seeds": [
+      42,
+      123,
+      456,
+      789,
+      999
+    ],
+    "member_nse": [
+      {
+        "seed": 42,
+        "nse": 0.8761102557182312
+      },
+      {
+        "seed": 123,
+        "nse": 0.8766208291053772
+      },
+      {
+        "seed": 456,
+        "nse": 0.8785604238510132
+      },
+      {
+        "seed": 789,
+        "nse": 0.8771799206733704
+      },
+      {
+        "seed": 999,
+        "nse": 0.8802091479301453
+      }
+    ],
+    "member_nse_mean": 0.8777361154556275,
+    "member_nse_std": 0.0014827009216476425,
+    "nse": 0.8922460079193115,
+    "q_cal": 0.005422770977020264,
+    "raw": {
+      "picp": 0.8382452559145566,
       "target_coverage": 0.9,
-      "mpiw": 1.0188828706741333,
-      "winkler_score": 1.6586977243423462,
-      "coverage_low_flow": 0.875969994030806,
-      "coverage_normal_flow": 0.8808927963494974,
-      "coverage_high_flow": 0.8765946448242121
+      "mpiw": 0.6514791250228882,
+      "winkler_score": 1.234596610069275,
+      "coverage_low_flow": 0.868694623300864,
+      "coverage_normal_flow": 0.7850597705324331,
+      "coverage_high_flow": 0.862593350834035
     },
-    "calibrated": {
-      "picp": 0.9260377680346529,
+    "cal": {
+      "picp": 0.8465293580297585,
       "target_coverage": 0.9,
-      "mpiw": 1.1501951217651367,
-      "winkler_score": 1.6650944948196411,
-      "coverage_low_flow": 0.946301868911576,
-      "coverage_normal_flow": 0.9339003398455464,
-      "coverage_high_flow": 0.897671957020745
+      "mpiw": 0.6623246669769287,
+      "winkler_score": 1.2283486127853394,
+      "coverage_low_flow": 0.8795952341643277,
+      "coverage_normal_flow": 0.795840099136826,
+      "coverage_high_flow": 0.8656889938197208
     }
   },
-  "comparison": {
-    "mc_dropout": {
-      "nse": 0.8423556685447693,
-      "metrics": {
-        "picp": 0.5956875995445242,
-        "target_coverage": 0.9,
-        "mpiw": 0.3909679353237152,
-        "winkler_score": 2.487447738647461,
-        "coverage_low_flow": 0.8151422596444885,
-        "coverage_normal_flow": 0.48091642808306984,
-        "coverage_high_flow": 0.49448012459619056
-      }
+  "cqr_single": {
+    "nse": 0.844169020652771,
+    "raw": {
+      "picp": 0.8885714259770119,
+      "target_coverage": 0.9,
+      "mpiw": 0.8558173179626465,
+      "winkler_score": 1.4029890298843384,
+      "coverage_low_flow": 0.9131019206427825,
+      "coverage_normal_flow": 0.8779992094692761,
+      "coverage_high_flow": 0.8749332716956418
     },
-    "cqr_single": {
-      "nse": 0.844169020652771,
-      "metrics": {
-        "picp": 0.8893019488479622,
-        "target_coverage": 0.9,
-        "mpiw": 0.8569943308830261,
-        "winkler_score": 1.4028589725494385,
-        "coverage_low_flow": 0.9142713664630455,
-        "coverage_normal_flow": 0.8787483441586189,
-        "coverage_high_flow": 0.8752056882783822
-      }
+    "cal": {
+      "picp": 0.8893019488479622,
+      "target_coverage": 0.9,
+      "mpiw": 0.8569943308830261,
+      "winkler_score": 1.4028589725494385,
+      "coverage_low_flow": 0.9142713664630455,
+      "coverage_normal_flow": 0.8787483441586189,
+      "coverage_high_flow": 0.8752056882783822
+    },
+    "q_cal": 0.0005884647252969444
+  },
+  "mc_dropout": {
+    "nse": 0.8423610329627991,
+    "raw": {
+      "picp": 0.5957756799901205,
+      "target_coverage": 0.9,
+      "mpiw": 0.3909027576446533,
+      "winkler_score": 2.4879543781280518,
+      "coverage_low_flow": 0.8150349457927467,
+      "coverage_normal_flow": 0.4809271109306897,
+      "coverage_high_flow": 0.49484334670651103
     }
-  }
+  },
+  "timestamp": "2026-07-06T02:32:23"
 }

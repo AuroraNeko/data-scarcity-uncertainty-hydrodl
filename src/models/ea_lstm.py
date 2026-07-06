@@ -86,7 +86,7 @@ class EALSTMModel(nn.Module):
 
     def __init__(
         self,
-        n_dynamic: int = 5,
+        n_dynamic: int = 15,
         n_static: int = 13,
         hidden_size: int = 128,
         dropout: float = 0.3,

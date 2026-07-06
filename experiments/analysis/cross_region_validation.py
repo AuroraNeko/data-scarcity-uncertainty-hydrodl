@@ -1,5 +1,5 @@
 """
-cross_region_validation.py — Within-CAMELS cross-region validation.
+cross_region_validation.py - Within-CAMELS cross-region validation.
 
 Simplified version: computes aggregate metrics for each climate regime
 using the pre-trained CQR model. Much faster - just 4 evaluations needed.
@@ -93,17 +93,18 @@ def eval_group(model, basin_ids, label, device):
         log(f"  PICP: {uq['picp']:.4f}, MPIW: {uq['mpiw']:.4f}, Winkler: {uq['winkler_score']:.4f}")
         log(f"  Coverage low/normal/high: {uq['coverage_low_flow']:.4f}/{uq['coverage_normal_flow']:.4f}/{uq['coverage_high_flow']:.4f}")
         return {"nse": float(nse), "picp": float(uq['picp']), "mpiw": float(uq['mpiw']),
-                "winkler": float(uq['winkler_score']), "n": len(basin_ids)}
+                "winkler": float(uq['winkler_score']), "n_basins": len(basin_ids)}
     else:
-        return {"nse": float(nse), "picp": -1, "mpiw": -1, "winkler": -1, "n": len(basin_ids)}
+        return {"nse": float(nse), "picp": -1, "mpiw": -1, "winkler": -1, "n_basins": len(basin_ids)}
 
 
 def main():
     log("="*60)
-    log("Cross-Region Validation — CAMELS-US Internal")
+    log("Cross-Region Validation - CAMELS-US Internal")
     log("="*60)
     
     device = get_device()
+    torch.backends.cudnn.benchmark = True
     model = load_model(device)
     log(f"Model: {sum(p.numel() for p in model.parameters()):,} params")
     
@@ -114,7 +115,7 @@ def main():
     q50 = np.percentile(ar_vals, 50)
     humid = sorted([b for b, a in aridity.items() if a <= q50])
     dry = sorted([b for b, a in aridity.items() if a > q50])
-    log(f"Humid (≤{q50:.4f}): {len(humid)}, Dry (>{q50:.4f}): {len(dry)}")
+    log(f"Humid (<={q50:.4f}): {len(humid)}, Dry (>{q50:.4f}): {len(dry)}")
     
     results = {}
     results["humid"] = eval_group(model, humid, "Humid Regime", device)
@@ -144,8 +145,18 @@ def main():
             f"{v['mpiw']:>10.4f} {v['winkler']:>10.4f}")
     log(f"{'='*80}")
     
-    log(f"\n✅ PICP consistent across regimes (all within 0.01 of 0.889)")
-    log(f"   → Uncertainty calibration is robust across hydro-climatic regimes.")
+    log(f"\n[OK] PICP consistent across regimes (all within 0.01 of 0.889)")
+    log(f"   -> Uncertainty calibration is robust across hydro-climatic regimes.")
+
+    # Save results JSON: regimes FLAT at top level (make_figures reads
+    # _cr['very_humid'] etc. directly) + metadata.
+    out = PROJECT_ROOT / "results" / "tables" / "cross_region_results.json"
+    save = {**results, "experiment": "cross_region_validation",
+            "n_basins": len(all_basins), "aridity_median": float(q50),
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S")}
+    with open(out, "w") as f:
+        json.dump(save, f, indent=2)
+    log(f"\nSaved -> {out}")
 
 
 if __name__ == "__main__":

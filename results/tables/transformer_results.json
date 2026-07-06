@@ -2,7 +2,7 @@
   "model": "transformer",
   "config": {
     "seq_len": 365,
-    "n_dynamic": 5,
+    "n_dynamic": 15,
     "n_static": 13,
     "seed": 42,
     "d_model": 128,
@@ -12,12 +12,12 @@
     "dropout": 0.2,
     "batch_size": 128,
     "learning_rate": 0.0005,
-    "epochs": 30
+    "epochs": 15
   },
-  "best_epoch": 3,
-  "best_val_loss": 0.18937299727955825,
-  "test_loss": 0.1999801792081412,
-  "test_nse": 0.8050987720489502,
-  "n_params": 274881,
-  "timestamp": "2026-06-05T07:27:32.175808"
+  "best_epoch": 9,
+  "best_val_loss": 0.1285782161857667,
+  "test_loss": 0.21170877248498043,
+  "test_nse": 0.7936680316925049,
+  "n_params": 276161,
+  "timestamp": "2026-07-05T05:58:59.111726"
 }

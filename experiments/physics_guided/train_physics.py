@@ -29,7 +29,7 @@ from src.utils import set_seed
 # ─── Config ────────────────────────────────────────────────────────────────
 CONFIG = {
     # Model
-    "n_dynamic": 5, "n_static": 13, "hidden_size": 128,
+    "n_dynamic": 15, "n_static": 13, "hidden_size": 128,
     "embed_dim": 32, "dropout": 0.3,
     # Training
     "seq_len": 365, "batch_size": 1024, "learning_rate": 1e-3,

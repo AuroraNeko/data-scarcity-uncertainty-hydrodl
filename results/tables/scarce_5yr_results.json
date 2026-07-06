@@ -4,28 +4,28 @@
   "n_basins": 50,
   "train_samples": 82300,
   "train_period": "1980-10-01 to 1985-09-30",
-  "test_nse": 0.8183168768882751,
-  "q_cal": 0.09331387281417847,
-  "n_params": 98979,
+  "test_nse": 0.8431881070137024,
+  "q_cal": 0.09649890661239624,
+  "n_params": 104099,
   "best_epoch": 30,
-  "train_time_s": 737.824512720108,
+  "train_time_s": 78.70232772827148,
   "test_uncalibrated": {
-    "picp": 0.7861930489383063,
+    "picp": 0.774221066742495,
     "target_coverage": 0.9,
-    "mpiw": 0.8524308204650879,
-    "winkler_score": 1.8432862758636475,
-    "coverage_low_flow": 0.8702844285061351,
-    "coverage_normal_flow": 0.6789524898851085,
-    "coverage_high_flow": 0.81254397073308
+    "mpiw": 0.6398879289627075,
+    "winkler_score": 1.8123973608016968,
+    "coverage_low_flow": 0.8942446296100974,
+    "coverage_normal_flow": 0.6642368164979429,
+    "coverage_high_flow": 0.7674475868861685
   },
   "test_calibrated": {
-    "picp": 0.8801583110394094,
+    "picp": 0.8657547919846331,
     "target_coverage": 0.9,
-    "mpiw": 1.0390585660934448,
-    "winkler_score": 1.7300490140914917,
-    "coverage_low_flow": 0.9501283268290968,
-    "coverage_normal_flow": 0.8263652969595575,
-    "coverage_high_flow": 0.8655726748276348
+    "mpiw": 0.8328858017921448,
+    "winkler_score": 1.6699440479278564,
+    "coverage_low_flow": 0.9567907745315192,
+    "coverage_normal_flow": 0.8077573108899397,
+    "coverage_high_flow": 0.8344238075137189
   },
-  "timestamp": "2026-06-05T21:25:56.262377"
+  "timestamp": "2026-07-06T07:11:32.403539"
 }

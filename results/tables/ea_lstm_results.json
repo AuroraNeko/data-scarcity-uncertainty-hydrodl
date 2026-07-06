@@ -2,18 +2,19 @@
   "model": "ea_lstm",
   "config": {
     "seq_len": 365,
-    "n_dynamic": 5,
+    "n_dynamic": 15,
     "n_static": 13,
     "seed": 42,
     "hidden_size": 128,
     "dropout": 0.3,
     "batch_size": 1024,
     "learning_rate": 0.001,
-    "epochs": 30
+    "epochs": 15
   },
-  "best_epoch": 9,
-  "best_val_loss": 0.1585468454822255,
-  "test_nse": 0.8358964323997498,
-  "n_params": 61569,
-  "timestamp": "2026-06-05T12:32:57.258948"
+  "best_epoch": 15,
+  "best_val_loss": 0.09393759458417862,
+  "test_loss": 0.1389739167893934,
+  "test_nse": 0.8645556569099426,
+  "n_params": 65409,
+  "timestamp": "2026-07-05T08:07:22.110625"
 }

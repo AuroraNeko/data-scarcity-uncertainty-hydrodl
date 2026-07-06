@@ -1,7 +1,21 @@
 {
-  "model": "LSTM",
+  "model": "lstm",
+  "config": {
+    "seq_len": 365,
+    "n_dynamic": 15,
+    "n_static": 13,
+    "seed": 42,
+    "hidden_size": 128,
+    "num_layers": 1,
+    "dropout": 0.3,
+    "batch_size": 256,
+    "learning_rate": 0.001,
+    "epochs": 30
+  },
   "best_epoch": 3,
-  "val_nse": 0.8250970840454102,
-  "test_nse": 0.8037827014923096,
-  "n_params": 78273
+  "best_val_loss": 0.13101269281410283,
+  "test_loss": 0.1660942089854127,
+  "test_nse": 0.83812415599823,
+  "n_params": 83393,
+  "timestamp": "2026-07-04T19:58:54.494790"
 }

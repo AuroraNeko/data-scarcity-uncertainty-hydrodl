@@ -58,7 +58,7 @@ MODEL_CONFIGS = {
 
 COMMON_CONFIG = {
     "seq_len": 365,
-    "n_dynamic": 5,
+    "n_dynamic": 15,
     "n_static": 13,
     "seed": 42,
 }
@@ -163,6 +163,7 @@ def main():
     set_seed(cfg["seed"])
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    torch.backends.cudnn.benchmark = True
     print(f"\nDevice: {device}")
     if torch.cuda.is_available():
         print(f"GPU: {torch.cuda.get_device_name(0)}")
@@ -172,7 +173,7 @@ def main():
     print("\nLoading data...")
     train_loader, val_loader, test_loader = create_dataloaders(
         seq_len=cfg["seq_len"], batch_size=cfg["batch_size"],
-        basin_list=get_basin_list(),
+        basin_list=get_basin_list(), num_workers=4,
     )
 
     # Model

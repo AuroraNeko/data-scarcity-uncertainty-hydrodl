@@ -29,14 +29,20 @@ GREEN = '#1a9641'
 ORANGE = '#fdae61'
 DARK = '#333333'
 
-# ─── Data ───
+# ─── Data: loaded from result JSONs to prevent figure/table drift ───
+TABLES = PROJECT_ROOT / 'results' / 'tables'
+def _j(name):
+    return json.load(open(TABLES / name))
+
+_s = {1: _j('scarce_1yr_results.json'), 3: _j('scarce_3yr_results.json'),
+      5: _j('scarce_5yr_results.json'), 15: _j('scarce_15yr_results.json')}
 years = [1, 3, 5, 15]
 scarce_data = {
-    'nse': [0.665, 0.788, 0.818, 0.844],
-    'picp_raw': [0.720, 0.809, 0.786, 0.889],
-    'picp_cal': [0.890, 0.894, 0.880, 0.889],
-    'q_cal': [0.313, 0.105, 0.093, 0.0006],
-    'mpiw': [1.418, 1.059, 1.039, 0.857],
+    'nse':      [_s[y]['test_nse'] for y in years],
+    'picp_raw': [_s[y]['test_uncalibrated']['picp'] for y in years],
+    'picp_cal': [_s[y]['test_calibrated']['picp'] for y in years],
+    'q_cal':    [_s[y]['q_cal'] for y in years],
+    'mpiw':     [_s[y]['test_calibrated']['mpiw'] for y in years],
 }
 
 # ============================================================
@@ -56,7 +62,7 @@ ax.legend(fontsize=9, loc='lower right')
 ax.set_xticks(years)
 ax.set_ylim(0.55, 0.95)
 ax.grid(True, alpha=0.25)
-ax.annotate("$-21\\%$ (NSE)", xy=(1, 0.665), xytext=(2.5, 0.58),
+ax.annotate("$-19\\%$ (NSE)", xy=(1, 0.684), xytext=(2.5, 0.58),
             arrowprops=dict(arrowstyle='->', color=RED, lw=1.5), fontsize=9, color=RED, ha='center')
 
 # (b) PICP
@@ -72,7 +78,7 @@ ax.legend(fontsize=9, loc='lower right')
 ax.set_xticks(years)
 ax.set_ylim(0.65, 0.95)
 ax.grid(True, alpha=0.25)
-ax.annotate("$-19$ pp", xy=(1, 0.720), xytext=(2.5, 0.68),
+ax.annotate("$-17$ pp", xy=(1, 0.720), xytext=(2.5, 0.68),
             arrowprops=dict(arrowstyle='->', color=RED, lw=1.5), fontsize=9, color=RED, ha='center')
 
 # (c) MPIW bars with q_cal annotations on the bars
@@ -103,9 +109,10 @@ print('Figure 1 saved')
 # FIGURE 2: Fair Method Comparison
 # ============================================================
 methods = ['MC Dropout', 'Deep\nEnsembles', 'Deep Ens.\n+ CQR', 'CQR\n(Ours)']
-picp_m = [0.596, 0.878, 0.926, 0.889]
-mpiw_m = [0.391, 1.019, 1.150, 0.857]
-winkler_m = [2.487, 1.659, 1.665, 1.403]
+_de = _j('deep_ensembles_fair_results.json')
+picp_m    = [_de['mc_dropout']['raw']['picp'], _de['ensemble']['raw']['picp'], _de['ensemble']['cal']['picp'], _de['cqr_single']['cal']['picp']]
+mpiw_m    = [_de['mc_dropout']['raw']['mpiw'], _de['ensemble']['raw']['mpiw'], _de['ensemble']['cal']['mpiw'], _de['cqr_single']['cal']['mpiw']]
+winkler_m = [_de['mc_dropout']['raw']['winkler_score'], _de['ensemble']['raw']['winkler_score'], _de['ensemble']['cal']['winkler_score'], _de['cqr_single']['cal']['winkler_score']]
 colors_m = [RED, ORANGE, GREEN, BLUE]
 
 fig, axes = plt.subplots(1, 3, figsize=(13, 4.5))
@@ -134,13 +141,14 @@ print('Figure 2 saved')
 
 # ============================================================
 # FIGURE 3: Calibration Analysis
-# ============================================================
+# Fig 3 data loaded from results/tables/diagnosis_1yr.json (1-yr scarcity model)
+_d = _j('diagnosis_1yr.json')
 fig, axes = plt.subplots(1, 3, figsize=(14, 4.5))
 
 # (a) Calibration curve
 ax = axes[0]
 width_bins = ['Narrow\n(Q1)', 'Mid\n(Q2)', 'Wide\n(Q3)', 'Widest\n(Q4)']
-picp_bins = [0.870, 0.872, 0.876, 0.874]
+picp_bins = _d['calibration_curve_by_width_quartile']
 bars = ax.bar(width_bins, picp_bins, color=BLUE, edgecolor='white', width=0.5, alpha=0.85, zorder=2)
 ax.axhline(y=0.90, color=GREEN, linestyle='--', linewidth=1.5, alpha=0.7, label='Target 90%', zorder=1)
 for i, v in enumerate(picp_bins):
@@ -149,13 +157,14 @@ ax.set_xlabel('Predicted Interval Width Quartile')
 ax.set_ylabel('Observed PICP')
 ax.set_title('(a) Calibration Curve (1-yr model)', fontweight='bold')
 ax.legend(fontsize=9)
-ax.set_ylim(0.82, 0.93)
+ax.set_ylim(0.55, 0.95)
 ax.grid(True, alpha=0.2, axis='y', zorder=1)
 
 # (b) Width Ratio by flow regime
 ax = axes[1]
 flow_labels = ['Low Flow', 'Normal Flow', 'High Flow']
-width_ratios = [1.128, 1.064, 0.701]
+_wr = _d['width_ratio_by_regime']
+width_ratios = [_wr['low']['width_ratio'], _wr['normal']['width_ratio'], _wr['high']['width_ratio']]
 wr_colors = [BLUE, '#abd9e9', RED]
 bars = ax.bar(flow_labels, width_ratios, color=wr_colors, edgecolor='white', width=0.5, alpha=0.85, zorder=2)
 ax.axhline(y=1.0, color=DARK, linestyle='--', linewidth=1.2, alpha=0.6, label='Ideal (= 1.0)', zorder=1)
@@ -171,9 +180,10 @@ ax.grid(True, alpha=0.2, axis='y', zorder=1)
 # (c) Coverage by flow regime across years
 ax = axes[2]
 years_plot = [1, 3, 5, 15]
-cov_low = [0.914, 0.892, 0.885, 0.914]
-cov_normal = [0.880, 0.878, 0.873, 0.879]
-cov_high = [0.845, 0.856, 0.852, 0.875]
+_ay = _d['coverage_by_regime_across_years']
+cov_low = [_ay[y]['low'] for y in ['1', '3', '5', '15']]
+cov_normal = [_ay[y]['normal'] for y in ['1', '3', '5', '15']]
+cov_high = [_ay[y]['high'] for y in ['1', '3', '5', '15']]
 ax.plot(years_plot, cov_low, 'o-', color=BLUE, linewidth=2, markersize=8, label='Low Flow', zorder=3)
 ax.plot(years_plot, cov_normal, 's-', color=ORANGE, linewidth=2, markersize=8, label='Normal Flow', zorder=3)
 ax.plot(years_plot, cov_high, '^-', color=RED, linewidth=2, markersize=8, label='High Flow', zorder=3)
@@ -183,7 +193,7 @@ ax.set_ylabel('PICP')
 ax.set_title('(c) Coverage by Flow Regime', fontweight='bold')
 ax.legend(fontsize=9)
 ax.set_xticks(years_plot)
-ax.set_ylim(0.82, 0.94)
+ax.set_ylim(0.55, 0.95)
 ax.grid(True, alpha=0.25, zorder=1)
 
 plt.tight_layout()
@@ -258,10 +268,13 @@ print('Figure 4 saved')
 # ============================================================
 fig, ax = plt.subplots(1, 1, figsize=(8.5, 5))
 
-regions = ['Very Humid\n(Q1)', 'Humid', 'Transitional\n(Q2-Q3)', 'Dry/\nSemi-arid', 'Very Dry\n(Q4)', 'All\nCAMELS']
-nse_r = [0.843, 0.822, 0.726, 0.786, 0.837, 0.844]
-picp_r = [0.890, 0.880, 0.867, 0.897, 0.930, 0.889]
-colors_r = ['#0571b0', '#92c5de', '#f7f7f7', '#f4a582', '#ca0020', '#555555']
+_cr = _j('cross_region_results.json')
+regions = ['Very Humid\n(Q1)', 'Transitional\n(Q2-Q3)', 'Dry/\nSemi-arid', 'Very Dry\n(Q4)', 'All\nCAMELS']
+_rg = [_cr['very_humid'], _cr['transitional'], _cr['dry'], _cr['very_dry'],
+       {'nse': _s[15]['test_nse'], 'picp': _s[15]['test_calibrated']['picp']}]
+nse_r  = [d['nse'] for d in _rg]
+picp_r = [d['picp'] for d in _rg]
+colors_r = ['#0571b0', '#f7f7f7', '#f4a582', '#ca0020', '#555555']
 
 x = np.arange(len(regions))
 w = 0.35
@@ -301,9 +314,11 @@ fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
 
 # (a) Multi-seed stability chart — simplified
 ax = axes[0]
+# Fig 6a data loaded from results/tables/stability_1yr.json (1-yr init stability)
+_st = _j('stability_1yr.json')
 seeds = ['Seed 42', 'Seed 123', 'Seed 456', 'Mean']
-nse_s = [0.665, 0.729, 0.684, 0.693]
-picp_s = [0.890, 0.901, 0.896, 0.896]
+nse_s = [r['nse'] for r in _st['runs']] + [_st['nse_mean']]
+picp_s = [r['picp_cal'] for r in _st['runs']] + [_st['picp_mean']]
 
 x = np.arange(len(seeds))
 w = 0.28
@@ -332,7 +347,8 @@ ax.legend(lines1 + lines2, labels1 + labels2, fontsize=9, loc='upper left')
 # (b) Static embedding ablation — with bracket-style delta annotations
 ax = axes[1]
 methods = ['1-yr\nw/ static', '1-yr\nw/o static', '5-yr\nw/ static', '5-yr\nw/o static']
-nse_ab = [0.665, 0.581, 0.818, 0.740]
+nse_ab = [_s[1]['test_nse'], _j('scarce_1yr_nostatic_results.json')['test_nse'],
+          _s[5]['test_nse'], _j('scarce_5yr_nostatic_results.json')['test_nse']]
 colors_ab = [BLUE, '#a6dba0', '#2c7bb6', '#92c5de']
 pair_labels = ['1-year', '5-year']
 
