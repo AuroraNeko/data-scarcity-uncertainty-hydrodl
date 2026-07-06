@@ -43,7 +43,7 @@ from src.utils import set_seed
 
 QUANTILES = [0.05, 0.5, 0.95]
 BASE_CONFIG = {
-    "n_dynamic": 5, "n_static": 13, "hidden_size": 128,
+    "n_dynamic": 15, "n_static": 13, "hidden_size": 128,
     "embed_dim": 32, "dropout": 0.3, "quantiles": QUANTILES,
     "seq_len": 365, "batch_size": 1024, "learning_rate": 1e-3,
     "epochs": 30, "alpha": 0.1,
@@ -197,7 +197,9 @@ def main():
     log("=" * 60)
     log(f"Member 0:  existing lpu_stream_quantile_best.pt (seed=42)")
     log(f"Members 1-4: training seeds {NEW_SEEDS}")
-    log(f"Config: 15yr, 671 basins, pinball loss, early stopping")
+    n_basins = len(get_basin_list())
+    log(f"Config: 15yr, {n_basins} basins, pinball loss, early stopping")
+    log(f"NOTE: the Deep Ensemble results reported in the paper (Table 3) were obtained on a 300-basin subset.")
     log(f"Total ensemble: {len(ALL_SEEDS)} models")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -283,7 +285,7 @@ def main():
 
     # ─── Print fair comparison table ────────────────────────────────────
     log(f"\n{'='*75}")
-    log(f"{'FAIR Uncertainty Method Comparison (all methods: 15yr, 671 basins)':^75}")
+    log(f"{'FAIR Uncertainty Method Comparison (all methods: 15yr)':^75}")
     log(f"{'='*75}")
     hdr = f"{'Method':<25} {'NSE':>8} {'PICP':>8} {'MPIW':>8} {'Winkler':>8} {'Inference':>10}"
     log(hdr)

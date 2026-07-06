@@ -52,7 +52,7 @@ log(f"Model: {sum(p.numel() for p in model.parameters()):,} params")
 log("Loading data and predicting...")
 t0 = time.time()
 train_loader, val_loader, test_loader = create_dataloaders(
-    seq_len=365, batch_size=1024, basin_list=get_basin_list()[:200])
+    seq_len=365, batch_size=1024, basin_list=get_basin_list())
 
 vp, vt, vm = predict(model, val_loader, device)
 tp, tt, tm = predict(model, test_loader, device)
@@ -110,5 +110,5 @@ out_path = TABLES_DIR / "confidence_level_results.json"
 out_path.parent.mkdir(parents=True, exist_ok=True)
 with open(out_path, "w") as f:
     json.dump(results, f, indent=2)
-log(f"\n✅ Saved to {out_path}")
+log(f"\n[OK] Saved to {out_path}")
 log(f"Done! Confidence level comparison complete.")

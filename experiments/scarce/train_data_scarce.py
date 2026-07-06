@@ -183,7 +183,8 @@ def main():
     val_ds = CamelsDataset(selected, VAL_START, VAL_END, seq_len, preview=True)
     test_ds = CamelsDataset(selected, TEST_START, TEST_END, seq_len, preview=True)
 
-    train_loader = torch.utils.data.DataLoader(train_ds, batch_size=batch_size, shuffle=True, pin_memory=True)
+    train_loader = torch.utils.data.DataLoader(train_ds, batch_size=batch_size, shuffle=True, pin_memory=True,
+                                                num_workers=4, persistent_workers=True, prefetch_factor=2)
     val_loader = torch.utils.data.DataLoader(val_ds, batch_size=batch_size, shuffle=False, pin_memory=True)
     test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, shuffle=False, pin_memory=True)
 

@@ -30,7 +30,7 @@ from src.utils import set_seed
 # *training* loss (patience 5, max 30 epochs); batch size 1024; dropout 0.3.
 QUANTILES = [0.05, 0.5, 0.95]
 CONFIG = {
-    "n_dynamic": 5, "n_static": 13, "hidden_size": 128,
+    "n_dynamic": 15, "n_static": 13, "hidden_size": 128,
     "embed_dim": 32, "dropout": 0.3, "quantiles": QUANTILES,
     "seq_len": 365, "batch_size": 1024, "learning_rate": 1e-3,
     "epochs": 30, "seed": 42, "alpha": 0.1,
@@ -99,6 +99,7 @@ def main():
 
     set_seed(cfg["seed"])
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    torch.backends.cudnn.benchmark = True
     print(f"Device: {device}")
     if torch.cuda.is_available():
         print(f"GPU: {torch.cuda.get_device_name(0)}")
