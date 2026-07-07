@@ -53,7 +53,6 @@ fig, axes = plt.subplots(1, 3, figsize=(14, 4.5))
 # (a) NSE
 ax = axes[0]
 ax.plot(years, scarce_data['nse'], 'o-', color=BLUE, linewidth=2.5, markersize=9, label='LPU-Stream', zorder=3)
-ax.axhline(y=0.862, color=RED, linestyle='--', linewidth=1.5, label='XGBoost (full data)')
 ax.fill_between(years, 0.5, scarce_data['nse'], alpha=0.08, color=BLUE)
 ax.set_xlabel('Training Data (years)')
 ax.set_ylabel('Test NSE')
@@ -62,7 +61,8 @@ ax.legend(fontsize=9, loc='lower right')
 ax.set_xticks(years)
 ax.set_ylim(0.55, 0.95)
 ax.grid(True, alpha=0.25)
-ax.annotate("$-19\\%$ (NSE)", xy=(1, 0.684), xytext=(2.5, 0.58),
+ax.annotate(f"$-{(scarce_data['nse'][-1]-scarce_data['nse'][0])/scarce_data['nse'][-1]*100:.0f}\\%$ (NSE)",
+            xy=(1, scarce_data['nse'][0]), xytext=(2.5, 0.58),
             arrowprops=dict(arrowstyle='->', color=RED, lw=1.5), fontsize=9, color=RED, ha='center')
 
 # (b) PICP
@@ -78,7 +78,8 @@ ax.legend(fontsize=9, loc='lower right')
 ax.set_xticks(years)
 ax.set_ylim(0.65, 0.95)
 ax.grid(True, alpha=0.25)
-ax.annotate("$-17$ pp", xy=(1, 0.720), xytext=(2.5, 0.68),
+ax.annotate(f"$-{(scarce_data['picp_raw'][-1]-scarce_data['picp_raw'][0])*100:.0f}$ pp",
+            xy=(1, scarce_data['picp_raw'][0]), xytext=(2.5, 0.68),
             arrowprops=dict(arrowstyle='->', color=RED, lw=1.5), fontsize=9, color=RED, ha='center')
 
 # (c) MPIW bars with q_cal annotations on the bars
@@ -109,10 +110,13 @@ print('Figure 1 saved')
 # FIGURE 2: Fair Method Comparison
 # ============================================================
 methods = ['MC Dropout', 'Deep\nEnsembles', 'Deep Ens.\n+ CQR', 'CQR\n(Ours)']
-_de = _j('deep_ensembles_fair_results.json')
-picp_m    = [_de['mc_dropout']['raw']['picp'], _de['ensemble']['raw']['picp'], _de['ensemble']['cal']['picp'], _de['cqr_single']['cal']['picp']]
-mpiw_m    = [_de['mc_dropout']['raw']['mpiw'], _de['ensemble']['raw']['mpiw'], _de['ensemble']['cal']['mpiw'], _de['cqr_single']['cal']['mpiw']]
-winkler_m = [_de['mc_dropout']['raw']['winkler_score'], _de['ensemble']['raw']['winkler_score'], _de['ensemble']['cal']['winkler_score'], _de['cqr_single']['cal']['winkler_score']]
+# MUST match manuscript Table 3 / verify_manuscript.py: fair_comparison_671.json is the
+# paper's authoritative source. (deep_ensembles_fair_results.json holds a DIFFERENT
+# MC-dropout / CQR-single run and must NOT be used here -- it caused figure/table drift.)
+_de = _j('fair_comparison_671.json')
+picp_m    = [_de['mc_dropout']['raw']['picp'], _de['deep_ensembles']['raw']['picp'], _de['deep_ensembles']['cal']['picp'], _de['cqr_single']['cal']['picp']]
+mpiw_m    = [_de['mc_dropout']['raw']['mpiw'], _de['deep_ensembles']['raw']['mpiw'], _de['deep_ensembles']['cal']['mpiw'], _de['cqr_single']['cal']['mpiw']]
+winkler_m = [_de['mc_dropout']['raw']['winkler_score'], _de['deep_ensembles']['raw']['winkler_score'], _de['deep_ensembles']['cal']['winkler_score'], _de['cqr_single']['cal']['winkler_score']]
 colors_m = [RED, ORANGE, GREEN, BLUE]
 
 fig, axes = plt.subplots(1, 3, figsize=(13, 4.5))
@@ -155,9 +159,9 @@ for i, v in enumerate(picp_bins):
     ax.text(i, v + 0.005, f'{v:.3f}', ha='center', fontsize=9, fontweight='bold')
 ax.set_xlabel('Predicted Interval Width Quartile')
 ax.set_ylabel('Observed PICP')
-ax.set_title('(a) Calibration Curve (1-yr model)', fontweight='bold')
+ax.set_title('(a) Coverage by Width Quartile', fontweight='bold')
 ax.legend(fontsize=9)
-ax.set_ylim(0.55, 0.95)
+ax.set_ylim(0.45, 0.95)
 ax.grid(True, alpha=0.2, axis='y', zorder=1)
 
 # (b) Width Ratio by flow regime
@@ -181,9 +185,9 @@ ax.grid(True, alpha=0.2, axis='y', zorder=1)
 ax = axes[2]
 years_plot = [1, 3, 5, 15]
 _ay = _d['coverage_by_regime_across_years']
-cov_low = [_ay[y]['low'] for y in ['1', '3', '5', '15']]
-cov_normal = [_ay[y]['normal'] for y in ['1', '3', '5', '15']]
-cov_high = [_ay[y]['high'] for y in ['1', '3', '5', '15']]
+cov_low = [_ay['1']['low'], _ay['3']['low'], _ay['5']['low'], _s[15]['test_uncalibrated']['coverage_low_flow']]
+cov_normal = [_ay['1']['normal'], _ay['3']['normal'], _ay['5']['normal'], _s[15]['test_uncalibrated']['coverage_normal_flow']]
+cov_high = [_ay['1']['high'], _ay['3']['high'], _ay['5']['high'], _s[15]['test_uncalibrated']['coverage_high_flow']]
 ax.plot(years_plot, cov_low, 'o-', color=BLUE, linewidth=2, markersize=8, label='Low Flow', zorder=3)
 ax.plot(years_plot, cov_normal, 's-', color=ORANGE, linewidth=2, markersize=8, label='Normal Flow', zorder=3)
 ax.plot(years_plot, cov_high, '^-', color=RED, linewidth=2, markersize=8, label='High Flow', zorder=3)
@@ -193,7 +197,7 @@ ax.set_ylabel('PICP')
 ax.set_title('(c) Coverage by Flow Regime', fontweight='bold')
 ax.legend(fontsize=9)
 ax.set_xticks(years_plot)
-ax.set_ylim(0.55, 0.95)
+ax.set_ylim(0.45, 0.95)
 ax.grid(True, alpha=0.25, zorder=1)
 
 plt.tight_layout()
@@ -255,7 +259,7 @@ ax.text(1.5, 4.5, 'Basin Properties', ha='center', fontsize=9, fontstyle='italic
 ax.text(9.0, 5.2, 'Hidden State', fontsize=8, fontstyle='italic', color='#555')
 ax.text(9.0, 3.5, 'Conditioned\nRepresentation', fontsize=8, fontstyle='italic', color='#555')
 ax.text(9.0, 0.6, 'Coverage-\nAdjusted', fontsize=8, fontstyle='italic', color='#555')
-ax.text(5, 5.9, 'LPU-Stream Architecture (99K parameters)', ha='center', fontsize=13, fontweight='bold')
+ax.text(5, 5.9, 'LPU-Stream Architecture (103,969 parameters)', ha='center', fontsize=13, fontweight='bold')
 
 plt.tight_layout()
 fig.savefig(FIG_DIR / 'fig4_architecture.png')
@@ -269,25 +273,27 @@ print('Figure 4 saved')
 fig, ax = plt.subplots(1, 1, figsize=(8.5, 5))
 
 _cr = _j('cross_region_results.json')
+_fair = _j('fair_comparison_671.json')
 regions = ['Very Humid\n(Q1)', 'Transitional\n(Q2-Q3)', 'Dry/\nSemi-arid', 'Very Dry\n(Q4)', 'All\nCAMELS']
 _rg = [_cr['very_humid'], _cr['transitional'], _cr['dry'], _cr['very_dry'],
-       {'nse': _s[15]['test_nse'], 'picp': _s[15]['test_calibrated']['picp']}]
+       {'nse': _fair['cqr_single']['nse'], 'picp': _fair['cqr_single']['cal']['picp']}]
 nse_r  = [d['nse'] for d in _rg]
 picp_r = [d['picp'] for d in _rg]
-colors_r = ['#0571b0', '#f7f7f7', '#f4a582', '#ca0020', '#555555']
+colors_r = ['#0571b0', '#92c5de', '#f4a582', '#ca0020', '#555555']  # NSE per-regime (aridity colormap)
 
 x = np.arange(len(regions))
 w = 0.35
 
 bars1 = ax.bar(x - w/2, nse_r, w, color=colors_r, edgecolor='#333', linewidth=0.5, label='NSE', alpha=0.85, zorder=2)
 ax_twin = ax.twinx()
-bars2 = ax_twin.bar(x + w/2, picp_r, w, color=BLUE, edgecolor='#333', linewidth=0.5, label='PICP', alpha=0.7, zorder=2)
-ax_twin.axhline(y=0.90, color=GREEN, linestyle='--', linewidth=1.5, alpha=0.6, zorder=1)
+# PICP in GREEN so it cannot be confused with the (blue) humid-regime NSE bar.
+bars2 = ax_twin.bar(x + w/2, picp_r, w, color=GREEN, edgecolor='#333', linewidth=0.5, label='PICP', alpha=0.8, zorder=2)
+ax_twin.axhline(y=0.90, color=DARK, linestyle='--', linewidth=1.5, alpha=0.6, zorder=1)
 
 ax.set_xticks(x)
 ax.set_xticklabels(regions, fontsize=9)
 ax.set_ylabel('NSE', color=DARK)
-ax_twin.set_ylabel('PICP', color=BLUE)
+ax_twin.set_ylabel('PICP', color=GREEN)
 ax.set_title('Cross-Region Validation', fontweight='bold')
 ax.grid(True, alpha=0.2, axis='y', zorder=1)
 ax.set_ylim(0.6, 1.0)
@@ -295,7 +301,7 @@ ax_twin.set_ylim(0.6, 1.0)
 
 for i in range(len(regions)):
     ax.text(i - w/2, nse_r[i] + 0.012, f'{nse_r[i]:.3f}', ha='center', fontsize=8.5, fontweight='bold')
-    ax_twin.text(i + w/2, picp_r[i] + 0.012, f'{picp_r[i]:.3f}', ha='center', fontsize=8.5, color=BLUE, fontweight='bold')
+    ax_twin.text(i + w/2, picp_r[i] + 0.012, f'{picp_r[i]:.3f}', ha='center', fontsize=8.5, color=GREEN, fontweight='bold')
 
 lines1, labels1 = ax.get_legend_handles_labels()
 lines2, labels2 = ax_twin.get_legend_handles_labels()
@@ -379,6 +385,77 @@ fig.savefig(FIG_DIR / 'fig6_stability_ablation.png')
 fig.savefig(FIG_DIR / 'fig6_stability_ablation.pdf')
 plt.close()
 print('Figure 6 saved')
+
+# ============================================================
+# FIGURE 7: Robustness and Sensitivity Checks
+# ============================================================
+_er = _j('enhanced_robustness.json')
+_diag = _j('diagnosis_1yr.json')
+fig, axes = plt.subplots(1, 2, figsize=(12, 4.6))
+
+# (a) calibration-window sensitivity on the full 671-basin model
+ax = axes[0]
+cal_years = np.array([1, 2, 3, 4, 5])
+sens = _er['calibration_window_sensitivity']
+picp_w = np.array([sens[str(y)]['picp'] for y in cal_years])
+wink_w = np.array([sens[str(y)]['winkler'] for y in cal_years])
+ax.plot(cal_years, picp_w, 'o-', color=BLUE, linewidth=2.4, markersize=7, label='PICP', zorder=3)
+ax.axhline(y=0.90, color=GREEN, linestyle='--', linewidth=1.3, alpha=0.65, label='Target 90%', zorder=1)
+ax.set_xlabel('Calibration Window (years)')
+ax.set_ylabel('PICP', color=BLUE)
+ax.tick_params(axis='y', labelcolor=BLUE)
+ax.set_ylim(0.83, 0.91)
+ax.set_xticks(cal_years)
+ax.grid(True, alpha=0.22, zorder=1)
+for xval, yval in zip(cal_years, picp_w):
+    ax.text(xval, yval + 0.0022, f'{yval:.3f}', ha='center', fontsize=8, color=BLUE, fontweight='bold')
+ax2 = ax.twinx()
+ax2.plot(cal_years, wink_w, 's-', color=RED, linewidth=2.0, markersize=6, label='Winkler', zorder=3)
+ax2.set_ylabel('Winkler Score', color=RED)
+ax2.tick_params(axis='y', labelcolor=RED)
+ax2.set_ylim(1.32, 1.39)
+ax.set_title('(a) Calibration-Window Sensitivity', fontweight='bold')
+lines1, labels1 = ax.get_legend_handles_labels()
+lines2, labels2 = ax2.get_legend_handles_labels()
+ax.legend(lines1 + lines2, labels1 + labels2, fontsize=8.5, loc='lower right')
+
+# (b) deployable predicted-regime CQR under the 1-year scarcity setting
+ax = axes[1]
+regimes = ['Low', 'Normal', 'High']
+raw = [_diag['width_ratio_by_regime'][k]['picp'] for k in ['low', 'normal', 'high']]
+global_cqr = [_diag['coverage_by_regime_cqr_global'][k] for k in ['low', 'normal', 'high']]
+pred_cqr = [_diag['coverage_by_regime_cqr_predregime'][k] for k in ['low', 'normal', 'high']]
+oracle_cqr = [_diag['coverage_by_regime_cqr_perregime'][k] for k in ['low', 'normal', 'high']]
+x = np.arange(len(regimes))
+w = 0.19
+series = [
+    (raw, 'Raw QR', RED),
+    (global_cqr, 'Global CQR', BLUE),
+    (pred_cqr, 'Pred-regime CQR', ORANGE),
+    (oracle_cqr, 'Observed-regime CQR', GREEN),
+]
+for i, (vals, label, color) in enumerate(series):
+    offset = (i - 1.5) * w
+    bars = ax.bar(x + offset, vals, width=w, label=label, color=color,
+                  edgecolor='white', linewidth=0.7, alpha=0.86, zorder=2)
+    for b, v in zip(bars, vals):
+        ax.text(b.get_x() + b.get_width()/2, v + 0.012, f'{v:.2f}',
+                ha='center', fontsize=7.4, rotation=90 if i < 3 else 0,
+                fontweight='bold', color=color)
+ax.axhline(y=0.90, color=DARK, linestyle='--', linewidth=1.2, alpha=0.55, zorder=1)
+ax.set_xticks(x)
+ax.set_xticklabels(regimes)
+ax.set_ylabel('PICP by Observed Flow Regime')
+ax.set_ylim(0.45, 1.05)
+ax.set_title('(b) Conditional Calibration (1-yr)', fontweight='bold')
+ax.grid(True, alpha=0.22, axis='y', zorder=1)
+ax.legend(fontsize=8, loc='lower left', ncol=2)
+
+plt.tight_layout()
+fig.savefig(FIG_DIR / 'fig7_robustness_sensitivity.png')
+fig.savefig(FIG_DIR / 'fig7_robustness_sensitivity.pdf')
+plt.close()
+print('Figure 7 saved')
 
 print('\nAll figures generated successfully!')
 for f in sorted(FIG_DIR.glob('*.pdf')):
