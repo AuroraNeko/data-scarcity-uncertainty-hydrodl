@@ -90,7 +90,7 @@ def uncov(yrs):
     if yrs == 1:
         return {k: regime[k]['picp'] for k in ['low', 'normal', 'high']}
     f = {'3': 'scarce_3yr_results.json', '5': 'scarce_5yr_results.json',
-         '15': 'lpu_stream_quantile_results.json'}[str(yrs)]
+         '15': 'scarce_15yr_results.json'}[str(yrs)]
     u = json.load(open(PROJECT_ROOT / 'results' / 'tables' / f))['test_uncalibrated']
     return {'low': u['coverage_low_flow'], 'normal': u['coverage_normal_flow'],
             'high': u['coverage_high_flow']}
@@ -126,10 +126,47 @@ for k, m in vmasks.items():
     c = conf[m]
     q_cal_regime[k] = float(np.quantile(c, (1 - alpha) * (1 + 1 / len(c))) if len(c) > 0 else 0.0)
     cqr_perregime[k] = cqr_picp(q05[masks[k]], q95[masks[k]], y[masks[k]], q_cal_regime[k])
+
+# deployable conditional CQR: use predicted median-flow tertiles instead of
+# observed-flow tertiles. Calibration and test-time assignment both depend only
+# on model outputs, so this variant can be used before observations arrive.
+pred_q33, pred_q67 = np.percentile(v50, [33, 67])
+pred_vmasks = {
+    'low': v50 <= pred_q33,
+    'normal': (v50 > pred_q33) & (v50 <= pred_q67),
+    'high': v50 > pred_q67,
+}
+pred_tmasks = {
+    'low': q50 <= pred_q33,
+    'normal': (q50 > pred_q33) & (q50 <= pred_q67),
+    'high': q50 > pred_q67,
+}
+q_cal_predregime = {}
+qc_by_sample = np.zeros_like(y, dtype=np.float32)
+for k, m in pred_vmasks.items():
+    c = conf[m]
+    q_cal_predregime[k] = float(np.quantile(c, (1 - alpha) * (1 + 1 / len(c))) if len(c) > 0 else 0.0)
+    qc_by_sample[pred_tmasks[k]] = q_cal_predregime[k]
+pred_lo, pred_hi = q05 - qc_by_sample, q95 + qc_by_sample
+cqr_predregime_overall = {
+    'picp': float(((y >= pred_lo) & (y <= pred_hi)).mean()),
+    'mpiw': float((pred_hi - pred_lo).mean()),
+}
+cqr_predregime_by_observed_regime = {
+    k: float(((y[m] >= pred_lo[m]) & (y[m] <= pred_hi[m])).mean())
+    for k, m in masks.items()
+}
+cqr_predregime_by_predicted_regime = {
+    k: float(((y[m] >= pred_lo[m]) & (y[m] <= pred_hi[m])).mean())
+    for k, m in pred_tmasks.items()
+}
+predregime_counts = {k: {'cal': int(pred_vmasks[k].sum()), 'test': int(pred_tmasks[k].sum())}
+                     for k in pred_vmasks}
 print(f"\nCQR global q_cal={q_cal_global:.4f}; per-regime q_cal={ {k:round(v,4) for k,v in q_cal_regime.items()} }", flush=True)
 print(f"per-regime PICP  raw={ {k:round(regime[k]['picp'],3) for k in regime} }", flush=True)
 print(f"                 CQR-global={ {k:round(v,3) for k,v in cqr_global_regime.items()} }", flush=True)
 print(f"                 CQR-perregime={ {k:round(v,3) for k,v in cqr_perregime.items()} }", flush=True)
+print(f"                 CQR-predregime={ {k:round(v,3) for k,v in cqr_predregime_by_observed_regime.items()} }", flush=True)
 
 out = {
     'model': '1yr_scarcity_diagnosis', 'n_basins': 50, 'seq_len': seq_len,
@@ -140,8 +177,14 @@ out = {
     'coverage_by_regime_across_years': across_years,
     'cqr_global_q_cal': q_cal_global,
     'cqr_perregime_q_cal': q_cal_regime,
+    'cqr_predregime_q_cal': q_cal_predregime,
+    'cqr_predregime_thresholds': {'q50_33': float(pred_q33), 'q50_67': float(pred_q67)},
+    'cqr_predregime_counts': predregime_counts,
     'coverage_by_regime_cqr_global': cqr_global_regime,
     'coverage_by_regime_cqr_perregime': cqr_perregime,
+    'coverage_by_regime_cqr_predregime': cqr_predregime_by_observed_regime,
+    'coverage_by_predicted_regime_cqr_predregime': cqr_predregime_by_predicted_regime,
+    'cqr_predregime_overall': cqr_predregime_overall,
 }
 with open(PROJECT_ROOT / 'results' / 'tables' / 'diagnosis_1yr.json', 'w') as f:
     json.dump(out, f, indent=2)
