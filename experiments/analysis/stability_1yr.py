@@ -1,4 +1,4 @@
-"""stability_1yr.py — True initialization stability of the 1-year scarcity model.
+"""stability_1yr.py  -  True initialization stability of the 1-year scarcity model.
 
 Fixes the 50 basins (seed-42 selection, i.e. the Table 2 1-year basin set) and
 varies ONLY the model initialization across seeds 42/123/456, reporting NSE and
@@ -25,7 +25,7 @@ from train_data_scarce import train_model, predict, compute_nse
 QUANTILES = [0.05, 0.5, 0.95]
 device = get_device()
 
-# fixed basin selection (seed 42) — identical 50 basins across all init seeds
+# fixed basin selection (seed 42)  -  identical 50 basins across all init seeds
 all_basins = get_basin_list()
 selected = np.random.RandomState(42).choice(all_basins, 50, replace=False).tolist()
 seq_len, train_start, train_end = 30, "1980-10-01", "1981-09-30"

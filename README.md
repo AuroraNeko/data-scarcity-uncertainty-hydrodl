@@ -2,7 +2,7 @@
 
 # Data Scarcity and Uncertainty in Hydrological Deep Learning
 
-Companion code for the manuscript:
+Companion code for the paper:
 
 **How Data Scarcity Compromises Uncertainty Estimates in Hydrological Deep
 Learning and How Conformal Calibration Mitigates It**
@@ -69,7 +69,7 @@ cd data-scarcity-uncertainty-hydrodl
 pip install -r requirements.txt
 ```
 
-A CUDA GPU is recommended for training. Figure generation and manuscript-number
+A CUDA GPU is recommended for training. Figure generation and reported-number
 verification can run on CPU once the result files are present. The experiments
 were run with Python 3.11 and PyTorch 2.x.
 
@@ -89,6 +89,10 @@ data/processed/camels_us/<basin_id>.csv
 data/metadata/normalization_stats.json
 data/metadata/basin_metadata.csv
 ```
+
+The download helper points to the CAMELS-US archive used in this project:
+[Zenodo record 15529996](https://zenodo.org/records/15529996), DOI
+[10.5065/D6MW2F4D](https://doi.org/10.5065/D6MW2F4D).
 
 The processed files contain 15 dynamic variables from Daymet, Maurer, and NLDAS
 (five variables from each product), 13 static catchment attributes, streamflow
@@ -123,12 +127,13 @@ in mm/day, a missing-flow mask, and normalized training-period features.
 `-- requirements.txt
 ```
 
-The manuscript source and compiled submission files are handled as release or
-submission artifacts, not as part of the public code checkout.
+Paper source files, compiled PDFs, and submission materials are managed outside
+the public code checkout.
 
 ## Reproducing the Experiments
 
-Run the full pipeline:
+First complete the data setup above. Then run the resumable experiment
+orchestrator:
 
 ```bash
 python experiments/orchestrator.py
@@ -160,9 +165,10 @@ python experiments/analysis/make_figures.py
 python experiments/analysis/verify_manuscript.py
 ```
 
-`verify_manuscript.py` checks stored numerical results against the manuscript
-source when `paper/manuscript.tex` is available. In a code-only checkout, it
-still audits the machine-readable JSON results and skips text-presence checks.
+`verify_manuscript.py` checks stored numerical results against the paper source
+when `paper/manuscript.tex` is available in a local author checkout. In the
+public code checkout, it still audits the machine-readable JSON results and
+skips text-presence checks.
 
 ## Model Summary
 
@@ -176,8 +182,8 @@ period and does not retrain the network.
 ## Reproducibility Notes
 
 See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for temporal splits, seeds,
-calibration settings, figure regeneration, and the recommended release archive
-contents.
+calibration settings, figure regeneration, and the public repository
+inclusion/exclusion policy.
 
 ## License
 

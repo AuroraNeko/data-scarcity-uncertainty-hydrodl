@@ -1,8 +1,8 @@
 """
-train_climatology.py — Climatology baseline for CAMELS-US.
+train_climatology.py  -  Climatology baseline for CAMELS-US.
 
 Predicts streamflow using the historical mean for each day-of-year.
-Simplest possible baseline — required by hydrology reviewers.
+Simplest possible baseline for hydrology model comparison.
 
 Usage:
     python experiments/baseline/train_climatology.py
@@ -35,7 +35,7 @@ def compute_nse(preds, targets):
 
 def main():
     print("=" * 60)
-    print("Climatology Baseline — CAMELS-US")
+    print("Climatology Baseline  -  CAMELS-US")
     print("=" * 60)
 
     basins = pd.read_csv(METADATA_DIR / "basin_metadata.csv", dtype={"basin_id": str})["basin_id"].tolist()

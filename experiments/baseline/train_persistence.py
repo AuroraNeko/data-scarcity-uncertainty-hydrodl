@@ -1,8 +1,8 @@
 """
-train_persistence.py — Persistence baseline for CAMELS-US.
+train_persistence.py  -  Persistence baseline for CAMELS-US.
 
 Predicts today's streamflow as yesterday's streamflow.
-Trivially simple but expected by hydrology reviewers.
+Simple reference baseline for hydrology model comparison.
 
 Usage:
     python experiments/baseline/train_persistence.py
@@ -36,7 +36,7 @@ def compute_nse(preds, targets):
 
 def main():
     print("=" * 60)
-    print("Persistence Baseline — CAMELS-US")
+    print("Persistence Baseline  -  CAMELS-US")
     print("=" * 60)
 
     basins = pd.read_csv(METADATA_DIR / "basin_metadata.csv", dtype={"basin_id": str})["basin_id"].tolist()

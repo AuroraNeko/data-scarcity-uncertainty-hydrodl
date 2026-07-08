@@ -1,8 +1,8 @@
-"""eval_raw.py — Standard-metric evaluation pipeline (Phase 2).
+"""eval_raw.py  -  Standard-metric evaluation pipeline (Phase 2).
 
-Evaluates a quantile model in RAW flow units (mm/day), reporting the metrics a
-hydrology reviewer expects:
-  * per-basin NSE on raw flow (median + mean across basins) — the CAMELS convention
+Evaluates a quantile model in RAW flow units (mm/day), reporting standard
+hydrology benchmark metrics:
+  * per-basin NSE on raw flow (median + mean across basins)  -  the CAMELS convention
   * pooled PICP / MPIW on raw flow (PICP is invariant under the monotonic inverse
     transform, so it matches the normalized-scale PICP; MPIW is now in mm/day)
   * bootstrap 95% CIs (cluster bootstrap by basin, to respect within-basin correlation)
@@ -136,7 +136,7 @@ def main():
     ci = cluster_bootstrap(rec)
 
     print("\n" + "=" * 60)
-    print(f"RAW-FLOW METRICS — {ckpt_name} ({len(rec)} basins, CQR-calibrated)")
+    print(f"RAW-FLOW METRICS  -  {ckpt_name} ({len(rec)} basins, CQR-calibrated)")
     print("=" * 60)
     print(f"Per-basin NSE  median = {pooled['nse_median']:.4f}  "
           f"95% CI [{ci['nse_median_ci'][0]:.4f}, {ci['nse_median_ci'][1]:.4f}]")

@@ -1,5 +1,5 @@
 """
-train_physics.py — Train LPU-Stream with physics constraints.
+train_physics.py  -  Train LPU-Stream with physics constraints.
 
 Usage:
     python experiments/physics_guided/train_physics.py
@@ -26,7 +26,7 @@ from src.data.dataset import create_dataloaders, get_basin_list
 from src.losses.physics_loss import PhysicsLoss
 from src.utils import set_seed
 
-# ─── Config ────────────────────────────────────────────────────────────────
+# --- Config ----------------------------------------------------------------
 CONFIG = {
     # Model
     "n_dynamic": 15, "n_static": 13, "hidden_size": 128,

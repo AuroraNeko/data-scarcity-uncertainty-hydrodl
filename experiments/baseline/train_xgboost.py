@@ -1,5 +1,5 @@
 """
-train_xgboost.py — XGBoost baseline for CAMELS-US streamflow prediction.
+train_xgboost.py  -  XGBoost baseline for CAMELS-US streamflow prediction.
 
 Memory-efficient: builds features basin-by-basin, saves to intermediate
 parquet files, then trains XGBoost from disk.
@@ -22,7 +22,7 @@ PROCESSED_DIR = PROJECT_ROOT / "data" / "processed" / "camels_us"
 METADATA_DIR = PROJECT_ROOT / "data" / "metadata"
 FEAT_DIR = PROJECT_ROOT / "data" / "processed" / "xgboost_features"
 
-# 15 dynamic features (5 vars x 3 forcing products) — matches the DL models'
+# 15 dynamic features (5 vars x 3 forcing products)  -  matches the DL models'
 # input for a fair comparison. Names must match processed CSV raw columns.
 _FORCING_SOURCES = ["daymet", "maurer", "nldas"]
 _BASE_FORCING_VARS = ["prcp", "srad", "tmax", "tmin", "vp"]
@@ -119,7 +119,7 @@ def compute_nse(preds, targets):
 
 def main():
     print("=" * 60)
-    print("XGBoost Baseline — CAMELS-US Task 1")
+    print("XGBoost Baseline  -  CAMELS-US Task 1")
     print("=" * 60)
 
     try:
@@ -144,7 +144,7 @@ def main():
     val_df = pd.read_parquet(FEAT_DIR / "val.parquet")
     test_df = pd.read_parquet(FEAT_DIR / "test.parquet")
 
-    # Daymet-only features: the 3 forcing products are redundant (maurer≈daymet≈nldas)
+    # Daymet-only features: the 3 forcing products are redundant (maurer~daymet~nldas)
     # and XGBoost overfits all 166 lag features (per-basin NSE collapses to <0 or near-0).
     # Daymet-only (50 lag features + 13 static + 3 time = 66) gives a clean ~0.63
     # (verified independently). This is the standard single-forcing XGBoost config for
@@ -168,9 +168,9 @@ def main():
     test_basin = test_df["basin_id"].values
     del test_df
 
-    # XGBoost handles NaN natively — no imputation needed
+    # XGBoost handles NaN natively  -  no imputation needed
 
-    # Train. Daymet-only (66 features, no redundancy) — standard config: depth 8
+    # Train. Daymet-only (66 features, no redundancy)  -  standard config: depth 8
     # + colsample 0.8 + early stopping. Verified to give per-basin median NSE ~0.63.
     print("\nTraining XGBoost (Daymet-only, standard config)...")
     model = xgb.XGBRegressor(

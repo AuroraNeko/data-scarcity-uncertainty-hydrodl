@@ -21,7 +21,7 @@ QUANTILES = [0.05, 0.5, 0.95]
 basins = get_basin_list()[:50]
 SEEDS = [42, 123, 456, 789, 999]
 
-# ─── Train 5 ensemble members (point prediction) ───
+# --- Train 5 ensemble members (point prediction) ---
 ensemble_preds = []
 for seed in SEEDS:
     print(f'Training seed {seed}...', flush=True)
@@ -60,7 +60,7 @@ for seed in SEEDS:
     ensemble_preds.append(np.concatenate(preds))
     print(f'  Seed {seed}: done', flush=True)
 
-# ─── Compute Ensemble intervals ───
+# --- Compute Ensemble intervals ---
 all_preds = np.stack(ensemble_preds, axis=0).squeeze(-1)  # (5, N)
 q05_en = np.percentile(all_preds, 5, axis=0)
 q95_en = np.percentile(all_preds, 95, axis=0)
@@ -91,7 +91,7 @@ print(f'MPIW: {ens_metrics["mpiw"]:.4f}')
 print(f'Winkler: {ens_metrics["winkler_score"]:.4f}')
 print(f'Coverage low/normal/high: {ens_metrics["coverage_low_flow"]:.4f}/{ens_metrics["coverage_normal_flow"]:.4f}/{ens_metrics["coverage_high_flow"]:.4f}')
 
-# ─── Load CQR and MC Dropout results ───
+# --- Load CQR and MC Dropout results ---
 with open(PROJECT_ROOT / 'results/tables/lpu_stream_quantile_results.json') as f:
     cqr_r = json.load(f)['test_calibrated']
 with open(PROJECT_ROOT / 'results/tables/mc_dropout_results.json') as f:
@@ -105,7 +105,7 @@ print(f'{"MC Dropout":<25} {mc_r["picp"]:>8.4f} {mc_r["mpiw"]:>8.4f} {mc_r["wink
 print(f'{"Deep Ensembles (5)":<25} {ens_metrics["picp"]:>8.4f} {ens_metrics["mpiw"]:>8.4f} {ens_metrics["winkler_score"]:>8.4f} {"5x":>10}')
 print(f'{"CQR (ours)":<25} {cqr_r["picp"]:>8.4f} {cqr_r["mpiw"]:>8.4f} {cqr_r["winkler_score"]:>8.4f} {"1x":>10}')
 
-# ─── KS Tests ───
+# --- KS Tests ---
 print(f'\n{"=" * 60}')
 print(f'Kolmogorov-Smirnov Tests')
 print(f'{"=" * 60}')

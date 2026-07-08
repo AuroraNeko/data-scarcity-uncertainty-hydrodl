@@ -1,5 +1,5 @@
 """
-utils.py — Project-level shared helpers for LPU-Stream.
+utils.py  -  Project-level shared helpers for LPU-Stream.
 
 Centralises small utilities that were previously duplicated across the
 experiment scripts so that every script selects the device and seeds RNGs

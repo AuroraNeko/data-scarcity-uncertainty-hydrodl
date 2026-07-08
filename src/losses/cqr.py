@@ -10,7 +10,7 @@ Algorithm:
     q_cal = quantile(s, 1 - alpha)
     adjusted_interval = [Q_lower - q_cal, Q_upper + q_cal]
 
-Provides distribution-free coverage guarantee: P(Y ∈ [Q_lower - q_cal, Q_upper + q_cal]) ≥ 1 - alpha
+Provides distribution-free coverage guarantee: P(Y in [Q_lower - q_cal, Q_upper + q_cal]) >= 1 - alpha
 """
 
 import numpy as np

@@ -1,5 +1,5 @@
 """
-mc_dropout.py — MC Dropout uncertainty baseline.
+mc_dropout.py  -  MC Dropout uncertainty baseline.
 
 Runs 50 stochastic forward passes with dropout enabled at inference time,
 forms a 90% prediction interval from the 5th/95th percentiles, and compares

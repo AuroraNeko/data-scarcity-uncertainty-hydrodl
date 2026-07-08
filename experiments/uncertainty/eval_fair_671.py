@@ -1,5 +1,5 @@
 """
-eval_fair_671.py — Fair, same-basin-set uncertainty method comparison on the
+eval_fair_671.py  -  Fair, same-basin-set uncertainty method comparison on the
 FULL 671-basin CAMELS-US test set.
 
 Why this script exists
@@ -180,7 +180,7 @@ def _row(name, nse, m):
 
 def print_table(results):
     print("\n" + "=" * 72)
-    print(f"FAIR comparison — ALL methods on FULL {results['n_basins']}-basin test set")
+    print(f"FAIR comparison  -  ALL methods on FULL {results['n_basins']}-basin test set")
     print("=" * 72)
     hdr = f"{'Method':<24}{'NSE':>8}{'PICP':>9}{'MPIW':>9}{'Winkler':>10}"
     print(hdr)

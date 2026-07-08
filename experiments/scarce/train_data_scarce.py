@@ -1,14 +1,15 @@
 """
-train_data_scarce.py — Data-scarce basin experiments.
+train_data_scarce.py  -  Data-scarce basin experiments.
 
-Train LPU-Stream with limited data (1/3/5 years) and evaluate:
+Train LPU-Stream with limited data (1/3/5/15 years) and evaluate:
   - NSE (prediction accuracy)
   - PICP (uncertainty coverage)
-  - Physics consistency metrics
+  - calibrated interval width and flow-regime coverage
 
 Usage:
     python experiments/scarce/train_data_scarce.py --years 1
-    python experiments/scarce/train_data_scarce.py --years 3 --model ea_lstm
+    python experiments/scarce/train_data_scarce.py --years 3
+    python experiments/scarce/train_data_scarce.py --years 5 --with-physics
 """
 
 import sys
@@ -37,7 +38,7 @@ QUANTILES = [0.05, 0.5, 0.95]
 PRCP_STD = 7.58
 DELTA_RAW = 2.0
 DELTA_NORM = DELTA_RAW / PRCP_STD
-LAMBDA_MONO = 0.01  # Reduced from 0.1 — less aggressive for scarce data
+LAMBDA_MONO = 0.01  # Reduced from 0.1  -  less aggressive for scarce data
 EXTREME_ALPHA = 2.0
 
 
@@ -162,6 +163,7 @@ def main():
     train_end = year_map[args.years]
     train_start = "1980-10-01"
     seq_len = seqlen_map[args.years]
+    batch_size = 512 if args.years <= 3 else 1024
 
     suffix = ""
     if args.with_physics: suffix += "_physics"
@@ -171,13 +173,12 @@ def main():
     print(f"Physics: {args.with_physics}")
     print(f"Train: {train_start} to {train_end}")
     print(f"Seq_len: {seq_len}")
+    print(f"Batch size: {batch_size}")
     print(f"Val:   {VAL_START} to {VAL_END}")
     print(f"Test:  {TEST_START} to {TEST_END}")
     print("=" * 60)
 
-    # Create datasets with limited training data
-    batch_size = 512 if args.years <= 3 else 1024
-
+    # Create datasets with limited training data.
     print("\nCreating datasets...")
     train_ds = CamelsDataset(selected, train_start, train_end, seq_len, preview=True)
     val_ds = CamelsDataset(selected, VAL_START, VAL_END, seq_len, preview=True)
@@ -239,9 +240,17 @@ def main():
     results = {
         "experiment": "data_scarce",
         "years": args.years,
+        "seed": args.seed,
         "n_basins": len(selected),
+        "selected_basins": selected,
         "train_samples": len(train_ds),
         "train_period": f"{train_start} to {train_end}",
+        "seq_len": seq_len,
+        "batch_size": batch_size,
+        "quantiles": QUANTILES,
+        "alpha": 0.1,
+        "with_physics": args.with_physics,
+        "no_static": args.no_static,
         "test_nse": test_nse,
         "q_cal": float(q_cal),
         "n_params": n_params,

@@ -1,4 +1,4 @@
-"""Enhanced robustness analyses for the manuscript.
+"""Enhanced robustness analyses for the reported results.
 
 Computes three checks from model predictions rather than hard-coded numbers:
 

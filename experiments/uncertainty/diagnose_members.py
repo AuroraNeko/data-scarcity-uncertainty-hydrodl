@@ -1,7 +1,7 @@
-"""diagnose_members.py — per-member NSE/PICP on full 671 test set.
+"""diagnose_members.py  -  per-member NSE/PICP on full 671 test set.
 
-Determines whether the 5 ensemble members are individually comparable to the
-single model (seed 42 = 0.844) or whether seed 42 is an optimistic outlier.
+Reports whether the 5 ensemble members are individually comparable to the
+single-model reference run (seed 42 = 0.844).
 """
 import sys
 import numpy as np
