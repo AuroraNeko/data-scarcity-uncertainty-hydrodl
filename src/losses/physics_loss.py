@@ -1,5 +1,5 @@
 """
-physics_loss.py — Physics-guided loss functions for LPU-Stream.
+physics_loss.py  -  Physics-guided loss functions for LPU-Stream.
 
 Paper reference (Sections 10.3-10.4):
     1. Non-negative penalty: L_nonneg = mean(max(0, -Q_hat))
@@ -53,7 +53,7 @@ class PhysicsLoss(nn.Module):
         return 1.0 + self.extreme_alpha * is_extreme
 
     def compute_nonneg_loss(self, predictions: Tensor, masks: Tensor) -> Tensor:
-        """L_nonneg = mean(max(0, -Q_hat)) — soft penalty for negative predictions."""
+        """L_nonneg = mean(max(0, -Q_hat))  -  soft penalty for negative predictions."""
         if not self.use_nonneg or self.lambda_nonneg == 0:
             return torch.tensor(0.0, device=predictions.device)
         neg_violation = F.relu(-predictions)

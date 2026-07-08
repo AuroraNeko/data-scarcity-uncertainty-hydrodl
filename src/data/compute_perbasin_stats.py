@@ -1,4 +1,4 @@
-"""compute_perbasin_stats.py — Per-basin target normalization statistics
+"""compute_perbasin_stats.py  -  Per-basin target normalization statistics
 (mean/std of log1p(flow)) from the TRAINING period only, for each basin.
 
 Per-basin target normalization is the CAMELS literature convention and removes

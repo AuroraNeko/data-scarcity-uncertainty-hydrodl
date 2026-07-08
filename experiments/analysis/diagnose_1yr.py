@@ -1,4 +1,4 @@
-"""diagnose_1yr.py — Retrain the 1-year scarcity model and compute the coverage-
+"""diagnose_1yr.py  -  Retrain the 1-year scarcity model and compute the coverage-
 degradation diagnosis from REAL predictions, saving results/tables/diagnosis_1yr.json
 so Fig 3 can be regenerated from an artifact instead of the current (incorrect)
 hard-coded values.

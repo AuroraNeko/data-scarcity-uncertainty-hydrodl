@@ -1,5 +1,5 @@
 """
-train_model.py — Unified training script for DL baselines.
+train_model.py  -  Unified training script for DL baselines.
 
 Usage:
     python experiments/baseline/train_model.py --model lstm
@@ -31,7 +31,7 @@ from src.models.lpu_stream import LPUStreamModel
 from src.data.dataset import create_dataloaders, get_basin_list
 from src.utils import set_seed
 
-# ─── Default configs per model (paper Sections 8.3-8.6) ─────────────────────
+# --- Default configs per model (paper Sections 8.3-8.6) ---------------------
 MODEL_CONFIGS = {
     "lstm": {
         "hidden_size": 128, "num_layers": 1, "dropout": 0.3,
@@ -156,7 +156,7 @@ def main():
         cfg["epochs"] = args.epochs
 
     print("=" * 60)
-    print(f"{model_name.upper()} Training — CAMELS-US Task 1")
+    print(f"{model_name.upper()} Training  -  CAMELS-US Task 1")
     print("=" * 60)
     print(f"Config: {json.dumps(cfg, indent=2)}")
 

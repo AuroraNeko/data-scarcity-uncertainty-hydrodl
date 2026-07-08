@@ -1,15 +1,18 @@
-"""orchestrator.py — Autonomous 15-feat retrain pipeline.
+"""orchestrator.py - resumable 15-feature experiment pipeline.
 
 Runs Stage 2 (remaining baselines) -> Stage 3 (quantile + ensembles) ->
 Stage 4 (CQR/MC eval) -> Stage 5 (scarcity + cross-region) -> Stage 6
-(figures + manuscript verify), with:
+(figures + result consistency audit), with:
   * RESUMABILITY: each stage verifies its outputs; verified-done stages are skipped.
   * CLEAN-STATE: kills stray python.exe (excluding self) before each training,
     avoiding the Windows DataLoader num_workers deadlock.
   * HANG PROTECTION: per-command timeout (subprocess.TimeoutExpired -> fail).
   * VERIFICATION GATES: proceed only if the stage's output JSON/checkpoint is sane.
 Stops and logs "NEEDS ATTENTION: <stage>" on any unrecoverable failure so the
-heartbeat / operator can intervene.
+run can be inspected and resumed after the issue is fixed.
+
+Run download_camels.py and src/data/data_preprocessing.py before launching this
+script in a fresh checkout.
 
 Usage:  python experiments/orchestrator.py
 """
@@ -38,7 +41,7 @@ def kill_stray_python():
         subprocess.run(["powershell", "-Command",
             f"Get-CimInstance Win32_Process -Filter \"name='python.exe'\" | "
             f"Where-Object {{$_.ProcessId -ne {SELF_PID}}} | "
-            f"ForEach-Object {{ Stop-Process -Id $__.ProcessId -Force }}"],
+            f"ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force }}"],
             capture_output=True, text=True, timeout=120)
     except Exception as e:
         log(f"  kill_stray warn: {e}")
@@ -78,7 +81,7 @@ def is_15feat(name):
 
 def stage2():
     log("### STAGE 2: remaining baselines (transformer, ea_lstm, xgboost, eval) ###")
-    # transformer (15-feat) — full training
+    # transformer (15-feat)  -  full training
     if is_15feat("transformer"):
         log("  transformer already 15-feat, skip")
     else:
@@ -91,7 +94,7 @@ def stage2():
             return False, "transformer training failed"
         if not is_15feat("transformer"):
             return False, "transformer result not 15-feat after training"
-    # ea_lstm — capped 15 epochs (manual loop is ~1161s/epoch)
+    # ea_lstm  -  capped 15 epochs (manual loop is ~1161s/epoch)
     if is_15feat("ea_lstm"):
         log("  ea_lstm already 15-feat, skip")
     else:
@@ -147,7 +150,7 @@ def stage3():
                 if nd != 15:
                     p.unlink()
                     log(f"  deleted stale {p.name} (n_dynamic={nd})")
-    # main quantile model (seed 42) — overwrites lpu_stream_quantile_best.pt
+    # main quantile model (seed 42)  -  overwrites lpu_stream_quantile_best.pt
     q = load_json(TABLES / "lpu_stream_quantile_results.json")
     if q and q.get("config", {}).get("n_dynamic") == 15:
         log("  quantile seed42 already 15-feat, skip")
@@ -216,22 +219,22 @@ def stage5():
 
 
 def stage6():
-    log("### STAGE 6: re-run XGBoost (fixed config, RAM now free) + figures + verify ###")
-    # Re-run XGBoost with the balanced config (depth 8) — the over-regularized
+    log("### STAGE 6: re-run XGBoost if needed + figures + result audit ###")
+    # Re-run XGBoost with the balanced config (depth 8)  -  the over-regularized
     # depth-6 version collapsed to per-basin 0.13. All DL training is done now,
     # so RAM (~16GB) is free for XGBoost's ~6GB peak. Forces re-run regardless.
     kill_stray_python()
     import os
     xr_old = load_json(TABLES / "xgboost_results.json")
     if xr_old and xr_old.get("test_nse_perbasin_median", 0) < 0.40:
-        log(f"  xgboost per-basin NSE was {xr_old.get('test_nse_perbasin_median'):.3f} (broken) -> re-run with fixed config")
+        log(f"  xgboost per-basin NSE was {xr_old.get('test_nse_perbasin_median'):.3f} (low) -> re-run with fixed config")
         if not run([PY, "experiments/baseline/train_xgboost.py"], 2 * 3600, "train_xgboost.log"):
             return False, "xgboost fixed re-run failed"
     if not run([PY, "experiments/analysis/make_figures.py"], 1 * 3600, "make_figures.log"):
         return False, "make_figures failed"
-    # verify_manuscript must end with all checks pass
+    # verify_manuscript must end with all checks pass.
     if not run([PY, "experiments/analysis/verify_manuscript.py"], 1 * 3600, "verify_manuscript.log"):
-        return False, "verify_manuscript reported failures"
+        return False, "result audit reported failures"
     return True, "ok"
 
 
@@ -245,11 +248,11 @@ def main():
         except Exception as e:
             ok, msg = False, f"exception: {e}"
         if not ok:
-            log(f"\n!!! NEEDS ATTENTION: {name} FAILED — {msg}")
+            log(f"\n!!! NEEDS ATTENTION: {name} FAILED  -  {msg}")
             log("!!! Orchestrator stopped. Fix and re-run.")
             return
         log(f"<<< {name} OK ({msg})")
-    log("\n" + "=" * 70 + "\n ORCHESTRATOR COMPLETE — all stages verified OK\n" + "=" * 70)
+    log("\n" + "=" * 70 + "\n ORCHESTRATOR COMPLETE  -  all stages verified OK\n" + "=" * 70)
 
 
 if __name__ == "__main__":

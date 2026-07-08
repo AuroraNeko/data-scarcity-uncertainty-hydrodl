@@ -1,5 +1,5 @@
 """
-analyze_degradation.py — Analyze why uncertainty coverage degrades with less data.
+analyze_degradation.py  -  Analyze why uncertainty coverage degrades with less data.
 
 Questions:
   1. Are extreme events underrepresented in scarce training data?
@@ -26,7 +26,7 @@ ckpt = torch.load(PROJECT_ROOT / 'results/checkpoints/lpu_stream_quantile_best.p
 cfg = ckpt['config']
 print(f"Using checkpoint: epoch {ckpt['epoch']}, Val NSE {ckpt['val_nse']:.4f}")
 
-# ─── Load static attributes for analysis ───
+# --- Load static attributes for analysis ---
 import pandas as pd
 basins = get_basin_list()
 attr_data = {}
@@ -40,7 +40,7 @@ for bid in basins:
             'p_mean': df.get('p_mean_norm', df.get('p_mean', pd.Series([0]))).iloc[0],
         }
 
-# ─── 1. Extreme event representation in training data ───
+# --- 1. Extreme event representation in training data ---
 print("\n" + "=" * 60)
 print("1. EXTREME EVENT REPRESENTATION IN TRAINING DATA")
 print("=" * 60)
@@ -63,7 +63,7 @@ full_ds = CamelsDataset(basins[:50], TRAIN_START, TRAIN_END, seq_len=365)
 full_q95 = full_ds.compute_q95()
 print(f"  Full: Q95={full_q95:.4f}")
 
-# ─── 2. Per-basin coverage analysis ───
+# --- 2. Per-basin coverage analysis ---
 print("\n" + "=" * 60)
 print("2. PER-BASIN COVERAGE VS BASIN ATTRIBUTES")
 print("=" * 60)
@@ -119,7 +119,7 @@ valid_a = np.isfinite(aridities) & np.isfinite(picps)
 print(f"\n  PICP vs Aridity correlation: {np.corrcoef(aridities[valid_a], picps[valid_a])[0,1]:.3f}")
 print(f"  PICP vs NSE correlation: {np.corrcoef(nses[valid_a], picps[valid_a])[0,1]:.3f}")
 
-# ─── 3. Overconfidence vs bias analysis ───
+# --- 3. Overconfidence vs bias analysis ---
 print("\n" + "=" * 60)
 print("3. OVERCONFIDENCE VS BIAS")
 print("=" * 60)
@@ -170,7 +170,7 @@ for yr_tag, (years, end_date, seq_len) in [
 
 print("\nNote: Ratio < 1 = intervals too narrow (overconfidence), > 1 = too wide (overcautious)")
 
-# ─── 4. Seasonality of coverage failure ───
+# --- 4. Seasonality of coverage failure ---
 print("\n" + "=" * 60)
 print("4. SEASONAL PATTERN OF COVERAGE FAILURES")
 print("=" * 60)

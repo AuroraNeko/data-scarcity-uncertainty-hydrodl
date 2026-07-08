@@ -1,7 +1,7 @@
 """
 Pinball loss for quantile regression.
 
-Paper Section 11.2: L_quantile = Σ_τ [τ * max(y - qτ, 0) + (1-τ) * max(qτ - y, 0)]
+Paper Section 11.2: L_quantile = sum_tau [tau * max(y - qtau, 0) + (1-tau) * max(qtau - y, 0)]
 """
 
 import torch

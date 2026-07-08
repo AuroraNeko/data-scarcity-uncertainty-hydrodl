@@ -277,13 +277,13 @@ Temporal split & Training: 1 October 1980--30 September 1995; validation/CQR cal
 Scarcity subset & Fifty basins sampled once from the full basin set with NumPy RandomState seed 42 and reused for the 1-, 3-, 5-, and 15-year scarcity-gradient experiments. \\
 Sequence length & Full 15-year models use 365 daily steps; scarcity runs use 30, 90, 180, and 365 daily steps for the 1-, 3-, 5-, and 15-year settings, respectively. \\
 Model & LPU-Stream with a 128-unit LSTM, 32-dimensional static embedding, and a two-layer quantile head trained for $\tau \in \{0.05,0.50,0.95\}$. \\
-Optimization & Adam optimizer, learning rate 0.001, $\beta_1=0.9$, $\beta_2=0.999$, batch size 1024, gradient clipping at 1.0, early-stopping patience 5, and maximum 30 epochs. \\
+Optimization & Adam optimizer, learning rate 0.001, $\beta_1=0.9$, $\beta_2=0.999$, gradient clipping at 1.0, early-stopping patience 5, and maximum 30 epochs; batch size is 1024 for full-dataset quantile/ensemble and 5-/15-year scarcity runs, and 512 for 1-/3-year scarcity runs. \\
 Uncertainty calibration & Split conformalized quantile regression with $\alpha=0.10$, using the validation period as the calibration set and the test period only for final evaluation. \\
 Ensemble seeds & Deep Ensembles use five independently initialized quantile models with seeds 42, 123, 456, 789, and 999. \\
 Stability seeds & The 1-year stability check fixes the seed-42 basin subset and varies only model initialization over seeds 42, 123, and 456. \\
 Robustness checks & Calibration-window sensitivity over 1--5 validation water years, basin-cluster bootstrap with 500 resamples, aridity-based diagnostic subsets, and static-attribute ablation. \\
 Hardware and software & Experiments were run on a single NVIDIA RTX 5060 Ti GPU with Python 3.11 and PyTorch 2.x; analysis scripts are CPU-compatible once result files are available. \\
-Verification path & Result tables are stored as JSON/CSV files under \texttt{results/tables/}; figures are regenerated from these files, and \texttt{experiments/analysis/verify\_manuscript.py} checks manuscript numbers against the stored results. \\
+Verification path & Result tables are stored as JSON/CSV files under \texttt{results/tables/}; figures are regenerated from these files, and \texttt{experiments/analysis/verify\_manuscript.py} checks reported numbers against the stored results. \\
 \bottomrule
 \end{longtable}
 \endgroup

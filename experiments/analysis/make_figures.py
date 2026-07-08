@@ -113,9 +113,10 @@ print('Figure 1 saved')
 # FIGURE 2: Fair Method Comparison
 # ============================================================
 methods = ['MC Dropout', 'Deep\nEnsembles', 'Deep Ens.\n+ CQR', 'CQR\n(Ours)']
-# MUST match manuscript Table 3 / verify_manuscript.py: fair_comparison_671.json is the
-# paper's authoritative source. (deep_ensembles_fair_results.json holds a DIFFERENT
-# MC-dropout / CQR-single run and must NOT be used here -- it caused figure/table drift.)
+# Must match the reported Table 3 values checked by verify_manuscript.py:
+# fair_comparison_671.json is the authoritative source for this figure.
+# deep_ensembles_fair_results.json holds a different MC-dropout / CQR-single
+# run and should not be used here, otherwise figure/table drift can occur.
 _de = _j('fair_comparison_671.json')
 picp_m    = [_de['mc_dropout']['raw']['picp'], _de['deep_ensembles']['raw']['picp'], _de['deep_ensembles']['cal']['picp'], _de['cqr_single']['cal']['picp']]
 mpiw_m    = [_de['mc_dropout']['raw']['mpiw'], _de['deep_ensembles']['raw']['mpiw'], _de['deep_ensembles']['cal']['mpiw'], _de['cqr_single']['cal']['mpiw']]

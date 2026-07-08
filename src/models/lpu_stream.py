@@ -5,10 +5,10 @@ Paper reference (Sections 9.3-9.5):
     Static catchment embedding + LSTM temporal encoder + prediction head.
 
 Architecture:
-    Static attributes → MLP embedding → z_basin (32-dim)
+    Static attributes -> MLP embedding -> z_basin (32-dim)
     z_basin concatenated to each timestep of dynamic input
-    → nn.LSTM (cuDNN accelerated)
-    → concat(LSTM hidden, z_basin) → prediction head
+    -> nn.LSTM (cuDNN accelerated)
+    -> concat(LSTM hidden, z_basin) -> prediction head
 """
 
 import torch
@@ -19,7 +19,7 @@ from torch import Tensor
 class StaticCatchmentEmbedding(nn.Module):
     """MLP-based catchment attribute embedding.
 
-    Paper Section 9.3: Linear(13,64) → ReLU → Dropout → Linear(64,32)
+    Paper Section 9.3: Linear(13,64) -> ReLU -> Dropout -> Linear(64,32)
     """
 
     def __init__(

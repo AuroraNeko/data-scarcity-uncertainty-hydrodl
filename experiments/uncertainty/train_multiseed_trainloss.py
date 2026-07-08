@@ -1,13 +1,10 @@
-"""train_multiseed_trainloss.py — Train LPU-Stream quantile model on several
-seeds using the SAME checkpoint-selection procedure as train_quantile.py
-(best-by-TRAINING-loss), to test whether seed 42's 0.844 NSE is
-procedure-stable or a lucky outlier.
+"""train_multiseed_trainloss.py - auxiliary multi-seed stability check.
 
-For each seed we report test NSE. If the extra seeds also reach ~0.84, the
-train-loss-selection procedure is stable and 0.844 is legitimate (and the
-ensemble script's val-loss selection was the bug that undertrained members
-1-4). If they land near 0.57-0.68, seed 42 is an outlier and the headline NSE
-must be revised.
+The script retrains LPU-Stream quantile models with the same train-loss
+checkpoint-selection procedure used by train_quantile.py and reports the test
+NSE for each additional seed. It is not required for the main pipeline, but is
+useful for auditing whether the reported full-data quantile result is stable
+across random initializations.
 
 Usage:
     python experiments/uncertainty/train_multiseed_trainloss.py
@@ -132,11 +129,11 @@ def main():
     print(f"  (seed 42 reference = 0.8442)")
     print("\nInterpretation:")
     if nses.mean() > 0.80:
-        print("  >> Train-loss selection is STABLE: extra seeds ~0.84.")
-        print("     => 0.844 is legitimate; ensemble script (val-loss) was the bug.")
+        print("  >> Additional seeds are consistent with the reference run.")
+        print("     The train-loss selection procedure appears stable.")
     else:
-        print("  >> Extra seeds stay LOW (~0.6-0.7): seed 42 is an OUTLIER.")
-        print("     => headline NSE 0.844 not robust; revise NSE claims down.")
+        print("  >> Additional seeds are materially lower than the reference run.")
+        print("     Inspect the seed sensitivity before using this metric in claims.")
 
     out = {"procedure": "train_loss_selection", "seeds": SEEDS,
            "results": results, "mean_nse": float(nses.mean()),

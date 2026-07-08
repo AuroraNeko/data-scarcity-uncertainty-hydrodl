@@ -1,4 +1,4 @@
-"""eval_perbasin_ckpt.py — Evaluate the best_state saved in a per-basin-norm
+"""eval_perbasin_ckpt.py  -  Evaluate the best_state saved in a per-basin-norm
 checkpoint (e.g. the epoch-9 best) for per-basin raw NSE, without waiting for
 the full 30-epoch run to finish.
 """

@@ -1,11 +1,9 @@
-"""retrain_ensembles_correct.py — Retrain the 4 Deep Ensemble members with the
-CORRECT training procedure, then rebuild the fair 671-basin comparison.
+"""retrain_ensembles_correct.py - train the additional Deep Ensemble members.
 
-Correct procedure = train-loss checkpoint selection (effectively train the full
-30 epochs), matching train_quantile.py and the main model. Verified stable:
-seed 42 -> 0.844, seed 123 -> 0.843. The old members (val-loss early stopping)
-gave 0.57-0.68 because validation pinball loss bottoms out around epoch 8 while
-median NSE keeps improving to epoch 30.
+This script uses the same train-loss checkpoint selection as train_quantile.py
+and then rebuilds the fair 671-basin uncertainty comparison. The procedure is
+retained here so the ensemble results can be regenerated from the public code
+rather than relying on stored checkpoints.
 
 RESUMABLE (crash-safe): each member's checkpoint is overwritten every epoch
 with the FULL training state (model + optimizer + scheduler + RNG + best
@@ -105,7 +103,7 @@ def status_report():
     for seed in TRAIN_SEEDS:
         p = ckpt_path(seed)
         if not p.exists():
-            log(f"  seed {seed}: TODO (no checkpoint)")
+            log(f"  seed {seed}: PENDING (no checkpoint)")
             continue
         try:
             c = torch.load(p, weights_only=False, map_location="cpu")
@@ -117,7 +115,7 @@ def status_report():
             elif proc == "train_loss":
                 log(f"  seed {seed}: IN-PROGRESS (resume after epoch {ep})")
             else:
-                log(f"  seed {seed}: STALE/buggy ({proc!r}, epoch {ep}) -> will retrain")
+                log(f"  seed {seed}: STALE/legacy ({proc!r}, epoch {ep}) -> will retrain")
         except Exception as e:
             log(f"  seed {seed}: UNREADABLE ({e}) -> will retrain")
 
@@ -264,7 +262,7 @@ def aggregate_and_compare(device, val_loader, test_loader):
 
     # Pretty fair table
     log("\n" + "=" * 72)
-    log(f"FAIR comparison (ALL 671 basins) — corrected ensemble")
+    log(f"FAIR comparison (ALL 671 basins)  -  corrected ensemble")
     log("=" * 72)
     log(f"{'Method':<24}{'NSE':>8}{'PICP':>9}{'MPIW':>9}{'Winkler':>10}")
     log("-" * 72)

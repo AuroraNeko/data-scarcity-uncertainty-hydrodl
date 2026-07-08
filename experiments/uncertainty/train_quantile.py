@@ -1,5 +1,5 @@
 """
-train_quantile.py — Train LPU-Stream with quantile regression + CQR calibration.
+train_quantile.py  -  Train LPU-Stream with quantile regression + CQR calibration.
 
 Usage:
     python experiments/uncertainty/train_quantile.py
@@ -25,7 +25,7 @@ from src.losses.pinball_loss import PinballLoss
 from src.losses.cqr import CQRCalibrator, compute_uncertainty_metrics
 from src.utils import set_seed
 
-# ─── Config ────────────────────────────────────────────────────────────────
+# --- Config ----------------------------------------------------------------
 # Training hyperparameters. Early stopping / LR scheduling monitor the
 # *training* loss (patience 5, max 30 epochs); batch size 1024; dropout 0.3.
 QUANTILES = [0.05, 0.5, 0.95]
@@ -173,7 +173,7 @@ def main():
                 print(f"Early stopping at epoch {epoch}")
                 break
 
-    # ─── CQR Calibration + Evaluation ──────────────────────────────────
+    # --- CQR Calibration + Evaluation ----------------------------------
     print("\n" + "=" * 60)
     print("CQR Calibration & Uncertainty Evaluation")
     print("=" * 60)
@@ -194,7 +194,7 @@ def main():
     q_cal = calibrator.fit(val_q_lower, val_q_upper, val_y)
     print(f"CQR calibration quantile: {q_cal:.4f}")
 
-    # ── Uncalibrated metrics (validation) ──
+    # -- Uncalibrated metrics (validation) --
     val_metrics_raw = compute_uncertainty_metrics(
         val_q_lower, val_q_upper, val_y, alpha=cfg["alpha"],
     )
@@ -206,7 +206,7 @@ def main():
           f"{val_metrics_raw['coverage_normal_flow']:.4f}/"
           f"{val_metrics_raw['coverage_high_flow']:.4f}")
 
-    # ── Calibrated metrics (validation) ──
+    # -- Calibrated metrics (validation) --
     cal_lower, cal_upper = calibrator.calibrate(val_q_lower, val_q_upper)
     val_metrics_cal = compute_uncertainty_metrics(
         cal_lower, cal_upper, val_y, alpha=cfg["alpha"],
@@ -219,7 +219,7 @@ def main():
           f"{val_metrics_cal['coverage_normal_flow']:.4f}/"
           f"{val_metrics_cal['coverage_high_flow']:.4f}")
 
-    # ── Test set evaluation ──
+    # -- Test set evaluation --
     test_preds, test_targets, test_masks = predict(model, test_loader, device)
     valid_test = test_masks.flatten() > 0
     test_q_lower = test_preds[valid_test, 0]

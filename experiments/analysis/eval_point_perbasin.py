@@ -1,4 +1,4 @@
-"""eval_point_perbasin.py — Standard per-basin NSE (raw flow) for the
+"""eval_point_perbasin.py  -  Standard per-basin NSE (raw flow) for the
 point-prediction models, for an honest, literature-comparable Table 1.
 
 Computes per-basin NSE on raw streamflow (mm/day) and reports the median and

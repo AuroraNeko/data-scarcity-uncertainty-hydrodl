@@ -1,4 +1,4 @@
-"""Cross-check reported manuscript numbers against stored result JSONs.
+"""Cross-check reported numbers against stored result JSONs.
 
 If paper/manuscript.tex is available, selected text strings are also checked.
 In a code-only checkout, those text checks are skipped.
@@ -24,14 +24,14 @@ fails = []
 def chk(label, stated, actual, d=3):
     ok = abs(stated - round(actual, d)) < 0.5 * 10 ** -d + 1e-9
     if not ok:
-        fails.append(f"FAIL {label}: manuscript={stated} vs json={actual:.6f} (round{d}={round(actual,d)})")
+        fails.append(f"FAIL {label}: reported={stated} vs json={actual:.6f} (round{d}={round(actual,d)})")
     else:
         print(f"  ok  {label}: {stated} (json {round(actual,d)})")
 
 
 def has(text):
     if not MAN:
-        print(f"  skip text check (manuscript missing): {text[:60]!r}")
+        print(f"  skip text check (paper source missing): {text[:60]!r}")
         return
     ok = text in MAN
     if not ok:

@@ -23,7 +23,7 @@ class EALSTMCell(nn.Module):
 
     Holds the ``gate_linear`` and ``dynamic_linear`` parameters used by the
     JIT-compiled :func:`_ea_lstm_loop`. The ``forward`` method below is kept
-    for reference but is **not** called during inference — ``EALSTMModel``
+    for reference but is **not** called during inference  -  ``EALSTMModel``
     runs the fused ``_ea_lstm_loop`` for speed. The cell is instantiated so
     its sub-modules register as parameters of the parent model.
     """
@@ -60,7 +60,7 @@ def _ea_lstm_loop(
     dyn_bias: Tensor,
     hidden_size: int,
 ) -> Tensor:
-    """JIT-compiled EA-LSTM sequential loop — runs as fused CUDA kernel."""
+    """JIT-compiled EA-LSTM sequential loop  -  runs as fused CUDA kernel."""
     batch_size = dynamic_seq.size(0)
     h = torch.zeros(batch_size, hidden_size, device=dynamic_seq.device, dtype=dynamic_seq.dtype)
     c = torch.zeros(batch_size, hidden_size, device=dynamic_seq.device, dtype=dynamic_seq.dtype)

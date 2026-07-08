@@ -1,5 +1,5 @@
 """
-train_ensembles_fair.py — Fair Deep Ensembles training for CQR comparison.
+train_ensembles_fair.py  -  Fair Deep Ensembles training for CQR comparison.
 
 Strategy:
   - Ensemble member 0: existing lpu_stream_quantile_best.pt (seed=42)
@@ -68,7 +68,7 @@ def train_model(seed: int, device: torch.device) -> dict:
     set_seed(seed)
 
     log(f"\n{'='*60}")
-    log(f"Training ensemble member — seed={seed}")
+    log(f"Training ensemble member  -  seed={seed}")
     log(f"{'='*60}")
 
     train_loader, val_loader, _ = create_dataloaders(
@@ -193,7 +193,7 @@ def load_model(seed: int, device: torch.device) -> LPUStreamModel:
 
 def main():
     log("=" * 60)
-    log("Deep Ensembles — Fair Re-training")
+    log("Deep Ensembles  -  Fair Re-training")
     log("=" * 60)
     log(f"Member 0:  existing lpu_stream_quantile_best.pt (seed=42)")
     log(f"Members 1-4: training seeds {NEW_SEEDS}")
@@ -205,14 +205,14 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     log(f"Device: {device}")
 
-    # ─── Phase 1: Train new ensemble members ────────────────────────────
+    # --- Phase 1: Train new ensemble members ----------------------------
     train_infos = []
     for seed in NEW_SEEDS:
         info = train_model(seed, device)
         train_infos.append(info)
         log(f"  Done: seed={seed}, best_epoch={info['best_epoch']}")
 
-    # ─── Phase 2: Load all models and get predictions ───────────────────
+    # --- Phase 2: Load all models and get predictions -------------------
     log(f"\n{'='*60}")
     log("Loading all ensemble members...")
     log(f"{'='*60}")
@@ -240,7 +240,7 @@ def main():
             test_targets, test_masks = tt, tm
         log(f"  Seed {seed}: loaded")
 
-    # ─── Phase 3: Ensemble aggregation ──────────────────────────────────
+    # --- Phase 3: Ensemble aggregation ----------------------------------
     # Average quantile predictions across ensemble members
     val_ensemble = np.mean(np.stack(member_val_preds, axis=0), axis=0)
     test_ensemble = np.mean(np.stack(member_test_preds, axis=0), axis=0)
@@ -272,7 +272,7 @@ def main():
     log(f"Uncalibrated: PICP={ens_raw['picp']:.4f}, MPIW={ens_raw['mpiw']:.4f}")
     log(f"CQR Calibrated: PICP={ens_cal['picp']:.4f}, MPIW={ens_cal['mpiw']:.4f}")
 
-    # ─── Phase 4: Load comparison methods ───────────────────────────────
+    # --- Phase 4: Load comparison methods -------------------------------
     cqr_path = PROJECT_ROOT / "results" / "tables" / "lpu_stream_quantile_results.json"
     with open(cqr_path) as f:
         cqr = json.load(f)
@@ -283,20 +283,20 @@ def main():
     cqr_cal = cqr["test_calibrated"]
     mc_met = mc["test_metrics"]
 
-    # ─── Print fair comparison table ────────────────────────────────────
+    # --- Print fair comparison table ------------------------------------
     log(f"\n{'='*75}")
     log(f"{'FAIR Uncertainty Method Comparison (all methods: 15yr)':^75}")
     log(f"{'='*75}")
     hdr = f"{'Method':<25} {'NSE':>8} {'PICP':>8} {'MPIW':>8} {'Winkler':>8} {'Inference':>10}"
     log(hdr)
     log("-" * 75)
-    log(f"{'MC Dropout':<25} {mc.get('test_nse',0):>8.4f} {mc_met['picp']:>8.4f} {mc_met['mpiw']:>8.4f} {mc_met['winkler_score']:>8.4f} {'50×':>10}")
-    log(f"{'Deep Ensembles (raw)':<25} {ens_nse:>8.4f} {ens_raw['picp']:>8.4f} {ens_raw['mpiw']:>8.4f} {ens_raw['winkler_score']:>8.4f} {f'{len(ALL_SEEDS)}×':>10}")
-    log(f"{'Deep Ensembles + CQR':<25} {ens_nse:>8.4f} {ens_cal['picp']:>8.4f} {ens_cal['mpiw']:>8.4f} {ens_cal['winkler_score']:>8.4f} {f'{len(ALL_SEEDS)}×':>10}")
-    log(f"{'CQR (single model)':<25} {cqr.get('test_nse',0):>8.4f} {cqr_cal['picp']:>8.4f} {cqr_cal['mpiw']:>8.4f} {cqr_cal['winkler_score']:>8.4f} {'1×':>10}")
+    log(f"{'MC Dropout':<25} {mc.get('test_nse',0):>8.4f} {mc_met['picp']:>8.4f} {mc_met['mpiw']:>8.4f} {mc_met['winkler_score']:>8.4f} {'50x':>10}")
+    log(f"{'Deep Ensembles (raw)':<25} {ens_nse:>8.4f} {ens_raw['picp']:>8.4f} {ens_raw['mpiw']:>8.4f} {ens_raw['winkler_score']:>8.4f} {f'{len(ALL_SEEDS)}x':>10}")
+    log(f"{'Deep Ensembles + CQR':<25} {ens_nse:>8.4f} {ens_cal['picp']:>8.4f} {ens_cal['mpiw']:>8.4f} {ens_cal['winkler_score']:>8.4f} {f'{len(ALL_SEEDS)}x':>10}")
+    log(f"{'CQR (single model)':<25} {cqr.get('test_nse',0):>8.4f} {cqr_cal['picp']:>8.4f} {cqr_cal['mpiw']:>8.4f} {cqr_cal['winkler_score']:>8.4f} {'1x':>10}")
     log(f"{'='*75}")
 
-    # ─── Save results ───────────────────────────────────────────────────
+    # --- Save results ---------------------------------------------------
     results = {
         "experiment": "deep_ensembles_fair",
         "n_ensemble": len(ALL_SEEDS),
