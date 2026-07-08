@@ -1,12 +1,15 @@
-"""verify_manuscript.py — Exhaustive cross-check of every number in the
-manuscript against the result JSONs. Prints PASS/FAIL per check."""
+"""Cross-check reported manuscript numbers against stored result JSONs.
+
+If paper/manuscript.tex is available, selected text strings are also checked.
+In a code-only checkout, those text checks are skipped.
+"""
 import json
-import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 T = ROOT / 'results' / 'tables'
-MAN = (ROOT / 'paper' / 'manuscript.tex').read_text(encoding='utf-8')
+MAN_PATH = ROOT / 'paper' / 'manuscript.tex'
+MAN = MAN_PATH.read_text(encoding='utf-8') if MAN_PATH.exists() else ''
 
 
 def J(name):
@@ -27,6 +30,9 @@ def chk(label, stated, actual, d=3):
 
 
 def has(text):
+    if not MAN:
+        print(f"  skip text check (manuscript missing): {text[:60]!r}")
+        return
     ok = text in MAN
     if not ok:
         fails.append(f"FAIL text-not-found: {text[:60]!r}")
@@ -155,7 +161,7 @@ chk("PICP drop 16pp", 16, (s15['test_uncalibrated']['picp']-s1['test_uncalibrate
 chk("NSE relative decline%", 19, (s15['test_nse']-s1['test_nse'])/s15['test_nse']*100, 0)
 chk("overconfidence 65%", 65, (1-diag['width_ratio_overall'])*100, 0)
 chk("high-flow overconfidence 60%", 60, (1-diag['width_ratio_by_regime']['high']['width_ratio'])*100, 0)
-has("four aridity-based climate regimes")
+has("aridity-based diagnostic subsets")
 has("validation loss for the point-prediction baselines")
 has("predicted-regime CQR variant")
 has("PICP 95\\% CI: 0.842--0.854")

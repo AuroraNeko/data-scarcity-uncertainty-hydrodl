@@ -3,16 +3,19 @@ Generate all publication-ready figures and update LaTeX tables.
 Uses the corrected experimental data (fair Deep Ensembles, cross-region validation).
 """
 
-import json, numpy as np
+import json, shutil, numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from pathlib import Path
-from matplotlib.patches import FancyBboxPatch
+from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from matplotlib.lines import Line2D
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FIG_DIR = PROJECT_ROOT / 'results' / 'figures'
 FIG_DIR.mkdir(parents=True, exist_ok=True)
+PAPER_FIG_DIR = PROJECT_ROOT / 'paper' / 'figures'
+PAPER_FIG_DIR.mkdir(parents=True, exist_ok=True)
 
 # Publication-quality settings
 plt.rcParams.update({
@@ -22,14 +25,14 @@ plt.rcParams.update({
     'savefig.dpi': 300, 'savefig.bbox': 'tight', 'savefig.pad_inches': 0.05,
 })
 
-# ─── Colors ───
+# Colors
 BLUE = '#2c7bb6'
 RED = '#d7191c'
 GREEN = '#1a9641'
 ORANGE = '#fdae61'
 DARK = '#333333'
 
-# ─── Data: loaded from result JSONs to prevent figure/table drift ───
+# Data loaded from result JSONs to prevent figure/table drift
 TABLES = PROJECT_ROOT / 'results' / 'tables'
 def _j(name):
     return json.load(open(TABLES / name))
@@ -135,7 +138,7 @@ for idx, (ax, data, ylabel, title, ylim, yoff) in enumerate([
         ax.text(b.get_x() + b.get_width()/2, v + yoff, f'{v:.3f}', ha='center', fontsize=8.5, fontweight='bold')
     if idx == 0:
         ax.axhline(y=0.90, color=GREEN, linestyle='--', linewidth=1.2, alpha=0.6, zorder=1)
-        ax.text(3.5, 0.905, 'Target 90%', fontsize=8, color=GREEN, ha='center')
+        ax.text(3.35, 0.915, 'Target 90%', fontsize=8, color=GREEN, ha='right')
 
 plt.tight_layout()
 fig.savefig(FIG_DIR / 'fig2_method_comparison.png')
@@ -175,8 +178,8 @@ ax.axhline(y=1.0, color=DARK, linestyle='--', linewidth=1.2, alpha=0.6, label='I
 for b, v in zip(bars, width_ratios):
     label_color = RED if v < 0.9 else BLUE
     ax.text(b.get_x() + b.get_width()/2, v + 0.03, f'{v:.3f}', ha='center', fontsize=9, fontweight='bold', color=label_color)
-ax.set_ylabel('Width Ratio (actual / theoretical)')
-ax.set_title('(b) Overconfidence by Flow Regime', fontweight='bold')
+ax.set_ylabel('Width Ratio (actual / benchmark)')
+ax.set_title('(b) Interval Width by Flow Regime', fontweight='bold')
 ax.legend(fontsize=9)
 ax.set_ylim(0, 1.4)
 ax.grid(True, alpha=0.2, axis='y', zorder=1)
@@ -207,61 +210,158 @@ plt.close()
 print('Figure 3 saved')
 
 # ============================================================
-# FIGURE 4: Model Architecture (schematic)
+# FIGURE 4: Model Architecture and CQR Calibration
 # ============================================================
-fig, ax = plt.subplots(1, 1, figsize=(10, 5))
-ax.set_xlim(0, 10); ax.set_ylim(0, 6)
+fig, ax = plt.subplots(1, 1, figsize=(13.8, 5.0))
+ax.set_xlim(0, 14.8)
+ax.set_ylim(0, 5.85)
 ax.axis('off')
 
-def draw_box(ax, cx, cy, w, h, text, color='#e0e0e0', text_color='black', fontsize=10):
-    box = FancyBboxPatch((cx-w/2, cy-h/2), w, h, boxstyle="round,pad=0.1", 
-                          facecolor=color, edgecolor='#444', linewidth=1.5, zorder=2)
-    ax.add_patch(box)
-    ax.text(cx, cy, text, ha='center', va='center', fontsize=fontsize, 
-            fontweight='bold', color=text_color, zorder=3)
+INK = '#26313a'
+MUTED = '#64717d'
+LINE = '#59636d'
+CONDITION = '#7b6682'
+AMBER = '#b36b00'
 
-def draw_arrow(ax, x1, y1, x2, y2, color='#555', lw=1.5):
-    ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
-                arrowprops=dict(arrowstyle='->', color=color, lw=lw, shrinkA=5, shrinkB=5), zorder=1)
+def box_arch(ax, x, y, w, h, text, fc, ec='#7a8791', fs=10, weight='normal'):
+    patch = FancyBboxPatch(
+        (x, y), w, h,
+        boxstyle='round,pad=0.05,rounding_size=0.055',
+        linewidth=0.95, edgecolor=ec, facecolor=fc, zorder=3
+    )
+    ax.add_patch(patch)
+    ax.text(x + w / 2, y + h / 2, text, ha='center', va='center',
+            fontsize=fs, fontweight=weight, color=INK, linespacing=1.12, zorder=4)
+    return {'x': x, 'y': y, 'w': w, 'h': h}
 
-# Inputs
-draw_box(ax, 1.5, 5.2, 2.8, 0.7, 'Dynamic Inputs\n(P, T, R, VP, DOY)', '#cce5ff')
-draw_box(ax, 1.5, 3.5, 2.8, 0.7, 'Static Attributes\n(13 catchment properties)', '#ffe6cc')
+def anchor_arch(b, side):
+    x, y, w, h = b['x'], b['y'], b['w'], b['h']
+    return {
+        'left': (x, y + h / 2),
+        'right': (x + w, y + h / 2),
+        'top': (x + w / 2, y + h),
+        'bottom': (x + w / 2, y),
+    }[side]
 
-# Embedding
-draw_box(ax, 5.0, 3.5, 2.0, 0.6, 'MLP Embed\n(32-dim)', '#fff2cc')
+def outside_anchor(b, side, gap=0.055):
+    x, y = anchor_arch(b, side)
+    if side == 'left':
+        return (x - gap, y)
+    if side == 'right':
+        return (x + gap, y)
+    if side == 'top':
+        return (x, y + gap)
+    if side == 'bottom':
+        return (x, y - gap)
+    raise ValueError(side)
 
-# LSTM
-draw_box(ax, 7.5, 5.2, 2.5, 0.7, 'LSTM\n(128 hidden)', '#d5f5e3', fontsize=11)
+def arrow_arch(ax, a, b, color=LINE, lw=1.08, dashed=False, rad=0.0, style='-|>', alpha=1.0):
+    arr = FancyArrowPatch(
+        a, b, arrowstyle=style, mutation_scale=9.5, linewidth=lw,
+        color=color, linestyle=(0, (3, 2)) if dashed else 'solid',
+        connectionstyle=f'arc3,rad={rad}', shrinkA=0, shrinkB=0,
+        alpha=alpha, zorder=3.8
+    )
+    ax.add_patch(arr)
 
-# Concat
-draw_box(ax, 7.5, 3.5, 2.2, 0.6, 'Concat\n(h + embed)', '#e8daef')
+def elbow_arch(ax, pts, color=LINE, lw=1.02, dashed=False, style='-|>', alpha=1.0):
+    for a, b in zip(pts[:-2], pts[1:-1]):
+        ax.add_line(Line2D(
+            [a[0], b[0]], [a[1], b[1]], color=color, lw=lw,
+            linestyle=(0, (3, 2)) if dashed else 'solid', alpha=alpha, zorder=1
+        ))
+    arrow_arch(ax, pts[-2], pts[-1], color=color, lw=lw, dashed=dashed, style=style, alpha=alpha)
 
-# Output
-draw_box(ax, 7.5, 1.8, 2.5, 0.7, 'Prediction Head\n(Q0.05, Q0.5, Q0.95)', '#fadbd8', fontsize=10)
+def stage_arch(ax, x, label, color):
+    ax.text(x, 5.55, label, ha='center', va='center',
+            fontsize=10.5, fontweight='bold', color=color, zorder=4)
+    ax.plot([x - 1.0, x + 1.0], [5.34, 5.34],
+            color=color, lw=1.4, solid_capstyle='round')
 
-# Post-hoc
-draw_box(ax, 7.5, 0.6, 2.5, 0.5, 'CQR Calibration\n(Post-hoc)', '#d5f5e3', fontsize=9)
+for x, w, fc in [
+    (0.15, 3.95, '#f4f9fd'),
+    (4.30, 5.00, '#f7fbf8'),
+    (9.55, 1.80, '#fff8f1'),
+    (11.60, 3.05, '#f4fbf8'),
+]:
+    ax.add_patch(FancyBboxPatch(
+        (x, 0.55), w, 4.72,
+        boxstyle='round,pad=0.04,rounding_size=0.08',
+        linewidth=0, facecolor=fc, zorder=0
+    ))
 
-# Arrows
-draw_arrow(ax, 2.9, 5.2, 6.2, 5.2)
-draw_arrow(ax, 2.9, 3.5, 4.0, 3.5)
-draw_arrow(ax, 6.0, 3.5, 6.4, 3.5)
-ax.annotate('', xy=(7.5, 4.1), xytext=(7.5, 4.8),
-            arrowprops=dict(arrowstyle='->', color='#555', lw=1.5), zorder=1)
-draw_arrow(ax, 7.5, 3.2, 7.5, 2.5)
-draw_arrow(ax, 7.5, 1.4, 7.5, 1.1)
-ax.annotate('', xy=(5.0, 5.2), xytext=(5.0, 4.2),
-            arrowprops=dict(arrowstyle='->', color='#999', lw=1.0, linestyle='dashed'), zorder=1)
+stage_arch(ax, 2.10, '1 Static encoding', BLUE)
+stage_arch(ax, 6.80, '2 Sequence encoding', GREEN)
+stage_arch(ax, 10.45, '3 Quantile prediction', AMBER)
+stage_arch(ax, 13.10, '4 Conformal calibration', GREEN)
 
-ax.text(1.5, 5.8, 'Time Series Data', ha='center', fontsize=9, fontstyle='italic', color='#555')
-ax.text(1.5, 4.5, 'Basin Properties', ha='center', fontsize=9, fontstyle='italic', color='#555')
-ax.text(9.0, 5.2, 'Hidden State', fontsize=8, fontstyle='italic', color='#555')
-ax.text(9.0, 3.5, 'Conditioned\nRepresentation', fontsize=8, fontstyle='italic', color='#555')
-ax.text(9.0, 0.6, 'Coverage-\nAdjusted', fontsize=8, fontstyle='italic', color='#555')
-ax.text(5, 5.9, 'LPU-Stream Architecture (103,969 parameters)', ha='center', fontsize=13, fontweight='bold')
+static = box_arch(ax, 0.45, 3.92, 1.62, 0.66, 'Static attributes\n13 descriptors', '#fff2e6', fs=9.3)
+basin_mlp = box_arch(ax, 2.32, 3.92, 1.55, 0.66, 'Basin MLP\n13 -> 64 -> 32', '#fff8ef', fs=9.0)
+z = box_arch(ax, 4.55, 3.92, 1.48, 0.66, 'Embedding\n$z_b \\in \\mathbb{R}^{32}$', '#fff8ef', fs=9.2)
 
-plt.tight_layout()
+dynamic = box_arch(ax, 0.45, 2.24, 1.62, 0.66, 'Dynamic forcings\n$x_{t,b}$, 15 vars', '#eaf4fc', fs=9.0)
+concat_t = box_arch(ax, 4.55, 2.24, 1.48, 0.66, 'Per-step input\n$[x_{t,b}, z_b]$', '#f0eef8', fs=9.0)
+lstm = box_arch(ax, 6.42, 2.24, 1.42, 0.66, 'LSTM encoder\n128 units', '#edf7ef', fs=9.0)
+h_state = box_arch(ax, 8.22, 2.24, 1.05, 0.66, 'State\n$h_T$', '#eef6f0', fs=9.0)
+concat_h = box_arch(ax, 9.60, 2.24, 1.34, 0.66, 'Final concat\n$[h_T, z_b]$', '#f0eef8', fs=8.8)
+head = box_arch(ax, 11.28, 2.24, 1.32, 0.66, 'Quantile head\n160 -> 64 -> 3', '#fff1f1', fs=8.6)
+raw = box_arch(ax, 12.98, 2.24, 1.24, 0.66, 'Raw quantiles\n$q_{0.05}, q_{0.50}, q_{0.95}$', '#fff5f5', fs=8.0)
+
+cal_pred = box_arch(ax, 11.28, 0.90, 1.32, 0.58, 'Calibration\npred. + $y$', '#eef9f5', fs=8.4)
+scores = box_arch(ax, 12.98, 0.78, 1.24, 0.58, 'Scores\n$E_i$', '#eef9f5', fs=8.8)
+qcal = box_arch(ax, 12.98, 1.60, 1.24, 0.50, '$q_{cal}$', '#eef9f5', fs=9.5)
+cqr_adjust = box_arch(ax, 12.98, 3.14, 1.24, 0.50, 'CQR\nadjust', '#e9f7f1', fs=8.6)
+interval = box_arch(ax, 12.56, 4.18, 2.08, 0.70,
+                    'Calibrated interval\n$[q_{0.05}-q_{cal},\\ q_{0.95}+q_{cal}]$',
+                    '#e9f7f1', fs=8.9)
+loss = box_arch(ax, 9.60, 1.52, 1.34, 0.58, 'Training only\npinball loss', '#fff5f5', fs=8.3)
+
+# Main forward / inference flow.
+arrow_arch(ax, outside_anchor(static, 'right'), outside_anchor(basin_mlp, 'left'))
+arrow_arch(ax, outside_anchor(basin_mlp, 'right'), outside_anchor(z, 'left'))
+arrow_arch(ax, outside_anchor(dynamic, 'right'), outside_anchor(concat_t, 'left'))
+arrow_arch(ax, outside_anchor(concat_t, 'right'), outside_anchor(lstm, 'left'))
+arrow_arch(ax, outside_anchor(lstm, 'right'), outside_anchor(h_state, 'left'))
+arrow_arch(ax, outside_anchor(h_state, 'right'), outside_anchor(concat_h, 'left'))
+arrow_arch(ax, outside_anchor(concat_h, 'right'), outside_anchor(head, 'left'))
+arrow_arch(ax, outside_anchor(head, 'right'), outside_anchor(raw, 'left'))
+arrow_arch(ax, outside_anchor(raw, 'top'), outside_anchor(cqr_adjust, 'bottom'), color=GREEN)
+arrow_arch(ax, outside_anchor(cqr_adjust, 'top'), outside_anchor(interval, 'bottom'), color=GREEN)
+
+# Static embedding reuse.
+arrow_arch(ax, outside_anchor(z, 'bottom'), outside_anchor(concat_t, 'top'),
+           color=CONDITION, lw=0.96, alpha=0.92)
+ax.text(5.31, 3.25, 'repeat over $t$', fontsize=8.3, color='#6c5674', ha='center')
+elbow_arch(
+    ax,
+    [outside_anchor(z, 'right'), (10.27, 4.25), outside_anchor(concat_h, 'top')],
+    color=CONDITION, lw=0.96, alpha=0.92,
+)
+ax.text(8.20, 4.38, 'reuse $z_b$ for final concat',
+        fontsize=8.3, color='#6c5674', ha='center')
+
+# Training and calibration-only flows.
+arrow_arch(ax, outside_anchor(loss, 'right'), outside_anchor(head, 'bottom'),
+           color=RED, dashed=True, lw=0.98)
+arrow_arch(ax, outside_anchor(cal_pred, 'right'), outside_anchor(scores, 'left'),
+           color=GREEN, dashed=True, lw=0.98)
+arrow_arch(ax, outside_anchor(scores, 'top'), outside_anchor(qcal, 'bottom'),
+           color=GREEN, dashed=True, lw=0.98)
+elbow_arch(
+    ax,
+    [outside_anchor(qcal, 'right'), (14.42, 1.82), (14.42, 3.39), outside_anchor(cqr_adjust, 'right')],
+    color=GREEN, lw=0.98, dashed=True,
+)
+
+arrow_arch(ax, (0.48, 0.83), (1.42, 0.83), color=LINE, lw=1.08)
+ax.text(1.55, 0.83, 'forward / inference flow', va='center', fontsize=8.5, color=MUTED)
+arrow_arch(ax, (0.48, 0.55), (1.42, 0.55), color=GREEN, lw=0.98, dashed=True)
+ax.text(1.55, 0.55, 'calibration or training-only flow', va='center', fontsize=8.5, color=MUTED)
+
+ax.text(7.45, 0.18,
+        'Quantile model: 104,099 trainable parameters; CQR is post-hoc and does not retrain the network',
+        ha='center', fontsize=9, color=MUTED)
+
 fig.savefig(FIG_DIR / 'fig4_architecture.png')
 fig.savefig(FIG_DIR / 'fig4_architecture.pdf')
 plt.close()
@@ -294,7 +394,7 @@ ax.set_xticks(x)
 ax.set_xticklabels(regions, fontsize=9)
 ax.set_ylabel('NSE', color=DARK)
 ax_twin.set_ylabel('PICP', color=GREEN)
-ax.set_title('Cross-Region Validation', fontweight='bold')
+ax.set_title('Aridity-Based Validation', fontweight='bold')
 ax.grid(True, alpha=0.2, axis='y', zorder=1)
 ax.set_ylim(0.6, 1.0)
 ax_twin.set_ylim(0.6, 1.0)
@@ -318,7 +418,7 @@ print('Figure 5 saved')
 # ============================================================
 fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
 
-# (a) Multi-seed stability chart — simplified
+# (a) Multi-seed stability chart, simplified
 ax = axes[0]
 # Fig 6a data loaded from results/tables/stability_1yr.json (1-yr init stability)
 _st = _j('stability_1yr.json')
@@ -350,7 +450,7 @@ lines1, labels1 = ax.get_legend_handles_labels()
 lines2, labels2 = ax_twin.get_legend_handles_labels()
 ax.legend(lines1 + lines2, labels1 + labels2, fontsize=9, loc='upper left')
 
-# (b) Static embedding ablation — with bracket-style delta annotations
+# (b) Static embedding ablation with bracket-style delta annotations
 ax = axes[1]
 methods = ['1-yr\nw/ static', '1-yr\nw/o static', '5-yr\nw/ static', '5-yr\nw/o static']
 nse_ab = [_s[1]['test_nse'], _j('scarce_1yr_nostatic_results.json')['test_nse'],
@@ -440,7 +540,7 @@ for i, (vals, label, color) in enumerate(series):
                   edgecolor='white', linewidth=0.7, alpha=0.86, zorder=2)
     for b, v in zip(bars, vals):
         ax.text(b.get_x() + b.get_width()/2, v + 0.012, f'{v:.2f}',
-                ha='center', fontsize=7.4, rotation=90 if i < 3 else 0,
+                ha='center', va='bottom', fontsize=7.1,
                 fontweight='bold', color=color)
 ax.axhline(y=0.90, color=DARK, linestyle='--', linewidth=1.2, alpha=0.55, zorder=1)
 ax.set_xticks(x)
@@ -449,7 +549,7 @@ ax.set_ylabel('PICP by Observed Flow Regime')
 ax.set_ylim(0.45, 1.05)
 ax.set_title('(b) Conditional Calibration (1-yr)', fontweight='bold')
 ax.grid(True, alpha=0.22, axis='y', zorder=1)
-ax.legend(fontsize=8, loc='lower left', ncol=2)
+ax.legend(fontsize=8, loc='upper center', bbox_to_anchor=(0.5, -0.13), ncol=4, frameon=True)
 
 plt.tight_layout()
 fig.savefig(FIG_DIR / 'fig7_robustness_sensitivity.png')
@@ -460,3 +560,8 @@ print('Figure 7 saved')
 print('\nAll figures generated successfully!')
 for f in sorted(FIG_DIR.glob('*.pdf')):
     print(f'  {f.name}')
+
+for pattern in ('fig*.png', 'fig*.pdf'):
+    for src in FIG_DIR.glob(pattern):
+        shutil.copy2(src, PAPER_FIG_DIR / src.name)
+print(f'\nFigures synchronized to {PAPER_FIG_DIR}')

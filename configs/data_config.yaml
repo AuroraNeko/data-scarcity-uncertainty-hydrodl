@@ -11,7 +11,10 @@ dataset:
   name: camels_us
   raw_dir: data/raw/camels_us
   processed_dir: data/processed/camels_us
-  forcing_source: daymet  # daymet, maurer, nldas
+  forcing_sources:
+    - daymet
+    - maurer
+    - nldas
 
 # Temporal splits (water-year aligned; match data_preprocessing.TRAIN/VAL/TEST_*).
 date_splits:
@@ -22,13 +25,32 @@ date_splits:
   test_start: "2000-10-01"
   test_end: "2010-09-30"
 
-# 5 Daymet dynamic forcings (match DYNAMIC_VARS).
-dynamic_variables:
+# Five base variables from each of the three forcing products.
+base_dynamic_variables:
   - prcp
-  - tmin
-  - tmax
   - srad
+  - tmax
+  - tmin
   - vp
+
+# Final dynamic feature order used by src/data/data_preprocessing.py and
+# src/data/dataset.py. This gives 15 dynamic inputs in total.
+dynamic_variables:
+  - prcp_daymet
+  - srad_daymet
+  - tmax_daymet
+  - tmin_daymet
+  - vp_daymet
+  - prcp_maurer
+  - srad_maurer
+  - tmax_maurer
+  - tmin_maurer
+  - vp_maurer
+  - prcp_nldas
+  - srad_nldas
+  - tmax_nldas
+  - tmin_nldas
+  - vp_nldas
 
 # 13 static catchment attributes (match STATIC_ATTR_FILES / dataset.STATIC_COLS).
 static_attributes:
@@ -53,8 +75,7 @@ static_attributes:
 
 target:
   variable: streamflow_mm
-  # log1p == ln(1 + y) via numpy.log1p.
-  transform: log1p   # log1p (ln(1+y)) or sqrt
+  transform: log1p   # log1p == ln(1 + y) via numpy.log1p
   missing_marker: -999.0
 
 missing_values:
