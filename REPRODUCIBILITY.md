@@ -14,6 +14,9 @@ The public repository supports two reproducibility levels:
 The second path is the fastest way to verify that the reported numbers match
 the machine-readable outputs committed with this repository.
 
+Archived code and result snapshot:
+https://doi.org/10.5281/zenodo.21256956
+
 ## 1. Environment
 
 The reference experiments were run with Python 3.11, PyTorch 2.x, and a single
@@ -170,6 +173,7 @@ The public code repository is intended to include:
 | `requirements.txt` | Python dependency families |
 | `results/tables/*.json` and `*.csv` | Machine-readable numerical results |
 | `results/figures/*.pdf` and `*.png` | Generated figures |
+| `CITATION.cff` | Citation metadata for GitHub and Zenodo |
 | `README.md` and `REPRODUCIBILITY.md` | Public usage, audit, and rerun instructions |
 
 The public code repository intentionally excludes:

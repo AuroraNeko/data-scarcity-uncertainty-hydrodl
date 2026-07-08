@@ -19,6 +19,9 @@ The repository includes analysis scripts, result JSON/CSV files, and generated
 figures. Raw CAMELS-US data and trained checkpoints are not tracked because of
 their size.
 
+Archived code and result snapshot DOI:
+[10.5281/zenodo.21256956](https://doi.org/10.5281/zenodo.21256956).
+
 ## Main Results
 
 ### Matched Data-Scarcity Gradient
@@ -184,6 +187,11 @@ period and does not retrain the network.
 See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for temporal splits, seeds,
 calibration settings, figure regeneration, and the public repository
 inclusion/exclusion policy.
+
+## Citation
+
+Please cite the archived code and result snapshot using DOI
+[10.5281/zenodo.21256956](https://doi.org/10.5281/zenodo.21256956).
 
 ## License
 
