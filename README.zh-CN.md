@@ -1,57 +1,58 @@
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-# 数据稀缺与水文深度学习中的不确定性
+# 水文深度学习中的数据稀缺与不确定性估计
 
-本研究 **《How Data Scarcity Compromises Uncertainty Estimates in Hydrological
-Deep Learning — and How to Fix It with Conformalized Quantile Regression》**
-的配套代码。
+本文仓库对应论文：
 
-本项目研究**训练数据量如何影响不确定性估计的可靠性**（而不仅仅是点预测精度）。我们在
-CAMELS-US 数据集（671 个流域，三套气象强迫产品）上发现：将训练数据从 15 年缩减到 1 年，
-90% 预测区间的覆盖率（PICP）从 83% 跌到 67%——远大于同期点预测精度 NSE 的下降
-（0.884 → 0.719）。我们诊断了退化机理（区间系统性偏窄、校准曲线变平、流量区间不对称），
-并证明 **共形分位回归（CQR）** 仅需一次前向传播、零额外训练成本，即可在所有数据量级别
-将覆盖率恢复到约 0.87。我们进一步发现全局 CQR 修复的是**边际覆盖**而非高流量**条件覆盖**，
-而分区间条件 CQR 可以弥补这一缺口。
+**How Data Scarcity Compromises Uncertainty Estimates in Hydrological Deep
+Learning and How Conformal Calibration Mitigates It**
 
-> **状态：** 水文深度学习中数据稀缺与不确定性研究的代码。仓库包含示例结果 JSON 与图表；
-> 24 GB 数据集与模型权重由下列脚本重新生成，不在仓库中。
+本项目研究训练数据不足时，深度学习径流预测模型的不确定性估计会如何退化。实验基于
+CAMELS-US 的 671 个流域、三个气象强迫产品，以及轻量级 LPU-Stream 网络。核心结论是：
+数据稀缺对区间覆盖率的破坏明显快于对点预测精度的破坏，而 split conformalized
+quantile regression（CQR）可以在不重新训练神经网络的前提下恢复接近目标水平的边际覆盖率。
 
----
+仓库包含训练、评估、分析脚本，机器可读的 JSON/CSV 结果表，以及已生成的论文图件。
+原始 CAMELS-US 数据和训练检查点体积较大，不纳入版本管理。
 
-## 核心结果
+## 主要结果
 
-| 训练数据 | NSE | PICP（未校准） | PICP（CQR） | $q_{\text{cal}}$ | MPIW |
-|---|---|---|---|---|---|
-| 1 年  | 0.719 | 0.671 | **0.883** | 0.341 | 1.298 |
-| 3 年  | 0.813 | 0.741 | **0.869** | 0.155 | 0.968 |
-| 5 年  | 0.843 | 0.774 | **0.866** | 0.096 | 0.833 |
-| 15 年（匹配 50 流域） | 0.884 | 0.828 | **0.876** | 0.042 | 0.662 |
+### 匹配流域的数据稀缺梯度
 
-数据稀缺下，**不确定性的退化远比点预测严重**，而 CQR 能稳健地恢复近目标覆盖率。
-四行均使用相同的 50 个流域（seed 匹配），构成干净的组内数据量梯度。
+四组实验均使用同一个 seed-42 抽样得到的 50 个流域。
 
-### 边际覆盖 vs. 条件覆盖
+| 训练数据量 | pooled median-quantile NSE | 原始 PICP | CQR PICP | `q_cal` | CQR MPIW |
+|---|---:|---:|---:|---:|---:|
+| 1 年 | 0.719 | 0.671 | 0.883 | 0.341 | 1.298 |
+| 3 年 | 0.813 | 0.741 | 0.869 | 0.155 | 0.968 |
+| 5 年 | 0.843 | 0.774 | 0.866 | 0.096 | 0.833 |
+| 15 年 | 0.884 | 0.828 | 0.876 | 0.042 | 0.662 |
 
-| 流量区间 | 未校准 | 全局 CQR | 分区间 CQR |
-|---|---|---|---|
-| 低流量 | 0.91 | 0.996 | 0.885 |
-| 中流量 | 0.56 | 0.938 | 0.876 |
-| **高流量（洪水）** | **0.50** | **0.736** | **0.888** |
+从 15 年训练数据降到 1 年时，未校准区间覆盖率下降约 16 个百分点，而 NSE 的相对下降约
+19%。这说明不确定性可靠性不能只作为点预测精度的附属指标，而应作为独立的评价对象。
 
-全局 CQR 恢复了边际覆盖率，但高流量（洪水）区间仍然欠覆盖（0.736 < 0.90）。分区间条件
-CQR 将所有区间恢复到约 0.88。
+### 边际校准与条件校准
+
+1 年数据稀缺模型上的流量分区覆盖率如下：
+
+| 流量区间 | 原始 QR | Global CQR | Predicted-regime CQR | Observed-regime CQR |
+|---|---:|---:|---:|---:|
+| 低流量 | 0.910 | 0.996 | 0.991 | 0.885 |
+| 正常流量 | 0.560 | 0.938 | 0.925 | 0.876 |
+| 高流量 | 0.504 | 0.736 | 0.791 | 0.888 |
+
+Global CQR 能恢复边际覆盖率，但高流量事件仍然覆盖不足。Predicted-regime CQR 是可部署的
+条件校准版本；Observed-regime CQR 使用真实测试期流量分区，因此作为诊断性上界。
 
 <p align="center">
   <img src="results/figures/fig1_degradation.png" width="90%"><br>
-  <em>点预测精度（NSE）下降温和，而区间覆盖率（PICP）骤降；CQR 可将其恢复。</em>
-</p>
-<p align="center">
-  <img src="results/figures/fig2_method_comparison.png" width="90%"><br>
-  <em>MC Dropout、Deep Ensembles、CQR 三者中，只有 CQR 以最窄区间、最优 Winkler 分数达到近目标覆盖。</em>
+  <em>数据稀缺对不确定性覆盖率的破坏明显快于对点预测精度的破坏。</em>
 </p>
 
----
+<p align="center">
+  <img src="results/figures/fig2_method_comparison.png" width="90%"><br>
+  <em>671 个流域上的 MC Dropout、Deep Ensembles、Deep Ensembles + CQR 与单模型 CQR 公平比较。</em>
+</p>
 
 ## 安装
 
@@ -61,93 +62,108 @@ cd data-scarcity-uncertainty-hydrodl
 pip install -r requirements.txt
 ```
 
-训练推荐使用 CUDA GPU（实验使用单块 NVIDIA RTX 5060 Ti）；分析脚本亦可在 CPU 上运行。
-测试环境：Python 3.11、PyTorch 2.x。
+训练建议使用 CUDA GPU。只要结果文件已经存在，图件生成和论文数字核验可以在 CPU 上运行。
+实验环境为 Python 3.11 与 PyTorch 2.x。
 
-## 数据准备（CAMELS-US，约 24 GB）
+## 数据准备
+
+下载并预处理 CAMELS-US：
 
 ```bash
-# 1. 从 Zenodo 下载原始数据（约 12 GB zip + 属性文件）
 python download_camels.py
-
-# 2. 将 zip 解压到 data/raw/camels_us/，再预处理为逐流域 CSV
 python src/data/data_preprocessing.py
 ```
 
-将生成 `data/processed/camels_us/<basin_id>.csv`（671 流域，三套强迫产品的 15 个动态特征）
-及 `data/metadata/` 下的归一化统计量。数据集**不**纳入 git（见 `.gitignore`）。
+预处理后会生成：
+
+```text
+data/processed/camels_us/<basin_id>.csv
+data/metadata/normalization_stats.json
+data/metadata/basin_metadata.csv
+```
+
+每个流域文件包含 15 个动态变量（Daymet、Maurer、NLDAS 各 5 个变量）、13 个静态流域属性、
+mm/day 单位的径流、缺测掩码，以及基于训练期统计量归一化后的特征。
 
 ## 仓库结构
 
-```
+```text
 .
-├── download_camels.py            # 从 Zenodo 获取 CAMELS-US
-├── src/
-│   ├── utils.py                  # 公共工具：get_device()、set_seed()
-│   ├── data/                     # data_preprocessing.py（三套强迫）、dataset.py、compute_perbasin_stats.py
-│   ├── models/                   # lstm、ea_lstm、tcn、transformer、lpu_stream
-│   └── losses/                   # pinball_loss、physics_loss、cqr（校准器 + 指标）
-├── experiments/
-│   ├── baseline/                 # train_model.py（DL 基线）、train_xgboost.py
-│   ├── scarce/                   # 数据稀缺实验（1/3/5/15 年，50 流域）
-│   ├── uncertainty/              # 分位+CQR、MC Dropout、Deep Ensembles、公平评估
-│   ├── physics_guided/           # 物理约束训练（辅助）
-│   ├── analysis/                 # 制图、验证、诊断、跨区域、稳定性
-│   └── orchestrator.py           # 全流程驱动（可恢复，带校验门）
-├── paper/                        # manuscript.tex + 图表（HESS / Copernicus 格式）
-└── results/
-    ├── tables/                   # 结果 JSON（已提交，经 verify_manuscript.py 校验）
-    └── figures/                  # 生成的图表 PNG + PDF（已提交）
+|-- download_camels.py
+|-- configs/
+|   `-- data_config.yaml
+|-- src/
+|   |-- data/
+|   |   |-- data_preprocessing.py
+|   |   |-- dataset.py
+|   |   `-- compute_perbasin_stats.py
+|   |-- losses/
+|   |-- models/
+|   `-- utils.py
+|-- experiments/
+|   |-- baseline/
+|   |-- scarce/
+|   |-- uncertainty/
+|   |-- physics_guided/
+|   |-- analysis/
+|   `-- orchestrator.py
+|-- results/
+|   |-- tables/
+|   `-- figures/
+|-- REPRODUCIBILITY.md
+`-- requirements.txt
 ```
+
+论文源文件和最终投稿 PDF 属于发布包或投稿材料，不作为默认公开代码仓库内容。
 
 ## 复现实验
 
-### 全流程（自动化）
+运行完整流水线：
 
 ```bash
 python experiments/orchestrator.py
 ```
 
-依次执行所有阶段——预处理（已缓存则跳过）、基线训练、分位+ensemble 训练、不确定性评估、
-稀缺+跨区域实验、图表生成、论文数值校验——支持逐阶段恢复与超时保护。
-
-### 分步执行
+也可以按阶段运行：
 
 ```bash
-# 点预测基线（LSTM、EA-LSTM、TCN、Transformer、LPU-Stream）
 python experiments/baseline/train_model.py --model lpu_stream
-python experiments/baseline/train_xgboost.py          # XGBoost（单强迫 lag 特征）
-
-# 逐流域 NSE 评估（CAMELS 标准指标 + bootstrap 置信区间）
+python experiments/baseline/train_xgboost.py
 python experiments/analysis/eval_point_perbasin.py
 
-# 主不确定性结果：分位回归 + CQR 校准
-python experiments/uncertainty/train_quantile.py                  # 单分位模型 + CQR
-python experiments/uncertainty/retrain_ensembles_correct.py       # 5-member Deep Ensembles
-python experiments/uncertainty/eval_fair_671.py                   # 公平 671 流域比较（CQR/MC/Ens）
+python experiments/uncertainty/train_quantile.py
+python experiments/uncertainty/retrain_ensembles_correct.py
+python experiments/uncertainty/eval_fair_671.py
 
-# 数据稀缺实验（匹配 50 流域，1/3/5/15 年）
 python experiments/scarce/train_data_scarce.py --years 1
-python experiments/scarce/train_data_scarce.py --years 1 --no-static   # 消融
+python experiments/scarce/train_data_scarce.py --years 3
+python experiments/scarce/train_data_scarce.py --years 5
+python experiments/scarce/train_data_scarce.py --years 15
 
-# 分析与制图
-python experiments/analysis/diagnose_1yr.py             # 覆盖退化诊断 + CQR 分区间
-python experiments/analysis/cross_region_validation.py   # 跨区域稳健性
-python experiments/analysis/stability_1yr.py             # 多 seed 稳定性
-python experiments/analysis/confidence_levels.py         # 90/95/99% 校准
-python experiments/analysis/make_figures.py              # 从 JSON 重生成所有图表
-python experiments/analysis/verify_manuscript.py         # 校验论文所有数值 vs JSON（101 项）
+python experiments/analysis/diagnose_1yr.py
+python experiments/analysis/cross_region_validation.py
+python experiments/analysis/stability_1yr.py
+python experiments/analysis/confidence_levels.py
+python experiments/analysis/enhanced_robustness.py
+python experiments/analysis/basin_representativeness.py
+python experiments/analysis/make_figures.py
+python experiments/analysis/verify_manuscript.py
 ```
 
-仓库中 `results/tables/*.json` 与 `results/figures/*` 为这些运行的示例输出。
+如果 `paper/manuscript.tex` 存在，`verify_manuscript.py` 会同时核验论文文本中的数字；
+在仅包含代码的仓库中，它会继续核验 JSON 结果，并跳过文本存在性检查。
 
-## 模型 — LPU-Stream
+## 模型简介
 
-一个轻量循环网络（103,969 参数）：15 个动态气象输入（五个变量 × 三套 CAMELS 强迫产品：
-Daymet、Maurer、NLDAS）由 128 单元 LSTM 处理；13 个静态流域属性经 MLP（64→32）嵌入为 32 维
-向量，拼接到每个时间步。线性头预测三个分位（0.05 / 0.50 / 0.95），用 pinball loss 训练。
-CQR 在留出的 5 年校准期上做后处理校准。
+LPU-Stream 使用 128 单元 LSTM 编码动态气象序列，并用静态流域 MLP 将 13 个流域属性映射到
+32 维嵌入。分位数模型预测 0.05、0.50、0.95 三个分位数，使用 pinball loss 训练，共
+104,099 个可训练参数。点预测版本为 103,969 个参数。CQR 在保留校准期上进行后处理，不重新训练网络。
+
+## 复现说明
+
+时间划分、随机种子、校准设置、图件再生成和推荐发布文件清单见
+[REPRODUCIBILITY.md](REPRODUCIBILITY.md)。
 
 ## 许可证
 
-MIT —— 见 [LICENSE](LICENSE)。
+MIT。见 [LICENSE](LICENSE)。

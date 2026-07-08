@@ -132,7 +132,7 @@ def main():
         sys.exit(1)
     else:
         print("\nAll files downloaded successfully!")
-        print("Next step: Extract zip file and run data_preprocessing.py")
+        print("Next step: run python src/data/data_preprocessing.py")
 
 
 if __name__ == "__main__":
