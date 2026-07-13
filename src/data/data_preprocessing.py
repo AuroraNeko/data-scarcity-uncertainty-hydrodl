@@ -11,6 +11,7 @@ Usage:
 
 import os
 import glob
+import argparse
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -27,9 +28,11 @@ FORCING_ROOT = RAW_DIR / "basin_dataset_public_v1p2" / "basin_mean_forcing"
 STREAMFLOW_ROOT = RAW_DIR / "basin_dataset_public_v1p2" / "usgs_streamflow"
 
 # Configuration
-# Three CAMELS v1.2 forcing products (Daymet, Maurer, NLDAS). Each provides the
-# same 5 meteorological variables; using all 3 gives 15 dynamic features, the
-# standard input for strong CAMELS LSTM benchmarks (Kratzert et al.).
+# Three CAMELS v1.2 forcing products (Daymet, Maurer, NLDAS). Their files expose
+# the same five named columns, giving 15 supplied channels. In the upstream
+# Maurer and NLDAS files, however, Tmax and Tmin are identical daily series;
+# the 15 channels therefore contain 13 distinct time series. The duplicated
+# columns are retained for compatibility with the trained checkpoints.
 FORCING_SOURCES = ["daymet", "maurer", "nldas"]
 BASE_FORCING_VARS = ["prcp", "srad", "tmax", "tmin", "vp"]  # 5 vars per source
 DYNAMIC_VARS = [f"{v}_{s}" for s in FORCING_SOURCES for v in BASE_FORCING_VARS]  # 15 features
@@ -42,13 +45,17 @@ STATIC_ATTR_FILES = {
     "camels_geol.txt": ["geol_porostiy"],  # note: typo in original dataset
 }
 
-# Date splits (paper Section 6)
+# Date splits. Raw CAMELS forcing begins on 1 January 1980; the extra months
+# before the first training target provide antecedent context for fixed-length
+# sequence models. Maurer forcing ends on 31 December 2008, so the common test
+# period stops there instead of silently mean-imputing its missing 2009--2010 tail.
+DATA_START = "1980-01-01"
 TRAIN_START = "1980-10-01"
 TRAIN_END = "1995-09-30"
 VAL_START = "1995-10-01"
 VAL_END = "2000-09-30"
 TEST_START = "2000-10-01"
-TEST_END = "2010-09-30"
+TEST_END = "2008-12-31"
 
 # Transform for target variable (log1p = ln(1+y) via numpy.log1p; or "sqrt").
 TARGET_TRANSFORM = "log1p"
@@ -294,7 +301,7 @@ def preprocess_basin(basin_id: str, attributes: pd.DataFrame, sf_index: dict, f_
                 df[col] = row[col]
 
     # Filter to our target date range
-    start = pd.Timestamp(TRAIN_START)
+    start = pd.Timestamp(DATA_START)
     end = pd.Timestamp(TEST_END)
     df = df.loc[start:end]
 
@@ -379,7 +386,10 @@ def normalize_basin(df: pd.DataFrame, stats: dict) -> pd.DataFrame:
     return df
 
 
-def main():
+def main(
+    processed_dir: Path = PROCESSED_DIR,
+    metadata_dir: Path = METADATA_DIR,
+):
     print("=" * 60)
     print("CAMELS-US Data Preprocessing for LPU-Stream")
     print("=" * 60)
@@ -452,8 +462,8 @@ def main():
     stats = compute_normalization(basin_data)
 
     # Save statistics
-    os.makedirs(METADATA_DIR, exist_ok=True)
-    stats_path = METADATA_DIR / "normalization_stats.json"
+    os.makedirs(metadata_dir, exist_ok=True)
+    stats_path = metadata_dir / "normalization_stats.json"
     import json
     with open(stats_path, "w") as f:
         json.dump(stats, f, indent=2)
@@ -461,11 +471,11 @@ def main():
 
     # Normalize all basins and save
     print("\nNormalizing and saving processed data...")
-    os.makedirs(PROCESSED_DIR, exist_ok=True)
+    os.makedirs(processed_dir, exist_ok=True)
 
     for basin_id, df in basin_data.items():
         df_norm = normalize_basin(df, stats)
-        out_path = PROCESSED_DIR / f"{basin_id}.csv"
+        out_path = processed_dir / f"{basin_id}.csv"
         df_norm.to_csv(out_path)
 
     # Save basin metadata (list of valid basins, data coverage)
@@ -488,7 +498,7 @@ def main():
         })
 
     meta_df = pd.DataFrame(metadata)
-    meta_path = METADATA_DIR / "basin_metadata.csv"
+    meta_path = metadata_dir / "basin_metadata.csv"
     meta_df.to_csv(meta_path, index=False)
 
     # Print summary
@@ -496,14 +506,14 @@ def main():
     print("Preprocessing Complete!")
     print(f"{'='*60}")
     print(f"  Basins processed: {len(basin_data)}")
-    print(f"  Date range: {TRAIN_START} to {TEST_END}")
+    print(f"  Date range: {DATA_START} to {TEST_END}")
     print(f"  Train: {TRAIN_START} to {TRAIN_END}")
     print(f"  Val:   {VAL_START} to {VAL_END}")
     print(f"  Test:  {TEST_START} to {TEST_END}")
     print(f"  Target transform: {TARGET_TRANSFORM}")
     print(f"  Dynamic variables: {DYNAMIC_VARS}")
-    print(f"\n  Output: {PROCESSED_DIR}")
-    print(f"  Metadata: {METADATA_DIR}")
+    print(f"\n  Output: {processed_dir}")
+    print(f"  Metadata: {metadata_dir}")
     print(f"  Stats: {stats_path}")
 
     # Print data coverage stats
@@ -514,4 +524,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output-dir", type=Path, default=PROCESSED_DIR)
+    parser.add_argument("--metadata-dir", type=Path, default=METADATA_DIR)
+    cli_args = parser.parse_args()
+    main(cli_args.output_dir, cli_args.metadata_dir)

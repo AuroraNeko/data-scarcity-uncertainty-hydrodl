@@ -1,5 +1,5 @@
 """
-train_model.py  -  Unified training script for DL baselines.
+train_model.py  -  Unified training script for regional DL checkpoints.
 
 Usage:
     python experiments/baseline/train_model.py --model lstm
@@ -7,10 +7,10 @@ Usage:
     python experiments/baseline/train_model.py --model tcn
     python experiments/baseline/train_model.py --model transformer
 
-Paper reference: Section 8.3-8.6
 """
 
 import sys
+import hashlib
 import json
 import time
 import argparse
@@ -62,6 +62,14 @@ COMMON_CONFIG = {
     "n_static": 13,
     "seed": 42,
 }
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def build_model(model_name: str, cfg: dict) -> nn.Module:
@@ -219,7 +227,9 @@ def main():
             patience_counter = 0
             torch.save({
                 "epoch": epoch, "model_state_dict": model.state_dict(),
-                "val_loss": val_loss, "val_nse": val_nse, "config": cfg,
+                "val_loss": val_loss, "val_nse": val_nse,
+                "checkpoint_selection": "minimum_validation_mse",
+                "config": cfg,
             }, best_path)
             print(f"  -> Saved best (val_loss={val_loss:.4f})")
         else:
@@ -227,6 +237,33 @@ def main():
             if patience_counter >= patience:
                 print(f"Early stopping at epoch {epoch} (no improvement for {patience} epochs)")
                 break
+
+    if model_name == "lpu_stream":
+        results = {
+            "model": "lpu_stream_point",
+            "model_seed": cfg["seed"],
+            "config": cfg,
+            "n_parameters": n_params,
+            "best_epoch": best_epoch,
+            "best_validation_loss": float(best_val_loss),
+            "checkpoint_selection": "minimum_validation_mse",
+            "training_run_complete": True,
+            "checkpoint": best_path.relative_to(PROJECT_ROOT).as_posix(),
+            "checkpoint_sha256": sha256(best_path),
+            "timestamp": datetime.now().isoformat(),
+        }
+        results_path = (
+            PROJECT_ROOT
+            / "results"
+            / "tables"
+            / "full_checkpoint_training"
+            / f"point_seed{cfg['seed']}.json"
+        )
+        results_path.parent.mkdir(parents=True, exist_ok=True)
+        with results_path.open("w", encoding="utf-8") as handle:
+            json.dump(results, handle, indent=2)
+        print(f"\nCheckpoint metadata saved to {results_path}")
+        return
 
     # Test
     print("\n" + "=" * 60)
@@ -245,6 +282,7 @@ def main():
     results = {
         "model": model_name, "config": cfg,
         "best_epoch": best_epoch, "best_val_loss": float(best_val_loss),
+        "checkpoint_selection": "minimum_validation_mse",
         "test_loss": float(test_loss), "test_nse": float(test_nse),
         "n_params": n_params, "timestamp": datetime.now().isoformat(),
     }

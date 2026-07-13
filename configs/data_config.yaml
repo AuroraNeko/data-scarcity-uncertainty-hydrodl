@@ -18,14 +18,17 @@ dataset:
 
 # Temporal splits (water-year aligned; match data_preprocessing.TRAIN/VAL/TEST_*).
 date_splits:
+  data_start: "1980-01-01"     # antecedent context before the first target
   train_start: "1980-10-01"
   train_end: "1995-09-30"      # 15-year training; truncated for scarcity runs
   val_start: "1995-10-01"
   val_end: "2000-09-30"        # also used as the CQR calibration period
   test_start: "2000-10-01"
-  test_end: "2010-09-30"
+  test_end: "2008-12-31"       # common endpoint; Maurer forcing ends here
 
-# Five base variables from each of the three forcing products.
+# Five named columns from each forcing product. In the upstream v1.2 archive,
+# Maurer Tmax/Tmin and NLDAS Tmax/Tmin are exact duplicate pairs. The 15
+# supplied channels therefore contain 13 distinct daily series.
 base_dynamic_variables:
   - prcp
   - srad
@@ -79,11 +82,12 @@ target:
   missing_marker: -999.0
 
 missing_values:
-  dynamic_method: linear_interpolation
-  dynamic_max_gap: 7
-  static_method: median_fill
+  dynamic_method: linear_interpolation_then_forward_and_backward_fill
+  dynamic_interpolation_limit: 7
+  dynamic_directional_fill_limit: 3
+  static_method: training_basin_mean_after_standardization
   streamflow: mask_only   # missing streamflow is masked, not filled
 
 normalization:
   method: standard        # z-score
-  compute_from: train_period
+  compute_from: condition_training_basins_and_target_years

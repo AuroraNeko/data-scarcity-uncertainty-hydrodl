@@ -6,6 +6,8 @@ experiment scripts so that every script selects the device and seeds RNGs
 in the same way.
 """
 
+import random
+
 import numpy as np
 import torch
 
@@ -19,13 +21,25 @@ def get_device() -> torch.device:
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def set_seed(seed: int) -> None:
+def set_seed(seed: int, deterministic: bool = True) -> None:
     """Seed Python/NumPy/PyTorch RNGs for reproducibility.
 
     Args:
         seed: integer seed applied to torch (CPU + all CUDA devices) and NumPy.
     """
-    torch.manual_seed(seed)
+    random.seed(seed)
     np.random.seed(seed)
+    torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+    if deterministic:
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+        torch.use_deterministic_algorithms(True, warn_only=True)
+
+
+def seeded_generator(seed: int) -> torch.Generator:
+    """Create a deterministic generator for shuffled DataLoaders."""
+    generator = torch.Generator()
+    generator.manual_seed(seed)
+    return generator

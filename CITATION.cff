@@ -1,13 +1,13 @@
 cff-version: 1.2.0
-message: "If you use this code or the archived result snapshot, please cite it using the metadata below."
+message: "If you use this code, cite the versioned archive corresponding to the release used."
 type: software
-title: "Data Scarcity and Uncertainty in Hydrological Deep Learning"
+title: "Data Scarcity in Hydrological Deep Learning: Prediction Skill, Interval Reliability, and Conformal Calibration"
 authors:
   - family-names: AuroraNeko
     
   - family-names: AuroraNeko
     
-doi: 10.5281/zenodo.21256956
-url: "https://doi.org/10.5281/zenodo.21256956"
+doi: 10.5281/zenodo.21256955
+url: "https://doi.org/10.5281/zenodo.21256955"
 repository-code: "https://github.com/AuroraNeko/data-scarcity-uncertainty-hydrodl"
 license: MIT

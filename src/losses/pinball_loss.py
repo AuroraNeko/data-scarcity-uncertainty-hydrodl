@@ -1,8 +1,4 @@
-"""
-Pinball loss for quantile regression.
-
-Paper Section 11.2: L_quantile = sum_tau [tau * max(y - qtau, 0) + (1-tau) * max(qtau - y, 0)]
-"""
+"""Masked multi-quantile pinball loss."""
 
 import torch
 import torch.nn as nn

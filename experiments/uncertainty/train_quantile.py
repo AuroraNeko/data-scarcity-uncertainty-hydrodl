@@ -1,18 +1,19 @@
 """
-train_quantile.py  -  Train LPU-Stream with quantile regression + CQR calibration.
+train_quantile.py  -  Train the seed-42 full-basin quantile checkpoint.
 
 Usage:
     python experiments/uncertainty/train_quantile.py
 
-Paper reference: Section 11 (Uncertainty Calibration)
+The common-grid raw/CQR comparison is performed by
+evaluate_corrected_methods.py after all checkpoints are available.
 """
 
 import sys
+import hashlib
 import json
 import time
 import numpy as np
 import torch
-import torch.nn as nn
 from pathlib import Path
 from datetime import datetime
 
@@ -22,7 +23,6 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from src.models.lpu_stream import LPUStreamModel
 from src.data.dataset import create_dataloaders, get_basin_list
 from src.losses.pinball_loss import PinballLoss
-from src.losses.cqr import CQRCalibrator, compute_uncertainty_metrics
 from src.utils import set_seed
 
 # --- Config ----------------------------------------------------------------
@@ -35,6 +35,14 @@ CONFIG = {
     "seq_len": 365, "batch_size": 1024, "learning_rate": 1e-3,
     "epochs": 30, "seed": 42, "alpha": 0.1,
 }
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def train_epoch(model, loader, optimizer, criterion, device):
@@ -92,7 +100,7 @@ def compute_nse(pred: np.ndarray, target: np.ndarray, mask: np.ndarray) -> float
 def main():
     cfg = {**CONFIG}
     print("=" * 60)
-    print("LPU-Stream Quantile Regression + CQR Calibration")
+    print("LPU-Stream Full-Basin Quantile Checkpoint Training")
     print("=" * 60)
     print(f"Quantiles: {QUANTILES}")
     print(f"Target coverage: {1 - cfg['alpha']:.0%}")
@@ -132,7 +140,7 @@ def main():
     print(f"\nTraining for {cfg['epochs']} epochs...")
     print("-" * 60)
 
-    best_val_loss, best_epoch = float("inf"), 0
+    best_training_loss, best_epoch = float("inf"), 0
     patience, patience_counter = 5, 0
     ckpt_dir = PROJECT_ROOT / "results" / "checkpoints"
     ckpt_dir.mkdir(parents=True, exist_ok=True)
@@ -149,8 +157,7 @@ def main():
         # Early stopping / LR scheduling use the *training* loss below (a full
         # validation pinball pass is comparatively expensive). val_nse is
         # reported for monitoring only.
-        val_loss = train_loss
-        scheduler.step(val_loss)
+        scheduler.step(train_loss)
         elapsed = time.time() - t0
         lr = optimizer.param_groups[0]["lr"]
 
@@ -159,12 +166,14 @@ def main():
               f"Val NSE: {val_nse:.4f} | "
               f"LR: {lr:.1e} | {elapsed:.0f}s")
 
-        if train_loss < best_val_loss:
-            best_val_loss, best_epoch = train_loss, epoch
+        if train_loss < best_training_loss:
+            best_training_loss, best_epoch = train_loss, epoch
             patience_counter = 0
             torch.save({
                 "epoch": epoch, "model_state_dict": model.state_dict(),
-                "val_nse": val_nse, "config": cfg,
+                "val_nse": val_nse, "training_loss": float(train_loss),
+                "checkpoint_selection": "minimum_training_pinball_loss",
+                "config": cfg,
             }, best_path)
             print(f"  -> Saved best")
         else:
@@ -173,99 +182,30 @@ def main():
                 print(f"Early stopping at epoch {epoch}")
                 break
 
-    # --- CQR Calibration + Evaluation ----------------------------------
-    print("\n" + "=" * 60)
-    print("CQR Calibration & Uncertainty Evaluation")
-    print("=" * 60)
-
-    # Load best model
-    ckpt = torch.load(best_path, weights_only=False)
-    model.load_state_dict(ckpt["model_state_dict"])
-
-    # Predict on validation (calibration) set
-    val_preds, val_targets, val_masks = predict(model, val_loader, device)
-    valid_val = val_masks.flatten() > 0
-    val_q_lower = val_preds[valid_val, 0]  # Q_0.05
-    val_q_upper = val_preds[valid_val, 2]  # Q_0.95
-    val_y = val_targets.flatten()[valid_val]
-
-    # Fit CQR on validation set
-    calibrator = CQRCalibrator(alpha=cfg["alpha"])
-    q_cal = calibrator.fit(val_q_lower, val_q_upper, val_y)
-    print(f"CQR calibration quantile: {q_cal:.4f}")
-
-    # -- Uncalibrated metrics (validation) --
-    val_metrics_raw = compute_uncertainty_metrics(
-        val_q_lower, val_q_upper, val_y, alpha=cfg["alpha"],
-    )
-    print(f"\nValidation (uncalibrated):")
-    print(f"  PICP: {val_metrics_raw['picp']:.4f} (target: {1-cfg['alpha']:.2f})")
-    print(f"  MPIW: {val_metrics_raw['mpiw']:.4f}")
-    print(f"  Coverage low/normal/high: "
-          f"{val_metrics_raw['coverage_low_flow']:.4f}/"
-          f"{val_metrics_raw['coverage_normal_flow']:.4f}/"
-          f"{val_metrics_raw['coverage_high_flow']:.4f}")
-
-    # -- Calibrated metrics (validation) --
-    cal_lower, cal_upper = calibrator.calibrate(val_q_lower, val_q_upper)
-    val_metrics_cal = compute_uncertainty_metrics(
-        cal_lower, cal_upper, val_y, alpha=cfg["alpha"],
-    )
-    print(f"\nValidation (CQR calibrated):")
-    print(f"  PICP: {val_metrics_cal['picp']:.4f} (target: {1-cfg['alpha']:.2f})")
-    print(f"  MPIW: {val_metrics_cal['mpiw']:.4f}")
-    print(f"  Coverage low/normal/high: "
-          f"{val_metrics_cal['coverage_low_flow']:.4f}/"
-          f"{val_metrics_cal['coverage_normal_flow']:.4f}/"
-          f"{val_metrics_cal['coverage_high_flow']:.4f}")
-
-    # -- Test set evaluation --
-    test_preds, test_targets, test_masks = predict(model, test_loader, device)
-    valid_test = test_masks.flatten() > 0
-    test_q_lower = test_preds[valid_test, 0]
-    test_q_upper = test_preds[valid_test, 2]
-    test_y = test_targets.flatten()[valid_test]
-
-    test_nse = compute_nse(test_preds, test_targets, test_masks)
-
-    # Uncalibrated
-    test_raw = compute_uncertainty_metrics(
-        test_q_lower, test_q_upper, test_y, alpha=cfg["alpha"],
-    )
-
-    # Calibrated
-    test_cal_lower, test_cal_upper = calibrator.calibrate(test_q_lower, test_q_upper)
-    test_cal = compute_uncertainty_metrics(
-        test_cal_lower, test_cal_upper, test_y, alpha=cfg["alpha"],
-    )
-
-    print(f"\n{'='*60}")
-    print(f"Test Results")
-    print(f"{'='*60}")
-    print(f"NSE (median): {test_nse:.4f}")
-    print(f"\nUncalibrated 90% interval:")
-    print(f"  PICP: {test_raw['picp']:.4f} | MPIW: {test_raw['mpiw']:.4f} | Winkler: {test_raw['winkler_score']:.4f}")
-    print(f"  Coverage low/normal/high: {test_raw['coverage_low_flow']:.4f}/{test_raw['coverage_normal_flow']:.4f}/{test_raw['coverage_high_flow']:.4f}")
-    print(f"\nCQR Calibrated 90% interval:")
-    print(f"  PICP: {test_cal['picp']:.4f} | MPIW: {test_cal['mpiw']:.4f} | Winkler: {test_cal['winkler_score']:.4f}")
-    print(f"  Coverage low/normal/high: {test_cal['coverage_low_flow']:.4f}/{test_cal['coverage_normal_flow']:.4f}/{test_cal['coverage_high_flow']:.4f}")
-
-    # Save results
     results = {
         "model": "lpu_stream_quantile",
+        "model_seed": cfg["seed"],
         "config": cfg,
-        "n_params": n_params,
+        "n_parameters": n_params,
         "best_epoch": best_epoch,
-        "q_cal": float(q_cal),
-        "test_nse": float(test_nse),
-        "test_uncalibrated": test_raw,
-        "test_calibrated": test_cal,
+        "best_training_loss": float(best_training_loss),
+        "checkpoint_selection": "minimum_training_pinball_loss",
+        "training_run_complete": True,
+        "checkpoint": best_path.relative_to(PROJECT_ROOT).as_posix(),
+        "checkpoint_sha256": sha256(best_path),
         "timestamp": datetime.now().isoformat(),
     }
-    results_path = PROJECT_ROOT / "results" / "tables" / "lpu_stream_quantile_results.json"
-    with open(results_path, "w") as f:
-        json.dump(results, f, indent=2)
-    print(f"\nResults saved to {results_path}")
+    results_path = (
+        PROJECT_ROOT
+        / "results"
+        / "tables"
+        / "full_checkpoint_training"
+        / "quantile_seed42.json"
+    )
+    results_path.parent.mkdir(parents=True, exist_ok=True)
+    with results_path.open("w", encoding="utf-8") as handle:
+        json.dump(results, handle, indent=2)
+    print(f"\nCheckpoint metadata saved to {results_path}")
 
 
 if __name__ == "__main__":

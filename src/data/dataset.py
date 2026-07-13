@@ -15,14 +15,101 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed" / "camels_us"
 METADATA_DIR = PROJECT_ROOT / "data" / "metadata"
 
-# 15 dynamic features: 5 meteorological vars x 3 CAMELS forcing products
-# (daymet, maurer, nldas). MUST match src/data/data_preprocessing.py DYNAMIC_VARS.
+# 15 supplied channels: 5 named columns x 3 CAMELS forcing products. The
+# upstream Maurer and NLDAS Tmax/Tmin pairs are exact duplicates, leaving 13
+# distinct daily series. MUST match src/data/data_preprocessing.py DYNAMIC_VARS.
 _FORCING_SOURCES = ["daymet", "maurer", "nldas"]
 _BASE_FORCING_VARS = ["prcp", "srad", "tmax", "tmin", "vp"]
 DYNAMIC_VARS = [f"{v}_{s}" for s in _FORCING_SOURCES for v in _BASE_FORCING_VARS]
 STATIC_COLS = ["elev_mean", "slope_mean", "area_gages2", "p_mean", "pet_mean",
                "aridity", "frac_snow", "p_seasonality", "soil_depth_pelletier",
                "soil_porosity", "frac_forest", "lai_diff", "geol_porostiy"]
+
+
+def compute_normalization_stats(
+    basin_list: list[str],
+    start_date: str,
+    end_date: str,
+) -> dict:
+    """Compute normalization statistics from one experiment's training data.
+
+    Dynamic inputs and the transformed streamflow target are summarized only
+    over the requested dates and basins. This prevents short-record experiments
+    from inheriting target statistics from excluded years or other basins.
+    """
+    dynamic_sum = np.zeros(len(DYNAMIC_VARS), dtype=np.float64)
+    dynamic_sumsq = np.zeros(len(DYNAMIC_VARS), dtype=np.float64)
+    dynamic_count = np.zeros(len(DYNAMIC_VARS), dtype=np.int64)
+    target_sum = 0.0
+    target_sumsq = 0.0
+    target_count = 0
+    static_values = {name: [] for name in STATIC_COLS}
+    used_basins = []
+
+    columns = ["date", *DYNAMIC_VARS, "target", "flow_mask", *STATIC_COLS]
+    for basin_id in basin_list:
+        csv_path = PROCESSED_DIR / f"{basin_id}.csv"
+        if not csv_path.exists():
+            continue
+
+        df = pd.read_csv(csv_path, usecols=columns, parse_dates=["date"])
+        df = df.set_index("date").loc[start_date:end_date]
+        if df.empty:
+            continue
+
+        dynamic = df[DYNAMIC_VARS].to_numpy(dtype=np.float64)
+        finite = np.isfinite(dynamic)
+        dynamic_sum += np.where(finite, dynamic, 0.0).sum(axis=0)
+        dynamic_sumsq += np.where(finite, dynamic * dynamic, 0.0).sum(axis=0)
+        dynamic_count += finite.sum(axis=0)
+
+        target = df["target"].to_numpy(dtype=np.float64)
+        target_valid = (df["flow_mask"].to_numpy() > 0) & np.isfinite(target)
+        valid_target = target[target_valid]
+        target_sum += valid_target.sum()
+        target_sumsq += np.square(valid_target).sum()
+        target_count += len(valid_target)
+
+        first = df.iloc[0]
+        for name in STATIC_COLS:
+            value = first[name]
+            if pd.notna(value):
+                static_values[name].append(float(value))
+        used_basins.append(basin_id)
+
+    if not used_basins or target_count == 0 or np.any(dynamic_count == 0):
+        raise ValueError(
+            f"Cannot compute normalization statistics for {start_date} to {end_date}: "
+            "no complete training data were found."
+        )
+
+    stats = {
+        "fit_start": start_date,
+        "fit_end": end_date,
+        "n_basins": len(used_basins),
+        "basin_ids": used_basins,
+        "target_count": int(target_count),
+    }
+    for index, name in enumerate(DYNAMIC_VARS):
+        mean = dynamic_sum[index] / dynamic_count[index]
+        variance = max(dynamic_sumsq[index] / dynamic_count[index] - mean * mean, 0.0)
+        stats[f"{name}_mean"] = float(mean)
+        stats[f"{name}_std"] = float(np.sqrt(variance) + 1e-8)
+        stats[f"{name}_count"] = int(dynamic_count[index])
+
+    target_mean = target_sum / target_count
+    target_variance = max(target_sumsq / target_count - target_mean * target_mean, 0.0)
+    stats["target_mean"] = float(target_mean)
+    stats["target_std"] = float(np.sqrt(target_variance) + 1e-8)
+
+    for name, values in static_values.items():
+        if not values:
+            raise ValueError(f"No finite values found for static attribute {name}")
+        values_array = np.asarray(values, dtype=np.float64)
+        stats[f"{name}_mean"] = float(values_array.mean())
+        stats[f"{name}_std"] = float(values_array.std() + 1e-8)
+
+    return stats
 
 
 class CamelsDataset(Dataset):
@@ -39,11 +126,22 @@ class CamelsDataset(Dataset):
         seq_len: int = 365,
         preview: bool = False,
         per_basin_stats: dict | None = None,
+        normalization_stats: dict | None = None,
+        target_start_date: str | None = None,
+        target_end_date: str | None = None,
     ):
+        if per_basin_stats is not None and normalization_stats is not None:
+            raise ValueError("per_basin_stats and normalization_stats are mutually exclusive")
+
         self.seq_len = seq_len
         self.indices = []  # (basin_array_idx, window_start)
         self.basin_data = []  # list of dicts with numpy arrays
         self.basin_ids = []
+        self.target_start_date = pd.Timestamp(target_start_date) if target_start_date else None
+        self.target_end_date = pd.Timestamp(target_end_date) if target_end_date else None
+        self.normalization_stats = normalization_stats
+        self.dynamic_missing_count = np.zeros(len(DYNAMIC_VARS), dtype=np.int64)
+        self.dynamic_value_count = np.zeros(len(DYNAMIC_VARS), dtype=np.int64)
 
         for basin_id in basin_list:
             csv_path = PROCESSED_DIR / f"{basin_id}.csv"
@@ -56,23 +154,44 @@ class CamelsDataset(Dataset):
             if len(df) < seq_len + 1:
                 continue
 
-            # Dynamic features (normalized)
-            dynamic_cols = [f"{v}_norm" for v in DYNAMIC_VARS]
-            if not all(c in df.columns for c in dynamic_cols):
-                dynamic_cols = DYNAMIC_VARS
-            dynamic = df[dynamic_cols].values.astype(np.float32)
+            # Dynamic features. Corrected experiments provide condition-specific
+            # training statistics; legacy callers continue to use stored columns.
+            if normalization_stats is not None:
+                dynamic = df[DYNAMIC_VARS].values.astype(np.float32)
+                for index, name in enumerate(DYNAMIC_VARS):
+                    dynamic[:, index] = (
+                        dynamic[:, index] - normalization_stats[f"{name}_mean"]
+                    ) / normalization_stats[f"{name}_std"]
+            else:
+                dynamic_cols = [f"{v}_norm" for v in DYNAMIC_VARS]
+                if not all(c in df.columns for c in dynamic_cols):
+                    dynamic_cols = DYNAMIC_VARS
+                dynamic = df[dynamic_cols].values.astype(np.float32)
+            self.dynamic_missing_count += np.isnan(dynamic).sum(axis=0)
+            self.dynamic_value_count += dynamic.shape[0]
             dynamic = np.nan_to_num(dynamic, nan=0.0)
 
-            # Static attributes: fill NaN with 0
+            # A zero on the standardized scale is training-basin mean imputation.
             static_cols_norm = [f"{c}_norm" for c in STATIC_COLS]
-            if all(c in df.columns for c in static_cols_norm):
+            if normalization_stats is not None:
+                static = df[STATIC_COLS].iloc[0].values.astype(np.float32)
+                for index, name in enumerate(STATIC_COLS):
+                    static[index] = (
+                        static[index] - normalization_stats[f"{name}_mean"]
+                    ) / normalization_stats[f"{name}_std"]
+            elif all(c in df.columns for c in static_cols_norm):
                 static = df[static_cols_norm].iloc[0].values.astype(np.float32)
             else:
                 static = df[STATIC_COLS].iloc[0].values.astype(np.float32)
             static = np.nan_to_num(static, nan=0.0)
 
             # Target and mask
-            if per_basin_stats is not None:
+            if normalization_stats is not None:
+                raw = df["target"].values.astype(np.float32)
+                target = (
+                    raw - normalization_stats["target_mean"]
+                ) / normalization_stats["target_std"]
+            elif per_basin_stats is not None:
                 # Per-basin normalization (CAMELS convention): normalizes log-flow
                 # by each basin's own training-period mean/std. Removes inter-basin
                 # variance and yields literature-comparable per-basin NSE.
@@ -98,17 +217,26 @@ class CamelsDataset(Dataset):
                 "target": target,
                 "mask": mask,
                 "year_idx": year_idx,
+                "dates": dates.to_numpy(dtype="datetime64[D]"),
             })
 
-            # Register sliding window indices
+            # Register windows by target date. Separating context dates from
+            # target dates lets every experiment evaluate exactly the same days.
             n_windows = len(df) - seq_len
             for i in range(n_windows):
+                target_date = dates[i + seq_len]
+                if self.target_start_date is not None and target_date < self.target_start_date:
+                    continue
+                if self.target_end_date is not None and target_date > self.target_end_date:
+                    continue
                 self.indices.append((bidx, i))
 
             self.basin_ids.append(basin_id)
 
         if preview:
             print(f"  Dataset: {len(self.basin_ids)} basins, {len(self.indices)} samples")
+            missing = self.dynamic_missing_fraction()
+            print(f"  Dynamic missing fraction: max={missing.max():.6f}")
 
     def __len__(self):
         return len(self.indices)
@@ -130,11 +258,34 @@ class CamelsDataset(Dataset):
     def compute_q95(self) -> float:
         """Compute 95th percentile of observed target values (for extreme weighting)."""
         all_targets = []
-        for bd in self.basin_data:
-            valid = bd["mask"] > 0
-            all_targets.append(bd["target"][valid])
-        all_targets = np.concatenate(all_targets)
+        for bidx, start in self.indices:
+            target_index = start + self.seq_len
+            basin = self.basin_data[bidx]
+            if basin["mask"][target_index] > 0:
+                all_targets.append(basin["target"][target_index])
+        all_targets = np.asarray(all_targets)
         return float(np.percentile(all_targets, 95))
+
+    def dynamic_missing_fraction(self) -> np.ndarray:
+        """Return missing fractions for the dynamic inputs before zero imputation."""
+        denominator = np.maximum(self.dynamic_value_count, 1)
+        return self.dynamic_missing_count / denominator
+
+    def sample_metadata(self) -> tuple[np.ndarray, np.ndarray]:
+        """Return basin IDs and target dates in dataset iteration order."""
+        basin_ids = []
+        target_dates = []
+        for bidx, start in self.indices:
+            basin_ids.append(self.basin_ids[bidx])
+            target_dates.append(self.basin_data[bidx]["dates"][start + self.seq_len])
+        return np.asarray(basin_ids), np.asarray(target_dates, dtype="datetime64[D]")
+
+    def valid_target_count(self) -> int:
+        """Count observed streamflow targets among the registered windows."""
+        return int(sum(
+            self.basin_data[bidx]["mask"][start + self.seq_len] > 0
+            for bidx, start in self.indices
+        ))
 
 
 def get_basin_list() -> list[str]:

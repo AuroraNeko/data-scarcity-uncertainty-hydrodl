@@ -1,61 +1,51 @@
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-# 水文深度学习中的数据稀缺与不确定性估计
+# 水文深度学习中的数据稀缺与区间可靠性
 
-本文仓库对应论文：
+本文档对应论文：
 
-**How Data Scarcity Compromises Uncertainty Estimates in Hydrological Deep
-Learning and How Conformal Calibration Mitigates It**
+**Data Scarcity in Hydrological Deep Learning: Prediction Skill, Interval
+Reliability, and Conformal Calibration**
 
-本项目研究训练数据不足时，深度学习径流预测模型的不确定性估计会如何退化。实验基于
-CAMELS-US 的 671 个流域、三个气象强迫产品，以及轻量级 LPU-Stream 网络。核心结论是：
-数据稀缺对区间覆盖率的破坏明显快于对点预测精度的破坏，而 split conformalized
-quantile regression（CQR）可以在不重新训练神经网络的前提下恢复接近目标水平的边际覆盖率。
+本项目研究监督训练记录长度如何影响径流点预测能力与预测区间可靠性。核心实验采用严格受控的 CAMELS-US 数据稀缺梯度：只改变训练目标年份数，流域集合、训练记录终点、序列记忆长度、批量大小、训练轮数、校准期和测试期均保持不变。
 
-仓库包含训练、评估、分析脚本，机器可读的 JSON/CSV 结果表，以及已生成的论文图件。
-原始 CAMELS-US 数据和训练检查点体积较大，不纳入版本管理。
+修正后的结论比旧稿更谨慎，也更符合真实实验结果。训练记录从 15 年缩短到 1 年时，逐流域 NSE 中位数由 `0.666` 降至 `0.511`；原始 90% 区间覆盖率由 `0.821` 降至 `0.776`。短记录模型的区间并未变窄，反而更宽，但 Winkler 分数明显恶化，说明预测误差增长快于区间宽度的自适应。全局 CQR 将边际覆盖率稳定在约 0.90，但高流量条件覆盖仍偏低，预测流量分层只能部分改善这一问题。
 
-代码与结果快照 DOI：
-[10.5281/zenodo.21256956](https://doi.org/10.5281/zenodo.21256956)。
+代码与紧凑结果的各版本归档统一使用 Zenodo concept DOI：
+[10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955)。
 
-## 主要结果
+## 修正后的主要结果
 
-### 匹配流域的数据稀缺梯度
+下表所有实验均使用相同的 50 个流域、180 天序列长度、batch size 512、固定 30 轮最终检查点、1995--2000 校准目标和 2000--2008 测试目标。结果为模型种子 42、123、456 的均值 ± 样本标准差。
 
-四组实验均使用同一个 seed-42 抽样得到的 50 个流域。
+| 训练目标记录 | 有效标签数 | 逐流域 NSE 中位数 | 原始 PICP | CQR PICP | 原始 MPIW | 原始 Winkler |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 年 | 18,250 | 0.511 ± 0.006 | 0.776 ± 0.010 | 0.896 ± 0.002 | 0.442 | 1.137 |
+| 3 年 | 54,750 | 0.570 ± 0.014 | 0.806 ± 0.013 | 0.906 ± 0.007 | 0.388 | 0.885 |
+| 5 年 | 91,300 | 0.612 ± 0.023 | 0.815 ± 0.014 | 0.903 ± 0.005 | 0.376 | 0.808 |
+| 15 年 | 266,322 | 0.666 ± 0.005 | 0.821 ± 0.009 | 0.901 ± 0.007 | 0.358 | 0.709 |
 
-| 训练数据量 | pooled median-quantile NSE | 原始 PICP | CQR PICP | `q_cal` | CQR MPIW |
-|---|---:|---:|---:|---:|---:|
-| 1 年 | 0.719 | 0.671 | 0.883 | 0.341 | 1.298 |
-| 3 年 | 0.813 | 0.741 | 0.869 | 0.155 | 0.968 |
-| 5 年 | 0.843 | 0.774 | 0.866 | 0.096 | 0.833 |
-| 15 年 | 0.884 | 0.828 | 0.876 | 0.042 | 0.662 |
+15 年减 1 年的逐流域 NSE 配对中位效应为 `0.140`，流域 bootstrap 95% 区间为 `[0.104, 0.173]`；94% 的流域在长记录条件下表现更好。原始 PICP 的端点差为 4.6 个百分点，95% 区间为 `[1.5, 7.7]` 个百分点。
 
-从 15 年训练数据降到 1 年时，未校准区间覆盖率下降约 16 个百分点，而 NSE 的相对下降约
-19%。这说明不确定性可靠性不能只作为点预测精度的附属指标，而应作为独立的评价对象。
+定向稳健性实验保留了点预测结论，也揭示了区间响应的边界。综合五个互斥的 50 流域子集，逐流域 NSE 配对效应为 `0.154`，两层 bootstrap 95% 区间为 `[0.137, 0.170]`，250 个流域中有 96.8% 为正。综合原始 PICP 效应为 3.72 个百分点（`[2.11, 5.32]`），但只有 68% 的流域为正，且一个子集的区间跨越零。把两个端点都限制为 1,080 次优化器更新后，NSE 效应仍为正，为 `0.047`（`[0.022, 0.090]`），但 15 年原始区间转为过覆盖。含 83,523 个参数的标准 LSTM 得到 `0.134` 的 NSE 效应（`[0.095, 0.187]`）。因此，记录长度对点预测的影响具有可重复性，而区间响应对流域组成和训练预算更加敏感。
 
-### 边际校准与条件校准
+1 年条件下，按各流域观测流量三分位划分后的平均覆盖率为：
 
-1 年数据稀缺模型上的流量分区覆盖率如下：
-
-| 流量区间 | 原始 QR | Global CQR | Predicted-regime CQR | Observed-regime CQR |
+| 流量组 | 原始 QR | 全局 CQR | 预测流量分层 CQR | 观测流量分层参考 |
 |---|---:|---:|---:|---:|
-| 低流量 | 0.910 | 0.996 | 0.991 | 0.885 |
-| 正常流量 | 0.560 | 0.938 | 0.925 | 0.876 |
-| 高流量 | 0.504 | 0.736 | 0.791 | 0.888 |
+| 低 | 0.783 | 0.932 | 0.896 | 0.865 |
+| 中 | 0.797 | 0.910 | 0.917 | 0.886 |
+| 高 | 0.749 | 0.841 | 0.867 | 0.899 |
 
-Global CQR 能恢复边际覆盖率，但高流量事件仍然覆盖不足。Predicted-regime CQR 是可部署的
-条件校准版本；Observed-regime CQR 使用真实测试期流量分区，因此作为诊断性上界。
+观测流量分层参考需要使用未知的测试观测来分组，只能用于诊断；预测流量分层使用校准期预测中位数阈值，在本研究的已见流域上可部署。
 
-<p align="center">
-  <img src="results/figures/fig1_degradation.png" width="90%"><br>
-  <em>数据稀缺对不确定性覆盖率的破坏明显快于对点预测精度的破坏。</em>
-</p>
+![修正后的数据稀缺效应](results/figures/corrected/fig1_scarcity_effects.png)
 
-<p align="center">
-  <img src="results/figures/fig2_method_comparison.png" width="90%"><br>
-  <em>671 个流域上的 MC Dropout、Deep Ensembles、Deep Ensembles + CQR 与单模型 CQR 公平比较。</em>
-</p>
+![修正后的条件覆盖结果](results/figures/corrected/fig2_conditional_coverage.png)
+
+![多子集端点复现结果](results/figures/corrected/figS5_subset_replication.png)
+
+![高流量覆盖压力测试](results/figures/corrected/figS3_high_flow_thresholds.png)
 
 ## 安装
 
@@ -65,117 +55,135 @@ cd data-scarcity-uncertainty-hydrodl
 pip install -r requirements.txt
 ```
 
-训练建议使用 CUDA GPU。只要结果文件已经存在，图件生成和报告数值核验可以在 CPU 上运行。
-实验环境为 Python 3.11 与 PyTorch 2.x。
+如需复现本文使用的 CUDA 12.8 精确包版本：
+
+```bash
+pip install -r requirements-reference-cu128.txt
+```
+
+参考实验使用 Python 3.11、PyTorch 2.11.0+cu128 和一张 NVIDIA RTX 5060 Ti。训练和 50 次 MC Dropout 推理建议使用 GPU；已有结果表时，汇总与制图可在 CPU 上完成。
 
 ## 数据准备
-
-下载并预处理 CAMELS-US：
 
 ```bash
 python download_camels.py
 python src/data/data_preprocessing.py
+python experiments/analysis/audit_processed_data.py \
+  --processed-dir data/processed/camels_us \
+  --output results/tables/processed_data_audit.json
 ```
 
-预处理后会生成：
+下载脚本使用 [Zenodo record 15529996](https://zenodo.org/records/15529996)，源数据 DOI 为 [10.5065/D6MW2F4D](https://doi.org/10.5065/D6MW2F4D)。
 
-```text
-data/processed/camels_us/<basin_id>.csv
-data/metadata/normalization_stats.json
-data/metadata/basin_metadata.csv
-```
+本项目组合使用 CAMELS-US v1.2 强迫/径流时序归档与 v2.0 属性集。共同处理日期为 `1980-01-01` 至 `2008-12-31`，终点由 Maurer 强迫数据决定，不再把 2009--2010 的缺失尾段静默填成标准化零值。
 
-下载脚本指向本项目使用的 CAMELS-US 数据归档：
-[Zenodo record 15529996](https://zenodo.org/records/15529996)，DOI
-[10.5065/D6MW2F4D](https://doi.org/10.5065/D6MW2F4D)。
+对每个强迫通道，线性插值使用 7 个连续值的上限，随后的向前和向后填补各使用 3 个连续值的上限。3 个流域缺少地质孔隙度，标准化后置零等价于相应训练流域均值填补；这 3 个流域均不在固定的 50 流域稀缺子集中。
 
-每个流域文件包含 15 个动态变量（Daymet、Maurer、NLDAS 各 5 个变量）、13 个静态流域属性、
-mm/day 单位的径流、缺测掩码，以及基于训练期统计量归一化后的特征。
+每个处理文件包含 Daymet、Maurer 和 NLDAS 各 5 个命名列，共 15 个输入通道。上游归档中，Maurer 的 Tmax/Tmin 完全相同，NLDAS 的 Tmax/Tmin 也完全相同，因此实际包含 13 条不同的日序列。为兼容已训练检查点，本项目保留这些重复列，并由数据审计脚本明确报告。
 
-## 仓库结构
+## 复现修正后的流水线
 
-```text
-.
-|-- download_camels.py
-|-- configs/
-|   `-- data_config.yaml
-|-- src/
-|   |-- data/
-|   |   |-- data_preprocessing.py
-|   |   |-- dataset.py
-|   |   `-- compute_perbasin_stats.py
-|   |-- losses/
-|   |-- models/
-|   `-- utils.py
-|-- experiments/
-|   |-- baseline/
-|   |-- scarce/
-|   |-- uncertainty/
-|   |-- physics_guided/
-|   |-- analysis/
-|   `-- orchestrator.py
-|-- results/
-|   |-- tables/
-|   `-- figures/
-|-- REPRODUCIBILITY.md
-`-- requirements.txt
-```
-
-论文源文件、编译后的 PDF 和投稿材料由作者在公开代码仓库之外单独管理。
-
-## 复现实验
-
-先完成上面的数据准备步骤。之后运行可断点续跑的实验编排脚本：
+可恢复流水线不会终止其他 Python 进程：
 
 ```bash
 python experiments/orchestrator.py
 ```
 
-也可以按阶段运行：
+只有当协议字段、检查点、预测文件及其 SHA-256 全部一致时，稀缺实验才会跳过。全流域评估脚本每次都会启动，并且只有在检查点、归一化统计、日期、序列长度、MC 次数和 batch size 的身份全部匹配时才复用分割缓存。点模型和种子 42 分位数模型还必须具有与检查点 epoch 和 SHA-256 一致的训练完成侧车，才会跳过训练。
+
+已有全流域检查点时：
 
 ```bash
-python experiments/baseline/train_model.py --model lpu_stream
-python experiments/baseline/train_xgboost.py
-python experiments/analysis/eval_point_perbasin.py
+python experiments/orchestrator.py --skip-full-training
+```
 
-python experiments/uncertainty/train_quantile.py
-python experiments/uncertainty/retrain_ensembles_correct.py
-python experiments/uncertainty/eval_fair_671.py
+如已有紧凑稳健性结果快照，不重新训练 24 个多子集端点、6 个等更新端点和 6 个标准 LSTM 端点：
 
-python experiments/scarce/train_data_scarce.py --years 1
-python experiments/scarce/train_data_scarce.py --years 3
-python experiments/scarce/train_data_scarce.py --years 5
-python experiments/scarce/train_data_scarce.py --years 15
+```bash
+python experiments/orchestrator.py --skip-full-training --skip-robustness-training
+```
 
-python experiments/analysis/diagnose_1yr.py
-python experiments/analysis/cross_region_validation.py
-python experiments/analysis/stability_1yr.py
-python experiments/analysis/confidence_levels.py
-python experiments/analysis/enhanced_robustness.py
+也可以显式运行 12 个受控稀缺实验：
+
+```powershell
+foreach ($years in 1,3,5,15) {
+  foreach ($seed in 42,123,456) {
+    python experiments/scarce/train_scarcity_corrected.py `
+      --years $years --basin-seed 42 --model-seed $seed `
+      --seq-len 180 --batch-size 512 --epochs 30
+  }
+}
+python experiments/analysis/analyze_corrected_scarcity.py
+```
+
+运行基于已保存预测的诊断和定向端点敏感性实验：
+
+```bash
+python experiments/analysis/analyze_conditional_robustness.py
+python experiments/analysis/make_scarcity_replication_subsets.py
+python experiments/run_scarcity_robustness.py --stage all
+python experiments/analysis/sanitize_scarcity_checkpoint_metadata.py
+python experiments/analysis/analyze_scarcity_robustness_experiments.py
+```
+
+稳健性运行器只会跳过协议字段、检查点、预测文件及其 SHA-256 全部匹配的结果；不完整或不匹配的产物会被明确报告，必须显式使用 `--force` 才会覆盖。
+
+独立的 671 流域方法比较使用完整统一的校准/测试目标日期网格；缺失的观测径流始终由 mask 排除，不进入指标。点模型检查点按验证集 MSE 选择，分位数检查点则在 30 轮预算内按训练 pinball loss 选择，因此这里是统一评价网格上的诊断比较，而不是训练算法之间的因果比较：
+
+```bash
+python experiments/uncertainty/evaluate_corrected_methods.py \
+  --batch-size 1024 --n-mc 50 --bootstrap 1000
+```
+
+50 流域子集的代表性诊断使用与该子集互斥的其余 621 个流域作为比较组：
+
+```bash
 python experiments/analysis/basin_representativeness.py
-python experiments/analysis/make_figures.py
+```
+
+生成图表、导出论文 LaTeX 数值片段并检查一致性：
+
+```bash
+python experiments/analysis/make_corrected_figures.py
+python experiments/analysis/export_manuscript_results.py  # 作者工作区
 python experiments/analysis/verify_manuscript.py
 ```
 
-如果本地作者工作区存在 `paper/manuscript.tex`，`verify_manuscript.py` 会同时核验论文文本中的数字；
-在公开代码仓库中，它会继续核验机器可读的 JSON 结果，并跳过文本存在性检查。
+## 仓库结构与公开策略
 
-## 模型简介
+[`experiments/README.md`](experiments/README.md) 明确区分当前论文入口与仅用于开发历史、结果溯源的脚本；只有当前入口可以写入权威的 `corrected_*` 结果目录。
 
-LPU-Stream 使用 128 单元 LSTM 编码动态气象序列，并用静态流域 MLP 将 13 个流域属性映射到
-32 维嵌入。分位数模型预测 0.05、0.50、0.95 三个分位数，使用 pinball loss 训练，共
-104,099 个可训练参数。点预测版本为 103,969 个参数。CQR 在保留校准期上进行后处理，不重新训练网络。
+```text
+.
+|-- src/                              模型、损失函数和修正后的数据加载器
+|-- experiments/
+|   |-- scarce/train_scarcity_corrected.py
+|   |-- uncertainty/evaluate_corrected_methods.py
+|   `-- analysis/                     数据审计、汇总、图表和验证
+|-- results/
+|   |-- tables/corrected_scarcity/
+|   |-- tables/corrected_full_671/
+|   |-- tables/full_checkpoint_training/
+|   |-- tables/scarcity_replications/
+|   |-- tables/scarcity_equal_updates/
+|   |-- tables/scarcity_standard_lstm/
+|   |-- figures/corrected/
+|   `-- legacy/                        旧协议产物，仅用于溯源
+|-- REPRODUCIBILITY.md
+|-- requirements-reference-cu128.txt
+`-- requirements.txt
+```
 
-## 复现说明
+原始/处理数据、模型检查点和逐样本预测数组不进入普通 Git 历史；紧凑 JSON/CSV 结果表和生成图表适合提交。正式 tagged release 可在存储允许时附带检查点和预测数组，结果元数据中的 SHA-256 可用于核对归档文件。
 
-时间划分、随机种子、校准设置、图件再生成以及公开仓库包含/排除规则见
-[REPRODUCIBILITY.md](REPRODUCIBILITY.md)。
+## 模型说明
 
-## 引用
+LPU-Stream 使用 128 单元 LSTM，并通过静态 MLP 将 13 个流域属性嵌入 32 维空间。修正后的稀缺实验模型用 pinball loss 预测 0.05、0.50 和 0.95 分位数，并采用“中位数 + softplus 非负偏移”的单调参数化，因此分位数交叉率按构造为零。分位数模型含 104,099 个可训练参数。CQR 是训练后的校准步骤，不会重新训练网络。
 
-请使用 DOI [10.5281/zenodo.21256956](https://doi.org/10.5281/zenodo.21256956)
-引用代码与结果快照。
+## 复现与引用
+
+详细协议、产物边界和审计命令见 [REPRODUCIBILITY.md](REPRODUCIBILITY.md)。引用时应使用与实际代码版本对应的归档；整个发布序列的 concept DOI 为 [10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955)。
 
 ## 许可证
 
-MIT。见 [LICENSE](LICENSE)。
+MIT，见 [LICENSE](LICENSE)。

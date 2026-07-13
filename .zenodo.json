@@ -1,0 +1,34 @@
+{
+  "title": "Data Scarcity in Hydrological Deep Learning: Prediction Skill, Interval Reliability, and Conformal Calibration",
+  "description": "Code and compact derived results for a controlled CAMELS-US study of how supervised streamflow record length affects point-prediction skill, prediction-interval reliability, and conformal calibration.",
+  "creators": [
+    {
+      "name": "AuroraNeko",
+      "affiliation": ""
+    },
+    {
+      "name": "AuroraNeko",
+      "affiliation": ""
+    }
+  ],
+  "keywords": [
+    "hydrology",
+    "deep learning",
+    "data scarcity",
+    "prediction intervals",
+    "conformal prediction",
+    "CAMELS-US"
+  ],
+  "license": "mit",
+  "upload_type": "software",
+  "access_right": "open",
+  "language": "eng",
+  "version": "2.0.0",
+  "related_identifiers": [
+    {
+      "scheme": "url",
+      "identifier": "https://github.com/AuroraNeko/data-scarcity-uncertainty-hydrodl",
+      "relation": "isSupplementTo"
+    }
+  ]
+}

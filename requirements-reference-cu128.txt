@@ -1,0 +1,11 @@
+# Exact Python packages used for the reported NVIDIA CUDA 12.8 runs.
+# Use requirements.txt for a portable CPU or alternative-CUDA installation.
+--index-url https://download.pytorch.org/whl/cu128
+--extra-index-url https://pypi.org/simple
+
+torch==2.11.0+cu128
+numpy==2.4.4
+pandas==3.0.3
+matplotlib==3.10.9
+xgboost==3.2.0
+scipy==1.17.1

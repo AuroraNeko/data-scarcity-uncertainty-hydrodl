@@ -1,21 +1,36 @@
 """
 CQR: Conformalized Quantile Regression for uncertainty calibration.
 
-Paper Section 11.3-11.4:
-    1. Compute nonconformity scores on calibration (validation) set
-    2. Adjust prediction intervals by q_cal to achieve target coverage
+Procedure:
+    1. Compute nonconformity scores on a held-out calibration set.
+    2. Adjust prediction intervals by q_cal toward the target coverage.
 
 Algorithm:
     s_i = max(Q_lower_i - y_i, y_i - Q_upper_i)
     q_cal = quantile(s, 1 - alpha)
     adjusted_interval = [Q_lower - q_cal, Q_upper + q_cal]
 
-Provides distribution-free coverage guarantee: P(Y in [Q_lower - q_cal, Q_upper + q_cal]) >= 1 - alpha
+Provides the standard finite-sample marginal coverage guarantee when the
+calibration and test examples are exchangeable.
 """
 
 import numpy as np
 import torch
 from torch import Tensor
+
+
+def finite_sample_quantile(scores: np.ndarray, alpha: float) -> float:
+    """Return the split-conformal order statistic without interpolation."""
+    values = np.asarray(scores, dtype=np.float64).reshape(-1)
+    values = values[np.isfinite(values)]
+    if values.size == 0:
+        raise ValueError("At least one finite calibration score is required")
+    if not 0.0 < alpha < 1.0:
+        raise ValueError(f"alpha must be in (0, 1), got {alpha}")
+
+    rank = int(np.ceil((values.size + 1) * (1 - alpha)))
+    rank = min(max(rank, 1), values.size)
+    return float(np.partition(values, rank - 1)[rank - 1])
 
 
 class CQRCalibrator:
@@ -42,9 +57,8 @@ class CQRCalibrator:
         # Nonconformity scores
         scores = np.maximum(q_lower - y_obs, y_obs - q_upper)
 
-        # Calibration quantile with finite-sample correction
-        n = len(scores)
-        q_cal = np.quantile(scores, min((1 - self.alpha) * (1 + 1 / n), 1.0))
+        # Exact finite-sample corrected order statistic (no linear interpolation).
+        q_cal = finite_sample_quantile(scores, self.alpha)
 
         self.q_cal = q_cal
         return q_cal
@@ -68,6 +82,8 @@ def compute_uncertainty_metrics(
     Returns:
         dict with PICP, MPIW, Winkler score, and coverage by flow regime
     """
+    crossing = q_lower > q_upper
+
     # PICP: Prediction Interval Coverage Probability
     in_interval = (y_obs >= q_lower) & (y_obs <= q_upper)
     picp = in_interval.mean()
@@ -92,6 +108,7 @@ def compute_uncertainty_metrics(
         "target_coverage": float(1 - alpha),
         "mpiw": float(mpiw),
         "winkler_score": float(winkler),
+        "crossing_rate": float(crossing.mean()),
         "coverage_low_flow": float(in_interval[low].mean()) if low.sum() > 0 else 0.0,
         "coverage_normal_flow": float(in_interval[normal].mean()) if normal.sum() > 0 else 0.0,
         "coverage_high_flow": float(in_interval[high].mean()) if high.sum() > 0 else 0.0,

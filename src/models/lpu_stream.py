@@ -1,8 +1,4 @@
-"""
-LPU-Stream: Lightweight Physics-guided Uncertainty-calibrated Streamflow forecasting.
-
-Paper reference (Sections 9.3-9.5):
-    Static catchment embedding + LSTM temporal encoder + prediction head.
+"""Compact regional recurrent model with point and quantile output heads.
 
 Architecture:
     Static attributes -> MLP embedding -> z_basin (32-dim)
@@ -13,14 +9,12 @@ Architecture:
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch import Tensor
 
 
 class StaticCatchmentEmbedding(nn.Module):
-    """MLP-based catchment attribute embedding.
-
-    Paper Section 9.3: Linear(13,64) -> ReLU -> Dropout -> Linear(64,32)
-    """
+    """Map static catchment attributes to a learned basin embedding."""
 
     def __init__(
         self,
@@ -42,10 +36,7 @@ class StaticCatchmentEmbedding(nn.Module):
 
 
 class LPUStreamModel(nn.Module):
-    """LPU-Stream core model for streamflow prediction.
-
-    Paper Section 9.4-9.5: LSTM backbone with basin embedding
-    concatenated to each timestep input.
+    """LSTM backbone with a basin embedding at each input time step.
 
     Dropout note: with a single LSTM layer the LSTM's internal dropout is a
     no-op, so dropout (default p=0.3) is applied to the final hidden state and
@@ -61,6 +52,7 @@ class LPUStreamModel(nn.Module):
         dropout: float = 0.3,
         quantiles: list[float] | None = None,
         no_static: bool = False,
+        enforce_monotonic: bool = False,
         **kwargs,
     ):
         super().__init__()
@@ -69,6 +61,18 @@ class LPUStreamModel(nn.Module):
         self.quantiles = quantiles  # None = point prediction, list = quantile mode
         self.n_outputs = len(quantiles) if quantiles else 1
         self.no_static = no_static
+        self.enforce_monotonic = enforce_monotonic
+        if self.enforce_monotonic:
+            if (
+                self.quantiles is None
+                or len(self.quantiles) != 3
+                or self.quantiles[1] != 0.5
+                or not self.quantiles[0] < self.quantiles[1] < self.quantiles[2]
+            ):
+                raise ValueError(
+                    "Monotonic parameterization requires three strictly ordered "
+                    "quantiles with 0.5 in the center"
+                )
 
         # Static catchment embedding
         if not no_static:
@@ -123,4 +127,10 @@ class LPUStreamModel(nn.Module):
             combined = h_final
         else:
             combined = torch.cat([h_final, z_basin], dim=-1)
-        return self.head(combined)
+        output = self.head(combined)
+        if self.enforce_monotonic and self.quantiles is not None:
+            median = output[:, 1:2]
+            lower = median - F.softplus(output[:, 0:1])
+            upper = median + F.softplus(output[:, 2:3])
+            output = torch.cat([lower, median, upper], dim=1)
+        return output
