@@ -571,7 +571,7 @@ def verify_generated_and_text() -> None:
         "linear interpolation uses a seven-value limit",
         "averaged over $\\tau",
         "same 1995--2000 period subsequently used for CQR calibration",
-        "rather than a clean split-conformal benchmark",
+        "diagnostic post-hoc comparison",
         "OpenAI Codex was used",
         "https://github.com/AuroraNeko/data-scarcity-uncertainty-hydrodl",
         "https://doi.org/10.5281/zenodo.21256955",
@@ -586,7 +586,7 @@ def verify_generated_and_text() -> None:
         "Chinese manuscript states the exact log1p drainage-area stratifier",
     )
     require("训练目标终点" in manuscript_zh, "Chinese manuscript states the shared training endpoint")
-    require("严格独立的 split-conformal 基准" in manuscript_zh, "Chinese manuscript discloses calibration reuse")
+    require("诊断性的训练后比较" in manuscript_zh, "Chinese manuscript discloses calibration reuse")
     require(
         "Masked pinball losses are averaged" in supplement,
         "supplement states the implemented multi-quantile aggregation",
@@ -657,9 +657,12 @@ def verify_generated_and_text() -> None:
             require(forbidden not in flattened, f"submission source excludes {forbidden}")
         require("\\begin{thebibliography}" in flattened, "submission source inlines references")
         require("figures/" not in flattened, "submission source uses flat numbered figure paths")
-    for index in range(1, 6):
+    for index in range(1, 8):
         path = SUBMISSION_DIR / f"f{index:02d}.pdf"
         require(path.exists() and path.stat().st_size > 1000, f"numbered submission figure: {path.name}")
+    for index in range(1, 6):
+        path = SUBMISSION_DIR / f"fs{index:02d}.pdf"
+        require(path.exists() and path.stat().st_size > 1000, f"numbered supplement figure: {path.name}")
     short_summary = SUBMISSION_DIR / "short_summary.txt"
     require(short_summary.exists(), "HESS short-summary text exists")
     if short_summary.exists():

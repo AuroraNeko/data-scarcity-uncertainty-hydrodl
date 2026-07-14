@@ -16,18 +16,18 @@ MAIN_FIGURES = [
     ("figures/fig_protocol_timeline.pdf", "f01.pdf"),
     ("figures/architecture_tikz.pdf", "f02.pdf"),
     ("figures/fig1_scarcity_effects.pdf", "f03.pdf"),
-    ("figures/fig2_conditional_coverage.pdf", "f04.pdf"),
-    ("figures/fig3_method_comparison.pdf", "f05.pdf"),
+    ("figures/figS5_subset_replication.pdf", "f04.pdf"),
+    ("figures/fig2_conditional_coverage.pdf", "f05.pdf"),
+    ("figures/figS3_high_flow_thresholds.pdf", "f06.pdf"),
+    ("figures/fig3_method_comparison.pdf", "f07.pdf"),
 ]
 
 SUPPLEMENT_FIGURES = [
     ("figures/figS1_basin_endpoint_effects.pdf", "fs01.pdf"),
     ("figures/figS2_climate_quartiles.pdf", "fs02.pdf"),
-    ("figures/figS3_high_flow_thresholds.pdf", "fs03.pdf"),
-    ("figures/figS4_basin_calibration.pdf", "fs04.pdf"),
-    ("figures/figS5_subset_replication.pdf", "fs05.pdf"),
-    ("figures/figS6_equal_updates.pdf", "fs06.pdf"),
-    ("figures/figS7_architecture_sensitivity.pdf", "fs07.pdf"),
+    ("figures/figS4_basin_calibration.pdf", "fs03.pdf"),
+    ("figures/figS6_equal_updates.pdf", "fs04.pdf"),
+    ("figures/figS7_architecture_sensitivity.pdf", "fs05.pdf"),
 ]
 
 SHORT_SUMMARY = (
@@ -156,6 +156,9 @@ def main() -> None:
     if len(SHORT_SUMMARY) > 500:
         raise ValueError("HESS short summary exceeds the 500-character limit")
     SUBMISSION_DIR.mkdir(parents=True, exist_ok=True)
+    for pattern in ("f[0-9][0-9].pdf", "fs[0-9][0-9].pdf"):
+        for path in SUBMISSION_DIR.glob(pattern):
+            path.unlink()
     manuscript = flatten_source("manuscript.tex", hess_main=True)
     manuscript = copy_numbered_figures(manuscript, MAIN_FIGURES)
     supplement = flatten_source("supplement.tex", hess_main=False)
