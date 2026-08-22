@@ -87,3 +87,7 @@ Thumbs.db
 /revision_work/*_backup_before_tier0.tex
 /revision_work/*.png
 /revision_work/*.csv
+
+# Revision folder: queue/ops scripts and preview fragments stay local
+/revision_work/*.bat
+/revision_work/gen_*.tex

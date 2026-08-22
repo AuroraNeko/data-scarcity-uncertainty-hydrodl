@@ -195,7 +195,6 @@ python experiments/analysis/verify_manuscript.py
 |   |-- tables/tier3_671/             稠密头、重训、可靠性、CRPS
 |   |-- tables/ungauged_scarcity/     621 未见流域空间迁移
 |   |-- figures/corrected/
-|   `-- legacy/                        旧协议产物，仅用于溯源
 |-- REPRODUCIBILITY.md
 |-- requirements-reference-cu128.txt
 `-- requirements.txt

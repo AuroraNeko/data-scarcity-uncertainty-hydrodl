@@ -276,7 +276,6 @@ current entry points write authoritative `corrected_*` outputs.
 |   |-- tables/tier3_671/             dense heads, retrains, reliability, CRPS
 |   |-- tables/ungauged_scarcity/     spatial transfer to 621 unseen basins
 |   |-- figures/corrected/
-|   `-- legacy/                        superseded outputs, provenance only
 |-- REPRODUCIBILITY.md
 |-- requirements-reference-cu128.txt
 `-- requirements.txt
