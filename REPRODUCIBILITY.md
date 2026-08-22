@@ -2,8 +2,8 @@
 
 This guide describes the corrected experiments for:
 
-**Data Scarcity in Hydrological Deep Learning: Prediction Skill, Interval
-Reliability, and Conformal Calibration**
+**Data Scarcity in Deep Learning Streamflow Forecasting: Prediction Skill,
+Interval Reliability, and Conformal Calibration**
 
 Versioned code and compact result snapshots are maintained under the Zenodo
 concept DOI [10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955).

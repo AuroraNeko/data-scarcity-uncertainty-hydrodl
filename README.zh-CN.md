@@ -4,8 +4,8 @@
 
 本文档对应论文：
 
-**Data Scarcity in Hydrological Deep Learning: Prediction Skill, Interval
-Reliability, and Conformal Calibration**
+**Data Scarcity in Deep Learning Streamflow Forecasting: Prediction Skill,
+Interval Reliability, and Conformal Calibration**
 
 本项目研究监督训练记录长度如何影响径流点预测能力与预测区间可靠性。核心实验采用严格受控的 CAMELS-US 数据稀缺梯度：只改变训练目标年份数，流域集合、训练记录终点、序列记忆长度、批量大小、训练轮数、校准期和测试期均保持不变。
 
@@ -46,6 +46,29 @@ Reliability, and Conformal Calibration**
 ![多子集端点复现结果](results/figures/corrected/figS5_subset_replication.png)
 
 ![高流量覆盖压力测试](results/figures/corrected/figS3_high_flow_thresholds.png)
+
+## 扩展校准与方法分析
+
+除修正后的核心流水线外，仓库还包含论文补充材料（S13--S19）的扩展分析。
+这些分析基于已保存的预测与紧凑结果表离线运行，脚本位于
+[`revision_work/`](revision_work/)：
+
+- **校准端变体**（`tier1b_*.py`）：序贯滚动/扩展窗口再校准、自适应保形推断
+  （ACI）、上下侧非对称半径、干旱度四分位分组半径、校准窗口敏感性
+  （1--5 个水文年，`tables/scarcity_windows/`），以及逐成员校准的 EnCQR
+  对比（`tables/corrected_full_671/encqr_comparison.json`）。
+- **局部化诊断**（`tier1b_*.py`）：逐流域校准池、三分位对十分位预测流量
+  分层、按水文状态排列的残余异质性，以及可部署的中位数偏差校正实验。
+- **扩展方法套件**（`tier3_*.py`）：五分量混合密度网络与 UMAL 式连续分位
+  模型头、加噪声头与重选检查点的 MC Dropout 重训、50--99% 多名义水平分位
+  可靠性，以及离线 CRPS 对比（`tables/tier3_671/`）。
+- **空间迁移**（`tier2_ungauged*.py`）：冻结模型在 50 流域流水线从未使用的
+  621 个流域上的端点评估（`tables/ungauged_scarcity/ungauged_summary.json`；
+  逐种子中间产物属复现性产物，不入库）。
+
+这些分析共同表明：所测试的校准端变体都不能消除区间质量上的稀缺梯度；
+一阶中位数偏差校正不能弥合高流量条件覆盖缺口；该缺口是条件离散度问题
+而非边际分布问题。
 
 ## 安装
 
@@ -160,6 +183,7 @@ python experiments/analysis/verify_manuscript.py
 |   |-- scarce/train_scarcity_corrected.py
 |   |-- uncertainty/evaluate_corrected_methods.py
 |   `-- analysis/                     数据审计、汇总、图表和验证
+|-- revision_work/                    补充材料扩展分析（S13--S19）
 |-- results/
 |   |-- tables/corrected_scarcity/
 |   |-- tables/corrected_full_671/
@@ -167,6 +191,9 @@ python experiments/analysis/verify_manuscript.py
 |   |-- tables/scarcity_replications/
 |   |-- tables/scarcity_equal_updates/
 |   |-- tables/scarcity_standard_lstm/
+|   |-- tables/scarcity_windows/      再校准窗口敏感性
+|   |-- tables/tier3_671/             稠密头、重训、可靠性、CRPS
+|   |-- tables/ungauged_scarcity/     621 未见流域空间迁移
 |   |-- figures/corrected/
 |   `-- legacy/                        旧协议产物，仅用于溯源
 |-- REPRODUCIBILITY.md

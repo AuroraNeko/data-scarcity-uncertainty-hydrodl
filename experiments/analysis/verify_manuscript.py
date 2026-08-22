@@ -184,18 +184,18 @@ def verify_readme_results(summary: dict) -> None:
 def verify_release_metadata() -> None:
     print("\n== Public release metadata ==")
     expected_title = (
-        "Data Scarcity in Hydrological Deep Learning: Prediction Skill, "
-        "Interval Reliability, and Conformal Calibration"
+        "Data Scarcity in Deep Learning Streamflow Forecasting: Prediction "
+        "Skill, Interval Reliability, and Conformal Calibration"
     )
     concept_doi = "10.5281/zenodo.21256955"
     obsolete_version_doi = "10.5281/zenodo.21256956"
     metadata = read_json(ZENODO_METADATA)
     require(metadata["title"] == expected_title, "Zenodo title matches the manuscript")
-    require(metadata["version"] == "2.0.0", "corrected archive is a new major version")
+    require(metadata["version"] == "2.1.0", "extended-analysis archive version")
     require(
         [creator["name"] for creator in metadata["creators"]]
-        == ["AuroraNeko", "AuroraNeko"],
-        "Zenodo creators match the manuscript authors",
+        == ["AuroraNeko"],
+        "Zenodo creators match the pseudonymous repository identity",
     )
     require(metadata["license"] == "mit", "Zenodo uses the MIT license vocabulary ID")
     citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")

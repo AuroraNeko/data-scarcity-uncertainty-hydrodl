@@ -4,8 +4,8 @@
 
 Companion code for the paper:
 
-**Data Scarcity in Hydrological Deep Learning: Prediction Skill, Interval
-Reliability, and Conformal Calibration**
+**Data Scarcity in Deep Learning Streamflow Forecasting: Prediction Skill,
+Interval Reliability, and Conformal Calibration**
 
 This repository studies how supervised streamflow record length changes point
 skill and prediction-interval reliability. The main experiment is a controlled
@@ -74,6 +74,37 @@ median thresholds and is deployable for the seen basins in this experiment.
 ![Replicated endpoint effects](results/figures/corrected/figS5_subset_replication.png)
 
 ![High-flow coverage stress test](results/figures/corrected/figS3_high_flow_thresholds.png)
+
+## Extended Calibration and Method Analyses
+
+Beyond the corrected core pipeline, the repository carries the extended
+analyses of the paper's supplement (S13--S19). They run offline from saved
+predictions and compact tables, and their scripts live in
+[`revision_work/`](revision_work/):
+
+- **Calibration-side variants** (`tier1b_*.py`): sequential rolling- and
+  expanding-window recalibration, adaptive conformal inference, asymmetric
+  per-side radii, aridity-quartile groupwise radii, recalibration-window
+  sensitivity (1--5 water years, `tables/scarcity_windows/`), and a faithful
+  EnCQR comparison calibrated per ensemble member
+  (`tables/corrected_full_671/encqr_comparison.json`).
+- **Localization diagnostics** (`tier1b_*.py`): per-basin calibration pools,
+  tertile-versus-decile predicted-flow strata, regime-ordered residual
+  heterogeneity, and the deployable median-bias-correction experiment.
+- **Extended method suite** (`tier3_*.py`): five-component mixture density
+  network and UMAL-style continuous quantile heads, noise-augmented and
+  checkpoint-reselected MC Dropout retrains, multi-level quantile reliability
+  (50--99% nominal levels), and the offline CRPS comparison
+  (`tables/tier3_671/`).
+- **Spatial transfer** (`tier2_ungauged*.py`): frozen-model endpoint
+  evaluation on the 621 basins never used by the 50-basin pipeline
+  (`tables/ungauged_scarcity/ungauged_summary.json`; per-seed intermediates
+  are reproducibility artifacts and stay untracked).
+
+Together these analyses show that no tested calibration-side variant removes
+the scarcity gradient in interval quality, that first-order median-bias
+correction does not close the high-flow conditional gap, and that the gap is a
+conditional-dispersion problem rather than a marginal-distribution one.
 
 ## Installation
 
@@ -233,6 +264,7 @@ current entry points write authoritative `corrected_*` outputs.
 |   |-- scarce/train_scarcity_corrected.py
 |   |-- uncertainty/evaluate_corrected_methods.py
 |   `-- analysis/                     audits, summaries, figures, verification
+|-- revision_work/                    extended supplement analyses (S13--S19)
 |-- results/
 |   |-- tables/corrected_scarcity/
 |   |-- tables/corrected_full_671/
@@ -240,6 +272,9 @@ current entry points write authoritative `corrected_*` outputs.
 |   |-- tables/scarcity_replications/
 |   |-- tables/scarcity_equal_updates/
 |   |-- tables/scarcity_standard_lstm/
+|   |-- tables/scarcity_windows/      recalibration-window sensitivity
+|   |-- tables/tier3_671/             dense heads, retrains, reliability, CRPS
+|   |-- tables/ungauged_scarcity/     spatial transfer to 621 unseen basins
 |   |-- figures/corrected/
 |   `-- legacy/                        superseded outputs, provenance only
 |-- REPRODUCIBILITY.md
