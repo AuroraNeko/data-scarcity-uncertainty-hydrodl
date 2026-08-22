@@ -74,3 +74,16 @@ Thumbs.db
 /.claude/
 /.agents/
 /.codex/
+
+# Tier-3 GPU-resident mirror caches (771 MB, regenerable: revision_work/tier3_prepare_gpu.py)
+/results/cache/
+
+# Per-basin ungauged transfer tables are large reproducibility intermediates
+# (12 x 13.7k lines); the compact ungauged_summary.json stays tracked instead.
+/results/tables/ungauged_scarcity/scarcity_*_unseen_modelseed*.json
+
+# Revision scratch: one-off diagnostics, smoke tests, backups, previews
+/revision_work/_*
+/revision_work/*_backup_before_tier0.tex
+/revision_work/*.png
+/revision_work/*.csv

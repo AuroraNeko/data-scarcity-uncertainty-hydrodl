@@ -621,6 +621,9 @@ def make_method_figure(result: dict) -> None:
     axes[0].set_yticklabels(labels)
     axes[1].tick_params(axis="y", which="both", left=False, labelleft=False)
     axes[0].axvline(0.90, color=GRAY, linestyle="--", linewidth=1.1)
+    # keep the widest error bar clear of the y-axis label area
+    axes[0].set_xlim(0.64, 0.93)
+    axes[0].xaxis.set_major_locator(mpl.ticker.MultipleLocator(0.1))
     centered_panel_label(axes[0], "a")
     centered_panel_label(axes[1], "b")
 
