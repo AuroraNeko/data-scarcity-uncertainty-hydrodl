@@ -91,3 +91,6 @@ Thumbs.db
 # Revision folder: queue/ops scripts and preview fragments stay local
 /revision_work/*.bat
 /revision_work/gen_*.tex
+# Author-side LaTeX table-row emitters (write into paper/generated, not needed
+# to reproduce the numerical results)
+/revision_work/*_rows.py
