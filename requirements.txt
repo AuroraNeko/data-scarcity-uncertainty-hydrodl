@@ -6,4 +6,3 @@ numpy>=1.24         # 2.4.4
 pandas>=2.0         # 3.0.3
 matplotlib>=3.7     # 3.10.9  (figure generation)
 scipy>=1.10         # 1.17.1  (statistical tests in analysis)
-pytest>=7.0         # 9.1.1   (tests/ protocol suite)

@@ -96,7 +96,6 @@ experiments/            运行层,每脚本一个职责
 
 run_pipeline.py         唯一总入口,按阶段顺序调度
 download_camels.py      下载 CAMELS-US 数据档案
-tests/                  协议单元测试(无需数据集)
 configs/                数据配置
 ```
 
@@ -112,7 +111,6 @@ python src/data/data_preprocessing.py
 python run_pipeline.py --list      # 查看阶段
 python run_pipeline.py --dry-run   # 只解析脚本路径,不运行
 python run_pipeline.py             # 全量重跑(阶段 2/3/5 需要 CUDA GPU)
-python -m pytest tests -q          # 协议测试
 ```
 
 参考环境:Python 3.11、PyTorch 2.11.0+cu128、RTX 5060 Ti(8GB);见

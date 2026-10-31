@@ -116,8 +116,6 @@ experiments/            runnable pipeline, one job per script
 
 run_pipeline.py         single entry point; runs the stages in order
 download_camels.py      fetches the CAMELS-US archive
-tests/                  protocol unit tests (no dataset required; the three
-                        recorded-table checks skip until results/ exists)
 configs/                data configuration
 ```
 
@@ -134,7 +132,6 @@ python src/data/data_preprocessing.py
 python run_pipeline.py --list      # inspect the stages
 python run_pipeline.py --dry-run   # resolve every script path, run nothing
 python run_pipeline.py             # full rerun (stages 2/3/5 need a CUDA GPU)
-python -m pytest tests -q          # protocol tests
 ```
 
 Reference environment: Python 3.11, PyTorch 2.11.0+cu128, RTX 5060 Ti (8 GB);
