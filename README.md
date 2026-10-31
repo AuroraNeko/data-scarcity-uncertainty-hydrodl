@@ -41,9 +41,10 @@ flow level.
 seeds each. Four disjoint 50-basin subsets repeat the endpoints on 250 unique
 basins, a 671-basin benchmark compares eight uncertainty constructions, and
 48 further fits cover architecture and protocol sensitivities (TCN, a
-standard LSTM, a 13-quantile head, alternative training years, 365-day
-memory). Every reported effect carries a bootstrap interval that resamples
-basins and HUC2 regions jointly.
+13-quantile head, alternative training years, 365-day memory). A standard
+LSTM repeats both endpoints as a separate architecture check. Every reported
+effect carries a bootstrap interval that resamples basins and HUC2 regions
+jointly.
 
 ## Key results
 
@@ -88,23 +89,28 @@ stable than raw coverage, and no universal raw-coverage gradient is claimed.
 ## Repository layout
 
 ```
-src/                    library (imported, never run directly)
+src/                    shared library (data_preprocessing.py also runs directly)
 ├─ evaluation/          scoring protocol: CQR radius, interval scores, IQS,
 │                       analytic CRPS, group rules, empty-set projection
 ├─ models/              LSTM (LPU-Stream), standard LSTM, TCN
 ├─ heads/               dense distribution heads (MDN, Gaussian, noise)
 ├─ benchmark/           671-basin benchmark loaders
 ├─ corrections/         shared loaders for the corrected scarcity runs
+├─ visualization/       training-output figure panels
 ├─ data/                CAMELS reading, preprocessing, normalization
-└─ losses/              pinball loss, CQR calibrator
+├─ losses/              pinball loss, CQR calibrator
+└─ utils.py             seeding, hashing, device helpers
 
 experiments/            runnable pipeline, one job per script
 ├─ prepare/             cache build/verify, data-chain and checkpoint audits
-├─ train_primary/       main 12 fits, replication subsets, endpoint reruns
-├─ train_benchmark/     the eight 671-basin constructions
+├─ train_primary/       the 12 main fits (queue driver), replication subsets,
+│                       endpoint reruns
+├─ train_benchmark/     point model and the eight 671-basin constructions,
+│                       dense 13-tau export
 ├─ bias_correction/     median-bias-fix diagnostics
 ├─ train_sensitivity/   the 48 endpoint fits (queue-driven)
-├─ evaluate/            coverage, scores, method comparison, calibration variants
+├─ evaluate/            method comparison, memberwise split-CQR, coverage,
+│                       scores, calibration variants, ungauged-basin transfer
 ├─ analyze/             summaries, paired effects, representativeness, curves
 └─ figures/             all paper figures from the frozen tables
 
@@ -135,7 +141,7 @@ Reference environment: Python 3.11, PyTorch 2.11.0+cu128, RTX 5060 Ti (8 GB);
 see `requirements-reference-cu128.txt`. Data, trained weights and per-sample
 prediction arrays are not tracked; each stage regenerates its outputs under
 `results/`. See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for the frozen
-submission-round snapshot and its SHA-256 manifest.
+release packages and their SHA-256 hashes.
 
 ## Citation and license
 

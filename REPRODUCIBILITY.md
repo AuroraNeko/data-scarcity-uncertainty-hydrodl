@@ -2,26 +2,28 @@
 
 `run_pipeline.py` is the single entry point; `python run_pipeline.py --list`
 shows the nine stages (prepare → train primary → train benchmark → correct →
-train sensitivity → evaluate → analyze → audit → figures). Dependencies flow
+train sensitivity → evaluate → audit → analyze → figures). Dependencies flow
 one way: `run_pipeline.py → experiments/* → src/*`; scripts never import each
-other and shared logic lives in `src/`. The frozen submission-round snapshot is
-git tag `JOH-revision-20261030`.
+other and shared logic lives in `src/`.
 
 ## Environment
 
 Python 3.11, PyTorch 2.11.0+cu128 (reference GPU: RTX 5060 Ti, 8 GB).
 `pip install -r requirements.txt`; the pinned reference environment is
-`requirements-reference-cu128.txt`. Stages 2, 3 and 5 require CUDA; the
-remaining stages run on CPU against archived prediction arrays.
+`requirements-reference-cu128.txt`. Stages 2, 3 and 5 retrain models and
+require CUDA. Stage 6 reloads trained checkpoints for inference and also
+finishes on CPU. Stages 1, 4, 7, 8 and 9 are table-driven and run on CPU.
 
 ## Data
 
-`python download_camels.py` fetches CAMELS-US (~24 GB); `python
-src/data/data_preprocessing.py` builds the processed per-basin files under
-`data/processed/`. The raw-source forcing audit (stage 8) found no missing or
-sentinel values and no altered values in the common 1980–2008 range; missing
-flow is always masked and excluded from normalization, losses, calibration
-and evaluation.
+`python download_camels.py` fetches the CAMELS-US inputs (3.4 GB zip, about
+14 GB extracted); `python src/data/data_preprocessing.py` builds the
+processed per-basin files under `data/processed/`. The processed-data audit
+(stage 7, `experiments/prepare/audit_processed_data.py`) re-checks all 671
+processed files for date-range and continuity violations, duplicate dates,
+sentinel values, mask/target consistency, and expected static-attribute
+missingness. Missing flow is always masked and excluded from normalization,
+losses, calibration and evaluation.
 
 ## Determinism and verification
 
@@ -41,14 +43,33 @@ and evaluation.
   periods; model-seed standard deviations and basin/cluster uncertainty answer
   different questions and are reported separately.
 
+## Archived-field caveats
+
+A few field names in archived JSON tables predate the final protocol. The
+bytes are kept unchanged so archived hashes stay valid; readers should know:
+
+- `coverage_low_flow` / `coverage_normal_flow` / `coverage_high_flow` in the
+  per-run `raw_interval_metrics` / `calibrated_interval_metrics` blocks (and
+  in `corrected_full_671/method_comparison.json`) pool all test samples of a
+  regime across basins. The paper's conditional-coverage numbers use the
+  per-basin regime paths recomputed by
+  `experiments/analyze/conditional_robustness.py` and
+  `experiments/evaluate/coverage_groups.py`.
+- `cluster_bootstrap_ci95` fields hold a basin-level bootstrap, not a
+  HUC2-cluster bootstrap.
+- Timing entries in `results/tables/benchmark_671/s18_reliability.json`
+  reflect the archived workstation; reruns will differ and this is expected.
+
 ## Outputs
 
 Everything regenerates under `results/` (gitignored): `results/tables/`
 (compact summaries), `results/figures/`, `results/predictions/`,
-`results/checkpoints/`, `results/cache/`, `results/logs/`. Compact result
-tables and per-sample prediction archives for the submission round live in
-the frozen release packages identified by `JOH-revision-20261030` and its
-SHA-256 manifest; no new public DOI is implied.
-
-No new public release or journal submission is performed from this repository
-automatically; those are author actions.
+`results/checkpoints/`, `results/cache/`, `results/logs/`. Nothing under
+`results/` is tracked by git, so the git tag `JOH-revision-20261030` pins
+code only. The complete frozen artifact set (compact tables, per-sample
+prediction archives, checkpoints, figures) lives in the three release
+packages listed with SHA-256 hashes in `revise/release/release_index.json`;
+`revise/REPRODUCE.md` gives the reconstruction order. These are local
+release-ready archives; no public DOI has been issued for them, and no new
+public release or journal submission is performed from this repository
+automatically (those are author actions).

@@ -1,7 +1,8 @@
-# Data: CAMELS-US is ~24 GB; download with `python download_camels.py`.
+# Data: CAMELS-US (3.4 GB zip, ~14 GB extracted); download with
+# `python download_camels.py`.
 /data/
 
-# Outputs: every stage of reproduce.py regenerates its artifacts here
+# Outputs: every stage of run_pipeline.py regenerates its artifacts here
 # (tables, figures, predictions, checkpoints, caches, logs).
 /results/
 

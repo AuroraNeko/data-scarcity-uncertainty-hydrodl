@@ -32,8 +32,9 @@
 **规模。** 主实验是 50 个 CAMELS-US 流域、每个 3 个训练种子。四个
 互斥的 50 流域子集在 250 个独立流域上重复端点实验；671 流域基准
 比较八种不确定性构造；另有 48 个拟合覆盖架构与协议敏感性（TCN、
-标准 LSTM、13 分位数头、替代训练年份、365 天记忆）。每个报告的
-效应都附带同时重采样流域与 HUC2 分区的 bootstrap 区间。
+13 分位数头、替代训练年份、365 天记忆）。标准 LSTM 作为单独的
+架构对照复跑两个端点。每个报告的效应都附带同时重采样流域与
+HUC2 分区的 bootstrap 区间。
 
 ## 关键结果
 
@@ -72,22 +73,24 @@ NSE 为 0.511，十五年升到 0.666，区间质量也随之改善。但原始 
 ## 目录结构
 
 ```
-src/                    库层(只被 import,不直接运行)
+src/                    共享库层(data_preprocessing.py 也直接运行)
 ├─ evaluation/          评价协议:CQR 半径、区间评分、IQS、解析 CRPS、分组、空集投影
 ├─ models/              LSTM(LPU-Stream)、标准 LSTM、TCN
 ├─ heads/               稠密分布头(MDN、高斯、噪声)
 ├─ benchmark/           671 流域基准加载器
 ├─ corrections/         修正后稀缺实验共享加载器
+├─ visualization/       训练输出图面板
 ├─ data/                CAMELS 读取、预处理、标准化
-└─ losses/              pinball 损失、CQR 校准器
+├─ losses/              pinball 损失、CQR 校准器
+└─ utils.py             种子、哈希、设备工具
 
 experiments/            运行层,每脚本一个职责
 ├─ prepare/             缓存构建/校验、数据链与检查点审计
-├─ train_primary/       主 12 拟合、互斥子集、端点复跑
-├─ train_benchmark/     671 流域八种构造
+├─ train_primary/       主 12 拟合(队列驱动)、互斥子集、端点复跑
+├─ train_benchmark/     点模型与 671 流域八种构造、13 分位数稠密导出
 ├─ bias_correction/     中位数偏差修正诊断
 ├─ train_sensitivity/   48 个端点拟合(队列驱动)
-├─ evaluate/            覆盖、评分、方法比较、校准变体
+├─ evaluate/            方法比较、逐成员 split-CQR、覆盖、评分、校准变体、无资料流域迁移
 ├─ analyze/             汇总、配对效应、代表性、学习曲线
 └─ figures/             论文全部图
 
@@ -114,7 +117,7 @@ python -m pytest tests -q          # 协议测试
 
 参考环境:Python 3.11、PyTorch 2.11.0+cu128、RTX 5060 Ti(8GB);见
 `requirements-reference-cu128.txt`。数据、权重与逐样本预测不入库,各阶段在
-`results/` 下重建产物;固定提交轮快照及其 SHA-256 清单见
+`results/` 下重建产物;冻结发布包及其 SHA-256 哈希见
 [REPRODUCIBILITY.md](REPRODUCIBILITY.md)。
 
 ## 引用与许可

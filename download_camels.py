@@ -4,7 +4,7 @@ Source: https://zenodo.org/records/15529996
 
 Downloads essential files for LPU-Stream project:
 - Time series forcing data + observed streamflow (Daymet/NLDAS/Maurer)
-- Catchment attributes (topo, clim, hydro, soil, vege, geol)
+- Catchment attributes (topo, clim, soil, vege, geol) and basin names
 """
 
 import os
@@ -18,19 +18,18 @@ os.makedirs(DATA_DIR, exist_ok=True)
 
 BASE_URL = "https://zenodo.org/records/15529996/files"
 
-# Essential files for LPU-Stream
+# Essential files for LPU-Stream (only what preprocessing and the analysis
+# scripts read: five attribute tables plus camels_name.txt for basin names)
 FILES = [
     # Main time series + streamflow data (3.4 GB zip, ~14 GB extracted; largest file)
     "basin_timeseries_v1p2_metForcing_obsFlow.zip",
     # Catchment attributes (small text files)
     "camels_topo.txt",
     "camels_clim.txt",
-    "camels_hydro.txt",
     "camels_soil.txt",
     "camels_vege.txt",
     "camels_geol.txt",
     "camels_name.txt",
-    "camels_attributes_v2.0.xlsx",
     "readme.txt",
 ]
 
