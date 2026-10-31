@@ -1,0 +1,258 @@
+"""Resumable, protocol-declared 50-basin JOH sensitivity fits.
+
+The whole historical input grid resides on the GPU, but only declared training
+target dates enter the loss and normalization fit. Test data never select a model.
+"""
+from pathlib import Path
+import argparse
+import copy
+import hashlib
+import json
+import math
+import sys
+import time
+import numpy as np
+import torch
+import torch.utils.checkpoint
+from torch import nn
+from torch.nn import functional as F
+
+ROOT=Path(__file__).resolve().parents[2]
+sys.path.insert(0,str(ROOT))
+from src.models.lpu_stream import LPUStreamModel
+from src.models.tcn import TCNModel
+from src.utils import set_seed
+from src.heads.dense_heads import ChunkedForwardMixin
+
+BASE=ROOT/'results'
+TAUS3=[0.05,0.5,0.95]
+TAUS13=[0.005,0.01,0.025,0.05,0.1,0.25,0.5,0.75,0.9,0.95,0.975,0.99,0.995]
+
+def atomic(path,obj):
+    temp=path.with_suffix(path.suffix+'.tmp')
+    temp.write_text(json.dumps(obj,indent=2),encoding='utf-8');temp.replace(path)
+
+class DenseQuantileStream(LPUStreamModel):
+    def __init__(self,taus):
+        super().__init__(quantiles=taus,enforce_monotonic=False)
+        self.mid=taus.index(0.5)
+    def forward(self,d,s):
+        raw=super().forward(d,s)
+        med=raw[:,self.mid:self.mid+1]
+        lo=med-torch.flip(torch.cumsum(F.softplus(torch.flip(raw[:,:self.mid],[-1]))*0.2,dim=-1),[-1])
+        hi=med+torch.cumsum(F.softplus(raw[:,self.mid+1:])*0.2,dim=-1)
+        return torch.cat([lo,med,hi],dim=-1)
+
+class QuantileTCN(TCNModel):
+    def __init__(self):
+        super().__init__(channels=32,n_blocks=6,dropout=0.3)
+        self.head[-1]=nn.Linear(16,3)
+    def forward(self,d,s):
+        raw=super().forward(d,s)
+        return torch.cat([raw[:,1:2]-F.softplus(raw[:,0:1]),raw[:,1:2],
+                          raw[:,1:2]+F.softplus(raw[:,2:3])],dim=-1)
+
+class ChunkedPrimary(ChunkedForwardMixin,LPUStreamModel):
+    """Equivalent carried-state recurrence for memory-safe 365-day fitting."""
+
+def make_model(kind,taus,seq_len=180):
+    if kind=='tcn':return QuantileTCN()
+    if len(taus)>3:return DenseQuantileStream(taus)
+    if seq_len==365:return ChunkedPrimary(quantiles=taus,enforce_monotonic=True)
+    return LPUStreamModel(quantiles=taus,enforce_monotonic=True)
+
+class Windows:
+    def __init__(self,raw,train_start,train_end,device,seq=180):
+        self.raw=raw;self.device=device;self.seq=seq
+        self.dates=raw['dates'];self.basins=raw['basins'];self.nb=len(self.basins);self.nd=len(self.dates)
+        fit=(self.dates>=np.datetime64(train_start))&(self.dates<=np.datetime64(train_end))
+        dyn=raw['dynamic'];y=raw['target'];valid=(raw['mask']>0)&np.isfinite(y)
+        dv=dyn[:,fit,:].reshape(-1,dyn.shape[-1]);tv=y[:,fit][valid[:,fit]]
+        dm=np.nanmean(dv,axis=0);ds=np.nanstd(dv,axis=0)+1e-8
+        tm=float(tv.mean());ts=float(tv.std()+1e-8)
+        sm=np.nanmean(raw['static'],axis=0);ss=np.nanstd(raw['static'],axis=0)+1e-8
+        # Match CamelsDataset's float32 normalization arithmetic.
+        dn=dyn.astype(np.float32)
+        for c in range(dn.shape[-1]):dn[:,:,c]=(dn[:,:,c]-float(dm[c]))/float(ds[c])
+        yn=(y.astype(np.float32)-tm)/ts
+        sn=raw['static'].astype(np.float32)
+        for c in range(sn.shape[-1]):sn[:,c]=(sn[:,c]-float(sm[c]))/float(ss[c])
+        self.dynamic=torch.tensor(np.nan_to_num(dn),device=device)
+        self.target=torch.tensor(np.nan_to_num(yn),device=device)
+        self.mask=torch.tensor(valid.astype(np.float32),device=device)
+        self.static=torch.tensor(np.nan_to_num(sn),device=device)
+        self.lags=torch.arange(-seq,0,device=device)
+        self.norm={'fit_start':train_start,'fit_end':train_end,'target_mean':tm,'target_std':ts,
+                   'dynamic_mean':dm.tolist(),'dynamic_std':ds.tolist(),'static_mean':sm.tolist(),'static_std':ss.tolist()}
+    def indices(self,start,end):
+        days=np.flatnonzero((self.dates>=np.datetime64(start))&(self.dates<=np.datetime64(end)))
+        assert len(days) and days.min()>=self.seq
+        return torch.tensor(np.concatenate([b*self.nd+days for b in range(self.nb)]),device=self.device)
+    def batch(self,idx):
+        b=torch.div(idx,self.nd,rounding_mode='floor');t=idx%self.nd
+        return self.dynamic[b[:,None],t[:,None]+self.lags],self.static[b],self.target[b,t,None],self.mask[b,t,None]
+    def metadata(self,idx):
+        a=idx.cpu().numpy();return self.basins[a//self.nd],self.dates[a%self.nd]
+
+def loss_fn(q,y,m,taus):
+    e=y-q
+    return (torch.maximum(taus*e,(taus-1)*e)*m).sum()/m.sum().clamp_min(1)/q.shape[1]
+
+@torch.no_grad()
+def predict(model,windows,idx,batch=512):
+    model.eval();values=[]
+    for part in idx.split(batch):
+        d,s,_,_=windows.batch(part);values.append(model(d,s).cpu().numpy())
+    return np.concatenate(values).astype(np.float64)*windows.norm['target_std']+windows.norm['target_mean']
+
+@torch.no_grad()
+def validation_loss(model,windows,idx,taus,batch=512):
+    model.eval();tot=torch.zeros((),device=windows.device);cnt=torch.zeros_like(tot)
+    for part in idx.split(batch):
+        d,s,y,m=windows.batch(part);n=m.sum()
+        tot+=loss_fn(model(d,s),y,m,taus)*n;cnt+=n
+    return float((tot/cnt).item())
+
+def hash_file(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def run(spec,benchmark=False):
+    tag=spec['id'];result=BASE/f'tables/training_{tag}.json'
+    if result.exists() and not benchmark:
+        existing=json.loads(result.read_text())
+        if existing.get('completed') and existing['spec']==spec:
+            for key in ['checkpoint','predictions']:
+                p=ROOT/existing[key]
+                assert p.exists() and hash_file(p)==existing[key+'_sha256']
+            print('SKIP validated',tag,flush=True);return
+        raise RuntimeError(f'Existing result does not match protocol: {tag}')
+    device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    torch.set_num_threads(2);set_seed(spec['seed'],deterministic=True)
+    # Match the original cuDNN default verified by complete archived-prediction
+    # replay. Float32 tensor storage does not imply TF32 kernels were disabled.
+    torch.backends.cudnn.allow_tf32=True
+    torch.backends.cuda.matmul.allow_tf32=False
+    raw=np.load(BASE/'cache/primary_raw.npz')
+    windows=Windows(raw,spec['train_start'],spec['train_end'],device,seq=spec.get('seq_len',180))
+    train=windows.indices(spec['train_start'],spec['train_end'])
+    # A validation target is separate from all training targets and CQR targets.
+    validation=windows.indices('1995-10-01','1996-09-30') if spec['validation'] else None
+    cal_start='1996-10-01' if spec['validation'] else '1995-10-01'
+    cal=windows.indices(cal_start,'2000-09-30');test=windows.indices('2000-10-01','2008-12-31')
+    taus_list=TAUS13 if spec['head']=='13tau' else TAUS3
+    taus=torch.tensor(taus_list,device=device).reshape(1,-1)
+    model=make_model(spec['architecture'],taus_list,spec.get('seq_len',180)).to(device)
+    optimizer=torch.optim.Adam(model.parameters(),lr=0.001)
+    scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='min',factor=0.5,patience=3)
+    epochs=30;batch_size=512
+    updates_per_epoch=math.ceil(len(train)/batch_size)
+    updates_per_round=36 if spec['budget']=='equal_updates' else updates_per_epoch
+    checkpoint=BASE/f'checkpoints/{tag}.pt';progress=BASE/f'checkpoints/{tag}_resume.pt'
+    start_epoch=0;history=[];best=math.inf;best_state=None;steps=0;budget_order=None;budget_cursor=0
+    if progress.exists() and not benchmark:
+        saved=torch.load(progress,map_location=device,weights_only=False)
+        assert saved['spec']==spec
+        model.load_state_dict(saved['model']);optimizer.load_state_dict(saved['optimizer']);scheduler.load_state_dict(saved['scheduler'])
+        start_epoch=saved['epoch'];history=saved['history'];best=saved['best'];best_state=saved['best_state'];steps=saved['steps']
+        budget_order=saved.get('budget_order');budget_cursor=saved.get('budget_cursor',0)
+        torch.set_rng_state(saved['rng_cpu'].cpu());torch.cuda.set_rng_state(saved['rng_cuda'].cpu())
+        print('RESUME',tag,start_epoch,flush=True)
+    print('START',tag,'targets',len(train),'updates/round',updates_per_round,flush=True)
+    started=time.time()
+    for epoch in range(start_epoch,epochs):
+        model.train();tick=time.time();total=torch.zeros((),device=device);count=torch.zeros_like(total)
+        if spec['budget']=='equal_updates':
+            # Continue across budget-round boundaries instead of repeatedly
+            # sampling only the first 36 batches of a new permutation.
+            parts=[]
+            for _ in range(updates_per_round):
+                if budget_order is None or budget_cursor>=len(train):
+                    budget_order=train[torch.randperm(len(train),device=device)];budget_cursor=0
+                parts.append(budget_order[budget_cursor:budget_cursor+batch_size]);budget_cursor+=batch_size
+        else:
+            order=train[torch.randperm(len(train),device=device)]
+            parts=order.split(batch_size)
+        for ib,idx in enumerate(parts):
+            optimizer.zero_grad(set_to_none=True);d,s,y,m=windows.batch(idx)
+            loss=loss_fn(model(d,s),y,m,taus);loss.backward();nn.utils.clip_grad_norm_(model.parameters(),1.0);optimizer.step()
+            n=m.sum();total+=loss.detach()*n;count+=n;steps+=1
+            if benchmark and ib==19:
+                torch.cuda.synchronize()
+                print('BENCHMARK',tag,'20 batches seconds',time.time()-tick,'reserved_MB',torch.cuda.memory_reserved()/2**20,flush=True)
+                return
+        train_loss=float((total/count).item());scheduler.step(train_loss)
+        val=validation_loss(model,windows,validation,taus) if validation is not None else None
+        score=val if val is not None else train_loss
+        if score<best:
+            best=score;best_state={k:v.detach().cpu().clone() for k,v in model.state_dict().items()}
+        row={'epoch_or_round':epoch+1,'updates':steps,'train_loss':train_loss,'validation_loss':val,
+             'train_pinball_log':train_loss*windows.norm['target_std'],
+             'validation_pinball_log':None if val is None else val*windows.norm['target_std'],
+             'learning_rate':optimizer.param_groups[0]['lr'],'seconds':time.time()-tick}
+        history.append(row);print(tag,json.dumps(row),flush=True)
+        state={'spec':spec,'model':model.state_dict(),'optimizer':optimizer.state_dict(),'scheduler':scheduler.state_dict(),
+               'epoch':epoch+1,'history':history,'best':best,'best_state':best_state,'steps':steps,
+               'budget_order':budget_order,'budget_cursor':budget_cursor,
+               'rng_cpu':torch.get_rng_state(),'rng_cuda':torch.cuda.get_rng_state()}
+        temp=progress.with_suffix('.tmp');torch.save(state,temp);temp.replace(progress)
+        atomic(BASE/f'tables/progress_{tag}.json',{'spec':spec,'history':history,'completed':False})
+    final_state={k:v.detach().cpu().clone() for k,v in model.state_dict().items()}
+    torch.save({'spec':spec,'final_state':final_state,'validation_selected_state':best_state if validation is not None else None,
+                'selection':'minimum_independent_validation_pinball' if validation is not None else 'final_epoch',
+                'normalization':windows.norm,'quantiles':taus_list,'history':history},checkpoint)
+    arrays={'taus':np.asarray(taus_list),'normalization_json':json.dumps(windows.norm)}
+    for split,idx in [('calibration',cal),('test',test)]:
+        b,dates=windows.metadata(idx);i=idx.cpu().numpy();bb=i//windows.nd;tt=i%windows.nd
+        arrays[f'{split}_basin']=b;arrays[f'{split}_dates']=dates
+        arrays[f'{split}_y_log']=raw['target'][bb,tt].astype(np.float32)
+        arrays[f'{split}_mask']=raw['mask'][bb,tt]
+        arrays[f'{split}_final_quantiles_log']=predict(model,windows,idx).astype(np.float32)
+    if validation is not None:
+        # The final-epoch 1-year fit also supplies the common-loader WY1995
+        # reference for temporal-composition sensitivity; its checkpoint is
+        # fixed in advance and does not use validation for selection.
+        if spec['train_start']=='1994-10-01':
+            fullcal=windows.indices('1995-10-01','2000-09-30');i=fullcal.cpu().numpy();bb=i//windows.nd;tt=i%windows.nd
+            arrays['fullcal_final_quantiles_log']=predict(model,windows,fullcal).astype(np.float32)
+            arrays['fullcal_y_log']=raw['target'][bb,tt].astype(np.float32);arrays['fullcal_mask']=raw['mask'][bb,tt]
+            arrays['fullcal_basin'],arrays['fullcal_dates']=windows.metadata(fullcal)
+        model.load_state_dict(best_state)
+        for split,idx in [('calibration',cal),('test',test)]:
+            arrays[f'{split}_selected_quantiles_log']=predict(model,windows,idx).astype(np.float32)
+    prediction=BASE/f'predictions/{tag}.npz';np.savez_compressed(prediction,**arrays)
+    atomic(result,{'completed':True,'spec':spec,'train_target_count':len(train),'optimizer_updates':steps,
+        'n_parameters':sum(p.numel() for p in model.parameters()),'normalization':windows.norm,'history':history,
+        'checkpoint':checkpoint.relative_to(ROOT).as_posix(),'checkpoint_sha256':hash_file(checkpoint),
+        'predictions':prediction.relative_to(ROOT).as_posix(),'predictions_sha256':hash_file(prediction),
+        'wall_seconds_this_invocation':time.time()-started,'calibration_start':cal_start,'quantiles':taus_list})
+    print('DONE',tag,'seconds',time.time()-started,flush=True)
+
+def specs():
+    rows=[]
+    for year in [1985,1990,1991,1992,1993,1994]:
+        for seed in [42,123,456]:
+            rows.append(dict(id=f'temporal_wy{year}_s{seed}',train_start=f'{year-1}-10-01',train_end=f'{year}-09-30',
+                             seed=seed,head='3tau',architecture='lpu',validation=False,budget='epochs'))
+    for years in [1,15]:
+        for seed in [42,123,456]:
+            common=dict(train_start='1994-10-01' if years==1 else '1980-10-01',train_end='1995-09-30',seed=seed)
+            rows.append(dict(id=f'validation_{years}yr_s{seed}',**common,head='3tau',architecture='lpu',validation=True,budget='epochs'))
+            if years==15:
+                rows.append(dict(id=f'validation_equal_{years}yr_s{seed}',**common,head='3tau',architecture='lpu',validation=True,budget='equal_updates'))
+            rows.append(dict(id=f'multilevel_{years}yr_s{seed}',**common,head='13tau',architecture='lpu',validation=False,budget='epochs'))
+            rows.append(dict(id=f'tcn_{years}yr_s{seed}',**common,head='3tau',architecture='tcn',validation=False,budget='epochs'))
+    for seq_len in [180,365]:
+        for seed in [42,123,456]:
+            rows.append(dict(id=f'memory{seq_len}_15yr_s{seed}',train_start='1980-12-31',train_end='1995-09-30',
+                             seed=seed,head='3tau',architecture='lpu',validation=False,budget='epochs',seq_len=seq_len))
+            if seq_len==365:
+                rows.append(dict(id=f'memory365_1yr_s{seed}',train_start='1994-10-01',train_end='1995-09-30',
+                                 seed=seed,head='3tau',architecture='lpu',validation=False,budget='epochs',seq_len=365))
+    return rows
+
+if __name__=='__main__':
+    parser=argparse.ArgumentParser();parser.add_argument('--id');parser.add_argument('--benchmark',action='store_true');parser.add_argument('--list',action='store_true')
+    args=parser.parse_args();all_specs=specs()
+    if args.list:print(json.dumps(all_specs,indent=2));sys.exit()
+    selected=[s for s in all_specs if s['id']==args.id]
+    if len(selected)!=1:raise ValueError('Specify one declared --id')
+    run(selected[0],args.benchmark)

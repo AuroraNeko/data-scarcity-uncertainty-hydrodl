@@ -6,13 +6,13 @@ from unittest import mock
 
 import numpy as np
 
-from experiments import run_scarcity_robustness as robustness_runner
-from experiments.analysis.analyze_conditional_robustness import top_flow_mask
-from experiments.analysis.sanitize_scarcity_checkpoint_metadata import (
+from experiments.train_primary import run_endpoint_replications as robustness_runner
+from experiments.analyze.conditional_robustness import top_flow_mask
+from experiments.prepare.audit_checkpoint_metadata import (
     contains_absolute_path,
     tensor_state_sha256 as sanitizer_tensor_sha256,
 )
-from experiments.scarce.train_scarcity_corrected import (
+from experiments.train_primary.train_scarcity_corrected import (
     tensor_state_sha256 as training_tensor_sha256,
 )
 from src.models.lstm import LSTMModel

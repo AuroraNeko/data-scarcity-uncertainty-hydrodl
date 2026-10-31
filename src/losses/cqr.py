@@ -17,7 +17,7 @@ calibration and test examples are exchangeable.
 import numpy as np
 import torch
 from torch import Tensor
-from src.evaluation_protocol import conformal_radius, project_nonempty
+from src.evaluation.protocol import conformal_radius, project_nonempty
 
 
 def finite_sample_quantile(scores: np.ndarray, alpha: float) -> float:
