@@ -1,4 +1,4 @@
-"""Shared evaluation definitions for the JOH major revision.
+"""Shared evaluation definitions for the paper's revision analyses.
 
 Targets and bounds passed to these functions must already share one scale.
 Observed-flow groups are retrospective diagnostics; reference-prediction groups

@@ -2,13 +2,30 @@
 
 # 监督训练记录长度对径流预报点预测技巧与区间可靠性的影响
 
-本项目为 Journal of Hydrology 论文的配套代码。研究对象是**固定独立校准记录下的训练标签不足**：一年模型仍需校准观测,不代表只有一年全部径流观测的流域。
+在保留独立校准记录的前提下，监督训练记录的长度对深度学习径流预报究竟有多重要？
+本研究的干预是**只削减模型训练标签、校准观测单独保留**：一年模型仍需校准数据，
+并不等同于只有一年全部径流观测的流域。
 
-## 本仓库复现什么
+## 方法
 
-主实验为固定 50 流域、1/3/5/15 年嵌套窗口、每条件三个模型种子;另有四个互斥 50 流域子集复现端点(合计 250 独立流域)、671 流域八种不确定性构造基准,以及 48 个端点补充拟合(替代年份、独立验证、多名义水平、卷积架构、匹配记忆长度)。
+- **模型**。所有构造共用同一 LSTM 骨干（LPU-Stream），输入 180 天气象驱动
+  （记忆敏感性实验用 365 天）与静态流域属性，输出对数径流的单调
+  0.05/0.50/0.95 分位数三元组；TCN、标准 LSTM 与 13 分位数头作为架构敏感性。
+- **校准**。原始分位数预测用 split conformalized quantile regression（CQR）
+  在任何模型都不参与训练的五年窗口（1995–2000）上重校准，并比较全局、
+  逐流域与按预测流量分层三种变体。
+- **稀缺性设计**。训练标签限制在截止 1995 年 9 月的嵌套 1/3/5/15 年窗口内；
+  校准池与测试期（2000 年 10 月 – 2008 年 12 月）对所有训练长度固定，
+  唯一变化的是监督记录长度。
+- **规模**。50 个主流域 × 三个模型种子；四个互斥 50 流域子集复现端点
+  （合计 250 个独立流域）；671 流域八种不确定性构造对比；以及 48 个补充
+  端点拟合（替代训练年份、独立验证、多名义水平、卷积架构、匹配记忆长度）。
+- **推断**。所有效应均附带流域级 bootstrap 区间，同时对流域与 HUC2
+  聚类重采样。
 
-关键结果(每条标注生成脚本):
+## 关键结果
+
+每条结论标注生成脚本：
 
 | 结论 | 数值 | 生成脚本 |
 |---|---|---|
@@ -37,18 +54,19 @@ experiments/            运行层,每脚本一个职责
 ├─ prepare/             缓存构建/校验、数据链与检查点审计
 ├─ train_primary/       主 12 拟合、互斥子集、端点复跑
 ├─ train_benchmark/     671 流域八种构造
-├─ correct_predictions/ 中位数偏差修正诊断
+├─ bias_correction/     中位数偏差修正诊断
 ├─ train_sensitivity/   48 个端点拟合(队列驱动)
 ├─ evaluate/            覆盖、评分、方法比较、校准变体
 ├─ analyze/             汇总、配对效应、代表性、学习曲线
 └─ figures/             论文全部图
 
-reproduce.py            唯一总入口,按阶段顺序调度
+run_pipeline.py         唯一总入口,按阶段顺序调度
+download_camels.py      下载 CAMELS-US 数据档案
 tests/                  协议单元测试(无需数据集)
 configs/                数据配置
 ```
 
-依赖单向:`reproduce.py → experiments/* → src/*`;脚本之间不互相 import,共享逻辑全部在 `src/`。
+依赖单向:`run_pipeline.py → experiments/* → src/*`;脚本之间不互相 import,共享逻辑全部在 `src/`。
 
 ## 复现
 
@@ -56,14 +74,19 @@ configs/                数据配置
 pip install -r requirements.txt
 python download_camels.py
 python src/data/data_preprocessing.py
-python reproduce.py --list      # 查看阶段
-python reproduce.py --dry-run   # 只解析脚本路径,不运行
-python reproduce.py             # 全量重跑(阶段 2/3/5 需要 CUDA GPU)
-python -m pytest tests -q       # 协议测试
+python run_pipeline.py --list      # 查看阶段
+python run_pipeline.py --dry-run   # 只解析脚本路径,不运行
+python run_pipeline.py             # 全量重跑(阶段 2/3/5 需要 CUDA GPU)
+python -m pytest tests -q          # 协议测试
 ```
 
-参考环境:Python 3.11、PyTorch 2.11.0+cu128、RTX 5060 Ti(8GB);固定提交轮快照为 git 标签 `JOH-revision-20261030`。数据、权重与逐样本预测不入库,各阶段在 `results/` 下重建产物。
+参考环境:Python 3.11、PyTorch 2.11.0+cu128、RTX 5060 Ti(8GB);见
+`requirements-reference-cu128.txt`。数据、权重与逐样本预测不入库,各阶段在
+`results/` 下重建产物;固定提交轮快照及其 SHA-256 清单见
+[REPRODUCIBILITY.md](REPRODUCIBILITY.md)。
 
 ## 引用与许可
 
-见 [CITATION.cff](CITATION.cff) 与 [LICENSE](LICENSE)。早期发布系列有 Zenodo 概念 DOI [10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955),该概念记录不标识本轮修订。
+见 [CITATION.cff](CITATION.cff) 与 [LICENSE](LICENSE)。早期发布系列有 Zenodo
+概念 DOI [10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955),
+该概念记录不标识本轮修订。

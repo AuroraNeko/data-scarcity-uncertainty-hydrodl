@@ -1,4 +1,4 @@
-"""Resumable, protocol-declared 50-basin JOH sensitivity fits.
+"""Resumable, protocol-declared 50-basin sensitivity fits.
 
 The whole historical input grid resides on the GPU, but only declared training
 target dates enter the loss and normalization fit. Test data never select a model.

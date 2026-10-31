@@ -1,11 +1,11 @@
-"""Guard: every script referenced by reproduce.py exists and the stage table
+"""Guard: every script referenced by run_pipeline.py exists and the stage table
 stays contiguous and ordered."""
 import importlib.util
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location("reproduce", ROOT / "reproduce.py")
+spec = importlib.util.spec_from_file_location("run_pipeline", ROOT / "run_pipeline.py")
 reproduce = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(reproduce)
 

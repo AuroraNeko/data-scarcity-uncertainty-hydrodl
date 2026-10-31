@@ -1,11 +1,11 @@
 # Reproducibility Guide
 
-`reproduce.py` is the single entry point; `python reproduce.py --list` shows
-the nine stages (prepare → train primary → train benchmark → correct → train
-sensitivity → evaluate → analyze → audit → figures). Dependencies flow one
-way: `reproduce.py → experiments/* → src/*`; scripts never import each other
-and shared logic lives in `src/`. The frozen submission-round snapshot is git
-tag `JOH-revision-20261030`.
+`run_pipeline.py` is the single entry point; `python run_pipeline.py --list`
+shows the nine stages (prepare → train primary → train benchmark → correct →
+train sensitivity → evaluate → analyze → audit → figures). Dependencies flow
+one way: `run_pipeline.py → experiments/* → src/*`; scripts never import each
+other and shared logic lives in `src/`. The frozen submission-round snapshot is
+git tag `JOH-revision-20261030`.
 
 ## Environment
 
