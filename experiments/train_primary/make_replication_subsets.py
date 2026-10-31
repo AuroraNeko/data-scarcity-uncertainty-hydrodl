@@ -1,9 +1,9 @@
 """Create four disjoint hydroclimatically stratified scarcity subsets.
 
-The existing seed-42 random subset remains the primary gradient. Four new
+The seed-42 random subset remains the primary gradient. Four additional
 50-basin subsets are sampled without overlap from the remaining CAMELS-US
-basins, stratified jointly by aridity and log drainage-area quartiles. They are
-used only for the 1-year versus 15-year endpoint replication.
+basins, stratified jointly by aridity and log drainage-area quartiles. They
+are used only for the 1-year versus 15-year endpoint replication.
 """
 
 from __future__ import annotations

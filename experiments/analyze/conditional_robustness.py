@@ -87,7 +87,7 @@ def top_flow_mask(
 ) -> np.ndarray:
     """Strict within-basin quantile exceedance; ties stay below the threshold.
 
-    The 33% threshold now agrees with the main Q0.67 high-flow diagnostic.
+    The 33% threshold matches the main Q0.67 high-flow diagnostic.
     Actual selected fractions can be smaller when observations are tied.
     """
     selected = np.zeros(len(target), dtype=bool)

@@ -19,8 +19,8 @@ def repository_path(root: Path, value: str) -> Path:
     """Resolve a repository-relative artifact path written by any OS.
 
     Rejects empty segments, dot segments, drive letters, and anything that
-    resolves outside ``root``; accepts the Windows separators an earlier
-    generation of artifacts embedded.
+    resolves outside ``root``; accepts the Windows separators that archived
+    artifacts embed.
     """
     parts = value.replace("\\", "/").split("/")
     if (

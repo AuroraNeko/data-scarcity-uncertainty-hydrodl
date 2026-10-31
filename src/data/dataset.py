@@ -321,7 +321,7 @@ def create_dataloaders(
     basin_list: list[str] | None = None,
     per_basin_stats: dict | None = None,
 ) -> tuple[DataLoader, DataLoader, DataLoader]:
-    """Create train/val/test DataLoaders for Task 1 (seen basin temporal split)."""
+    """Create train/val/test DataLoaders (seen basins, temporal split)."""
     from src.data.data_preprocessing import TRAIN_START, TRAIN_END, VAL_START, VAL_END, TEST_START, TEST_END
 
     if basin_list is None:

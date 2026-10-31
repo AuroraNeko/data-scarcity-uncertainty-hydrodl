@@ -192,7 +192,7 @@ def main():
             for mode in ['raw','cqr']:row.append(num(select_mean(dense,method=method,nominal=level,mode=mode).picp.iloc[0]))
         lev.append(row)
     rows('s18_level_rows.tex',lev)
-    # New coverage uncertainty table.
+    # Coverage uncertainty table.
     uncertainty=[]
     for key,label,mult,d in [('raw_nse','NSE: 15 minus 1 yr',1,3),('raw_picp','Raw PICP difference (pp)',100,1),
                             ('global_picp','CQR PICP difference (pp)',100,1),('raw_winkler','Raw Winkler difference',1,3),('global_winkler','CQR Winkler difference',1,3)]:

@@ -34,7 +34,8 @@ OUT_CSV = ROOT / "results" / "tables" / "biasfix_check.csv"
 
 
 def upper_tercile_mask(y, basin):
-    """Within-basin observed upper-tercile rows, (upper tercile means y > the within-basin 0.67 quantile; ties stay in the middle tercile)."""
+    """Rows in the within-basin observed upper tercile: y above the
+    within-basin 0.67 quantile; ties stay in the middle tercile."""
     keep = np.zeros(y.size, dtype=bool)
     for b in np.unique(basin):
         rows = np.where(basin == b)[0]
@@ -44,8 +45,8 @@ def upper_tercile_mask(y, basin):
 
 
 def basin_median_bias(bias_rows, basin, upper):
-    """Revised S13 metric: per-basin mean over high-flow days, then the
-    cross-basin median (bias in q50 - y convention; negative = under)."""
+    """Per-basin mean bias over high-flow days, then the cross-basin median
+    (q50 - y convention; negative = under-prediction)."""
     per_basin = [np.mean(bias_rows[(basin == b) & upper])
                  for b in np.unique(basin)]
     return float(np.median(per_basin))

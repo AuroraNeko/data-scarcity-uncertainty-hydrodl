@@ -30,7 +30,7 @@ out = ROOT / 'data' / 'metadata' / 'per_basin_target_stats.json'
 with open(out, 'w') as f:
     json.dump(stats, f, indent=2)
 print(f"Computed per-basin target stats for {len(stats)} basins -> {out}")
-# quick peek at spread
+# Spread of the per-basin means, as a sanity check.
 import numpy as np
 means = [v['mean'] for v in stats.values()]
 print(f"basin log-flow mean: min={min(means):.3f} median={np.median(means):.3f} max={max(means):.3f}")

@@ -1,6 +1,6 @@
 {
   "title": "How supervised training-record length affects point skill and interval reliability in streamflow forecasting",
-  "description": "Revision submission source/compact results: supervised training-label scarcity with separate calibration observations; corrected scoring and method identities. Local package metadata does not imply a public upload.",
+  "description": "Source code and compact results for a study of supervised training-record scarcity in streamflow forecasting: how record length changes point skill, why interval coverage needs a separate calibration window, and which calibration variants restore it.",
   "creators": [
     {
       "name": "AuroraNeko"

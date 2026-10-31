@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use this code, cite the frozen submission archive identity used; this local revision has no newly issued public DOI."
+message: "If you use this code, please cite this repository and the release archive identified in REPRODUCIBILITY.md."
 type: software
 title: "How supervised training-record length affects point skill and interval reliability in streamflow forecasting"
 authors:

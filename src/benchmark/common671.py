@@ -67,8 +67,9 @@ def build_loaders(device=None):
 
     The 671-basin datasets must never be constructed inside a training
     process on this workstation: doing so leaves CUDA permanently ~14x
-    slower for the rest of the process lifetime. The short-lived prepare
-    script therefore materialized everything to results/cache/benchmark_gpu/.
+    slower for the rest of the process lifetime. prepare_gpu.py builds
+    them in a separate process and stores the mirrors under
+    results/cache/benchmark_gpu/.
     """
     if device is None:
         device = get_device()

@@ -57,9 +57,9 @@ def context_start(target_start: str, seq_len: int) -> str:
 def recover_target_affine() -> tuple[float, float]:
     """Target standardization from the canonical stats file used by the 671 run.
 
-    The stored *_norm CSV columns were verified to follow the same affine
-    (mu=0.597676, sigma=0.643817), so the legacy dataset path and this file
-    describe one consistent standardization.
+    The stored *_norm CSV columns follow the same affine map
+    (mu=0.597676, sigma=0.643817), so both standardization routes are
+    interchangeable.
     """
     stats = json.loads(
         (PROJECT_ROOT / "data" / "metadata" / "normalization_stats.json").read_text())

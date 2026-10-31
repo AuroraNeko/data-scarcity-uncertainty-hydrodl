@@ -36,7 +36,7 @@ STREAMFLOW_ROOT = RAW_DIR / "basin_dataset_public_v1p2" / "usgs_streamflow"
 FORCING_SOURCES = ["daymet", "maurer", "nldas"]
 BASE_FORCING_VARS = ["prcp", "srad", "tmax", "tmin", "vp"]  # 5 vars per source
 DYNAMIC_VARS = [f"{v}_{s}" for s in FORCING_SOURCES for v in BASE_FORCING_VARS]  # 15 features
-FORCING_SOURCE = "daymet"  # kept for basin enumeration / backward compatibility
+FORCING_SOURCE = "daymet"  # used for basin enumeration
 STATIC_ATTR_FILES = {
     "camels_topo.txt": ["elev_mean", "slope_mean", "area_gages2"],
     "camels_clim.txt": ["p_mean", "pet_mean", "aridity", "frac_snow", "p_seasonality"],

@@ -207,12 +207,10 @@ class NoiseStream(HeadStreamModel):
                           iters=80) -> Tensor:
         """Quantiles of the uniform mixture of T gaussians, by bisection.
 
-        mu, sigma: (batch, T) component parameters. The earlier stray
-        .unsqueeze(-1) calls made z (batch, T, 1) so the CDF averaged a
-        singleton axis: the bisection then solved each component's own
-        quantile instead of the mixture CDF (and returned (batch, T, 3),
-        crashing evaluate_and_save). Shapes now mirror
-        MDNStream.predict_quantiles exactly.
+        mu, sigma: (batch, T) component parameters. z must stay 2-D: an
+        extra singleton axis makes the CDF average that axis, and the
+        bisection then solves each component's own quantile instead of the
+        mixture CDF. Shapes mirror MDNStream.predict_quantiles.
         """
         lo = (mu - 12 * sigma).min(dim=-1).values - 5.0
         hi = (mu + 12 * sigma).max(dim=-1).values + 5.0
