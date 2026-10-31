@@ -58,7 +58,8 @@ experiments/            runnable pipeline, one job per script
 └─ figures/             all paper figures from the frozen tables
 
 reproduce.py            single entry point; runs the stages in order
-tests/                  protocol unit tests (no dataset required)
+tests/                  protocol unit tests (no dataset required; the three
+                        recorded-table checks skip until results/ exists)
 configs/                data configuration
 ```
 

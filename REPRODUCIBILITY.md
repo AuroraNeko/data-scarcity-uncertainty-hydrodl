@@ -31,7 +31,8 @@ and evaluation.
 - The evaluation protocol (`src/evaluation/protocol.py`) uses exact
   non-interpolated split-conformal ranks, within-basin 0.33/0.67 group cuts
   with ties in the lower group, and empty-set midpoint projection. It is
-  covered by `tests/` (protocol tests need no dataset).
+  covered by `tests/` (protocol tests need no dataset; the three
+  recorded-table checks skip in a fresh clone).
 - Finite-grid distributional scores are integrated quantile scores, not full
   CRPS; the Gaussian analytic score is full CRPS. Legacy artifact ids `umal`
   and `encqr` denote a Gaussian location-scale quantile head and static
