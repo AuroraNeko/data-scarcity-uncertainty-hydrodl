@@ -15,9 +15,11 @@ Usage:
     python run_pipeline.py --only coverage_groups.py   # run one script
 
 Stages 2, 3 and 5 retrain models and need a CUDA GPU (RTX-class, >=8 GB) plus
-the preprocessed CAMELS-US archive under data/. Stages 1, 4 and 6-9 consume
-archived arrays and also run on CPU. Runtime for the full rerun is dominated
-by training (several GPU-days for all endpoints and seeds).
+the preprocessed CAMELS-US archive under data/. Stages 1, 4, 7, 8 and 9 are
+table-driven and run on CPU. Stage 6 reloads trained checkpoints for inference
+(method evaluation, ungauged transfer) and also completes on CPU, though it is
+much faster on GPU. Runtime for the full rerun is dominated by training
+(several GPU-days for all endpoints and seeds).
 """
 from __future__ import annotations
 
@@ -36,19 +38,19 @@ STAGES: dict[int, tuple[str, list[str]]] = {
     ]),
     2: ("train-primary: 12 main fits, disjoint endpoint replication, equal-update and standard-LSTM sensitivities", [
         "experiments/train_primary/make_replication_subsets.py",
-        "experiments/train_primary/train_scarcity.py",
-        "experiments/train_primary/train_scarcity_corrected.py",
+        "experiments/train_primary/run_primary_fits.py",
         "experiments/train_primary/run_endpoint_replications.py",
     ]),
-    3: ("train-benchmark: eight uncertainty constructions on all 671 basins", [
+    3: ("train-benchmark: point and uncertainty baselines on all 671 basins, dense tau grids", [
         "experiments/train_benchmark/prepare_gpu.py",
+        "experiments/train_benchmark/train_point_model.py",
         "experiments/train_benchmark/train_single_qr.py",
         "experiments/train_benchmark/retrain_ensemble_corrected.py",
         "experiments/train_benchmark/train_mdn.py",
         "experiments/train_benchmark/train_gaussian_quantile.py",
         "experiments/train_benchmark/train_mc_dropout_noise.py",
-        "experiments/train_benchmark/train_memberwise_splitcqr.py",
         "experiments/train_benchmark/train_point_reselect.py",
+        "experiments/train_benchmark/export_dense_taus.py",
     ]),
     4: ("correct: median-bias-fix diagnostics on the archived scarcity runs", [
         "experiments/bias_correction/apply_bias_fix.py",
@@ -57,28 +59,30 @@ STAGES: dict[int, tuple[str, list[str]]] = {
         "experiments/train_sensitivity/run_queue.py",
         "experiments/train_sensitivity/verify_chunked_recurrence.py",
     ]),
-    6: ("evaluate: coverage groups, distribution scores, method comparison, calibration variants", [
+    6: ("evaluate: corrected-method comparison, memberwise split-CQR, coverage groups, ungauged transfer", [
+        "experiments/evaluate/evaluate_corrected_methods.py",
+        "experiments/evaluate/memberwise_splitcqr.py",
         "experiments/evaluate/coverage_groups.py",
         "experiments/evaluate/distribution_scores.py",
         "experiments/evaluate/method_comparison.py",
-        "experiments/evaluate/evaluate_corrected_methods.py",
         "experiments/evaluate/calibration_variants.py",
+        "experiments/evaluate/transfer_unseen_basins.py",
         "experiments/evaluate/unseen_basins.py",
         "experiments/evaluate/calibration_blocks.py",
         "experiments/evaluate/hydrology_context.py",
         "experiments/evaluate/selection_simulation.py",
     ]),
-    7: ("analyze: training summaries, paired effects, representativeness, learning curves", [
+    7: ("audit: data-chain and checkpoint hygiene checks", [
+        "experiments/prepare/audit_processed_data.py",
+        "experiments/prepare/audit_checkpoint_metadata.py",
+    ]),
+    8: ("analyze: training summaries, paired effects, representativeness, learning curves", [
         "experiments/analyze/training_summary.py",
         "experiments/analyze/summarize_scarcity.py",
         "experiments/analyze/summarize_replications.py",
         "experiments/analyze/conditional_robustness.py",
         "experiments/analyze/basin_representativeness.py",
         "experiments/analyze/learning_curves.py",
-    ]),
-    8: ("audit: data-chain and checkpoint hygiene checks", [
-        "experiments/prepare/audit_processed_data.py",
-        "experiments/prepare/audit_checkpoint_metadata.py",
     ]),
     9: ("figures: all paper figures from the frozen tables", [
         "experiments/figures/make_main_figures.py",

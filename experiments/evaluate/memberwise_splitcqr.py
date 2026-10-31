@@ -23,7 +23,6 @@ import torch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from src.data.dataset import CamelsDataset, PROCESSED_DIR  # noqa: E402
 from src.models.lpu_stream import LPUStreamModel  # noqa: E402
