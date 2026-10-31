@@ -6,7 +6,6 @@ target dates enter the loss and normalization fit. Test data never select a mode
 from pathlib import Path
 import argparse
 import copy
-import hashlib
 import json
 import math
 import sys
@@ -21,8 +20,10 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT))
 from src.models.lpu_stream import LPUStreamModel
 from src.models.tcn import TCNModel
-from src.utils import set_seed
-from src.heads.dense_heads import ChunkedForwardMixin
+from src.data.windows import Windows
+from src.heads.dense_heads import ChunkedPrimary
+from src.sensitivity import specs
+from src.utils import set_seed,sha256_file
 
 BASE=ROOT/'results'
 TAUS3=[0.05,0.5,0.95]
@@ -52,47 +53,11 @@ class QuantileTCN(TCNModel):
         return torch.cat([raw[:,1:2]-F.softplus(raw[:,0:1]),raw[:,1:2],
                           raw[:,1:2]+F.softplus(raw[:,2:3])],dim=-1)
 
-class ChunkedPrimary(ChunkedForwardMixin,LPUStreamModel):
-    """Equivalent carried-state recurrence for memory-safe 365-day fitting."""
-
 def make_model(kind,taus,seq_len=180):
     if kind=='tcn':return QuantileTCN()
     if len(taus)>3:return DenseQuantileStream(taus)
     if seq_len==365:return ChunkedPrimary(quantiles=taus,enforce_monotonic=True)
     return LPUStreamModel(quantiles=taus,enforce_monotonic=True)
-
-class Windows:
-    def __init__(self,raw,train_start,train_end,device,seq=180):
-        self.raw=raw;self.device=device;self.seq=seq
-        self.dates=raw['dates'];self.basins=raw['basins'];self.nb=len(self.basins);self.nd=len(self.dates)
-        fit=(self.dates>=np.datetime64(train_start))&(self.dates<=np.datetime64(train_end))
-        dyn=raw['dynamic'];y=raw['target'];valid=(raw['mask']>0)&np.isfinite(y)
-        dv=dyn[:,fit,:].reshape(-1,dyn.shape[-1]);tv=y[:,fit][valid[:,fit]]
-        dm=np.nanmean(dv,axis=0);ds=np.nanstd(dv,axis=0)+1e-8
-        tm=float(tv.mean());ts=float(tv.std()+1e-8)
-        sm=np.nanmean(raw['static'],axis=0);ss=np.nanstd(raw['static'],axis=0)+1e-8
-        # Match CamelsDataset's float32 normalization arithmetic.
-        dn=dyn.astype(np.float32)
-        for c in range(dn.shape[-1]):dn[:,:,c]=(dn[:,:,c]-float(dm[c]))/float(ds[c])
-        yn=(y.astype(np.float32)-tm)/ts
-        sn=raw['static'].astype(np.float32)
-        for c in range(sn.shape[-1]):sn[:,c]=(sn[:,c]-float(sm[c]))/float(ss[c])
-        self.dynamic=torch.tensor(np.nan_to_num(dn),device=device)
-        self.target=torch.tensor(np.nan_to_num(yn),device=device)
-        self.mask=torch.tensor(valid.astype(np.float32),device=device)
-        self.static=torch.tensor(np.nan_to_num(sn),device=device)
-        self.lags=torch.arange(-seq,0,device=device)
-        self.norm={'fit_start':train_start,'fit_end':train_end,'target_mean':tm,'target_std':ts,
-                   'dynamic_mean':dm.tolist(),'dynamic_std':ds.tolist(),'static_mean':sm.tolist(),'static_std':ss.tolist()}
-    def indices(self,start,end):
-        days=np.flatnonzero((self.dates>=np.datetime64(start))&(self.dates<=np.datetime64(end)))
-        assert len(days) and days.min()>=self.seq
-        return torch.tensor(np.concatenate([b*self.nd+days for b in range(self.nb)]),device=self.device)
-    def batch(self,idx):
-        b=torch.div(idx,self.nd,rounding_mode='floor');t=idx%self.nd
-        return self.dynamic[b[:,None],t[:,None]+self.lags],self.static[b],self.target[b,t,None],self.mask[b,t,None]
-    def metadata(self,idx):
-        a=idx.cpu().numpy();return self.basins[a//self.nd],self.dates[a%self.nd]
 
 def loss_fn(q,y,m,taus):
     e=y-q
@@ -113,8 +78,6 @@ def validation_loss(model,windows,idx,taus,batch=512):
         tot+=loss_fn(model(d,s),y,m,taus)*n;cnt+=n
     return float((tot/cnt).item())
 
-def hash_file(path):return hashlib.sha256(path.read_bytes()).hexdigest()
-
 def run(spec,benchmark=False):
     tag=spec['id'];result=BASE/f'tables/training_{tag}.json'
     if result.exists() and not benchmark:
@@ -122,7 +85,7 @@ def run(spec,benchmark=False):
         if existing.get('completed') and existing['spec']==spec:
             for key in ['checkpoint','predictions']:
                 p=ROOT/existing[key]
-                assert p.exists() and hash_file(p)==existing[key+'_sha256']
+                assert p.exists() and sha256_file(p)==existing[key+'_sha256']
             print('SKIP validated',tag,flush=True);return
         raise RuntimeError(f'Existing result does not match protocol: {tag}')
     device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -207,9 +170,10 @@ def run(spec,benchmark=False):
         arrays[f'{split}_mask']=raw['mask'][bb,tt]
         arrays[f'{split}_final_quantiles_log']=predict(model,windows,idx).astype(np.float32)
     if validation is not None:
-        # The final-epoch 1-year fit also supplies the common-loader WY1995
-        # reference for temporal-composition sensitivity; its checkpoint is
-        # fixed in advance and does not use validation for selection.
+        # The final-epoch WY1995-trained fit also emits predictions over the
+        # fixed 1996-2000 common calibration pool; the analysis synthesizes the
+        # temporal_wy1995 reference from them. The checkpoint is fixed in
+        # advance and does not use validation for selection.
         if spec['train_start']=='1994-10-01':
             fullcal=windows.indices('1995-10-01','2000-09-30');i=fullcal.cpu().numpy();bb=i//windows.nd;tt=i%windows.nd
             arrays['fullcal_final_quantiles_log']=predict(model,windows,fullcal).astype(np.float32)
@@ -221,33 +185,10 @@ def run(spec,benchmark=False):
     prediction=BASE/f'predictions/{tag}.npz';np.savez_compressed(prediction,**arrays)
     atomic(result,{'completed':True,'spec':spec,'train_target_count':len(train),'optimizer_updates':steps,
         'n_parameters':sum(p.numel() for p in model.parameters()),'normalization':windows.norm,'history':history,
-        'checkpoint':checkpoint.relative_to(ROOT).as_posix(),'checkpoint_sha256':hash_file(checkpoint),
-        'predictions':prediction.relative_to(ROOT).as_posix(),'predictions_sha256':hash_file(prediction),
+        'checkpoint':checkpoint.relative_to(ROOT).as_posix(),'checkpoint_sha256':sha256_file(checkpoint),
+        'predictions':prediction.relative_to(ROOT).as_posix(),'predictions_sha256':sha256_file(prediction),
         'wall_seconds_this_invocation':time.time()-started,'calibration_start':cal_start,'quantiles':taus_list})
     print('DONE',tag,'seconds',time.time()-started,flush=True)
-
-def specs():
-    rows=[]
-    for year in [1985,1990,1991,1992,1993,1994]:
-        for seed in [42,123,456]:
-            rows.append(dict(id=f'temporal_wy{year}_s{seed}',train_start=f'{year-1}-10-01',train_end=f'{year}-09-30',
-                             seed=seed,head='3tau',architecture='lpu',validation=False,budget='epochs'))
-    for years in [1,15]:
-        for seed in [42,123,456]:
-            common=dict(train_start='1994-10-01' if years==1 else '1980-10-01',train_end='1995-09-30',seed=seed)
-            rows.append(dict(id=f'validation_{years}yr_s{seed}',**common,head='3tau',architecture='lpu',validation=True,budget='epochs'))
-            if years==15:
-                rows.append(dict(id=f'validation_equal_{years}yr_s{seed}',**common,head='3tau',architecture='lpu',validation=True,budget='equal_updates'))
-            rows.append(dict(id=f'multilevel_{years}yr_s{seed}',**common,head='13tau',architecture='lpu',validation=False,budget='epochs'))
-            rows.append(dict(id=f'tcn_{years}yr_s{seed}',**common,head='3tau',architecture='tcn',validation=False,budget='epochs'))
-    for seq_len in [180,365]:
-        for seed in [42,123,456]:
-            rows.append(dict(id=f'memory{seq_len}_15yr_s{seed}',train_start='1980-12-31',train_end='1995-09-30',
-                             seed=seed,head='3tau',architecture='lpu',validation=False,budget='epochs',seq_len=seq_len))
-            if seq_len==365:
-                rows.append(dict(id=f'memory365_1yr_s{seed}',train_start='1994-10-01',train_end='1995-09-30',
-                                 seed=seed,head='3tau',architecture='lpu',validation=False,budget='epochs',seq_len=365))
-    return rows
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--id');parser.add_argument('--benchmark',action='store_true');parser.add_argument('--list',action='store_true')

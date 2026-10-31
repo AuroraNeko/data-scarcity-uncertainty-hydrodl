@@ -9,7 +9,7 @@ ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
 from src.evaluation.protocol import (conformal_radius,scores,interval_metrics,project_nonempty,
                                    predicted_group_intervals,observed_groups)
 from src.evaluation.protocol import dump,nse,bootstrap_basin
-from train_revision import specs
+from src.sensitivity import specs
 BASE=ROOT/'results';SEEDS=[42,123,456]
 
 def evaluate(arrays,spec,variant='final',fullcal=False):

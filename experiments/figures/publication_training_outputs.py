@@ -92,12 +92,13 @@ def training_outputs(tr,macros,rows,save):
             vv=np.array([r[pos] for r in records]);xx=records[0][0]
             ax.plot(xx,vv.mean(0),label=label,color=color);ax.fill_between(xx,vv.mean(0)-vv.std(0,ddof=1),vv.mean(0)+vv.std(0,ddof=1),alpha=.15,color=color)
         ax.set_title(f'{length}-year training labels',fontsize=10);ax.set_xlabel('Cumulative optimizer updates');ax.set_ylabel('Pinball loss (log-flow)')
-    categories=['1 yr\n1,080 updates','15 yr\n1,080 updates','15 yr\n16,050 updates'];vv=[]
-    for group in ['validation_1yr','validation_equal_15yr','validation_15yr']:
-        values=[]
-        for seed in [42,123,456]:
-            meta=json.loads((BASE/f'tables/training_{group}_s{seed}.json').read_text());values.append(meta['history'][-1]['validation_loss']*meta['normalization']['target_std'])
-        vv.append(values)
+    categories=[];vv=[]
+    for group,years in [('validation_1yr','1 yr'),('validation_equal_15yr','15 yr'),('validation_15yr','15 yr')]:
+        metas=[json.loads((BASE/f'tables/training_{group}_s{seed}.json').read_text()) for seed in [42,123,456]]
+        updates={m['optimizer_updates'] for m in metas}
+        assert len(updates)==1,(group,sorted(updates))
+        categories.append(f'{years}\n{updates.pop():,} updates')
+        vv.append([m['history'][-1]['validation_loss']*m['normalization']['target_std'] for m in metas])
     axes[2].errorbar(range(3),np.mean(vv,axis=1),yerr=np.std(vv,axis=1,ddof=1),fmt='o',capsize=4,color='#963e39');axes[2].set_xticks(range(3),categories,fontsize=8)
     axes[2].set_ylabel('Final independent-validation loss');axes[0].legend(frameon=False,fontsize=7);save(fig,'revision_validation_curves')
     # Multiple nominal levels; the head is re-trained rather than interpolated.

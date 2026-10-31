@@ -20,7 +20,7 @@ BASE_URL = "https://zenodo.org/records/15529996/files"
 
 # Essential files for LPU-Stream
 FILES = [
-    # Main time series + streamflow data (~12GB, largest file)
+    # Main time series + streamflow data (3.4 GB zip, ~14 GB extracted; largest file)
     "basin_timeseries_v1p2_metForcing_obsFlow.zip",
     # Catchment attributes (small text files)
     "camels_topo.txt",
@@ -106,7 +106,7 @@ def main():
 
     # Phase 2: Large zip file
     print("\n--- Phase 2: Time series + streamflow data (large file) ---")
-    print("This file is ~12GB and may take a long time to download.")
+    print("This file is 3.4 GB and may take a long time to download.")
     for f in large_files:
         ok = download_file(f, DATA_DIR)
         results[f] = ok

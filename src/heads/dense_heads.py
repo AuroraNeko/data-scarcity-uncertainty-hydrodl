@@ -85,6 +85,10 @@ class PointChunkedStream(ChunkedForwardMixin, LPUStreamModel):
     """Point-output variant used by the reselection run."""
 
 
+class ChunkedPrimary(ChunkedForwardMixin, LPUStreamModel):
+    """Equivalent carried-state recurrence for memory-safe 365-day fitting."""
+
+
 class HeadStreamModel(ChunkedForwardMixin, LPUStreamModel):
     """Published backbone with a custom output width; head rebuilt verbatim."""
 

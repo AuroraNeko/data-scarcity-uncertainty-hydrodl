@@ -6,6 +6,8 @@ experiment scripts so that every script selects the device and seeds RNGs
 in the same way.
 """
 
+import hashlib
+
 import random
 
 import numpy as np
@@ -36,6 +38,15 @@ def set_seed(seed: int, deterministic: bool = True) -> None:
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
         torch.use_deterministic_algorithms(True, warn_only=True)
+
+
+def sha256_file(path) -> str:
+    """SHA-256 hex digest of a file, streamed so large checkpoints stay cheap."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(2**20), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def seeded_generator(seed: int) -> torch.Generator:

@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import torch
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
-from train_revision import ChunkedPrimary
+from src.heads.dense_heads import ChunkedPrimary
 from src.models.lpu_stream import LPUStreamModel
 from src.evaluation.protocol import dump
 

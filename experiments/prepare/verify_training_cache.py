@@ -5,7 +5,7 @@ import numpy as np
 import torch
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
 from src.data.dataset import CamelsDataset,compute_normalization_stats,DYNAMIC_VARS,STATIC_COLS
-from train_revision import Windows
+from src.data.windows import Windows
 from src.evaluation.protocol import dump
 
 def main():

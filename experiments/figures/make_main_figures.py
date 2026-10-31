@@ -7,7 +7,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
-from src.evaluation.protocol import dump,load
+from src.evaluation.protocol import dump
+from src.corrections.common import load
 from src.evaluation.protocol import conformal_radius,scores,predicted_group_intervals
 BASE=ROOT/'results';DRAFT=BASE/'drafts';GEN=DRAFT/'generated';FIG=DRAFT/'figures'
 COLORS=['#345b78','#6b93a5','#cf9a52','#963e39'];METHOD_COLORS=['#868686','#345b78','#b66d35']
