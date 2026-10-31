@@ -1,123 +1,23 @@
-# Data (large, not tracked)
-# CAMELS-US is about 24 GB. Download with: python download_camels.py
+# Data: CAMELS-US is ~24 GB; download with `python download_camels.py`.
 /data/
 
-# Model checkpoints (binary weights)
-# Regenerate by running the training scripts.
-/results/checkpoints/
-# Per-sample prediction archives are large reproducibility intermediates. Keep
-# compact tables and figures in git; archive predictions with a tagged release.
-/results/predictions/
+# Outputs: every stage of reproduce.py regenerates its artifacts here
+# (tables, figures, predictions, checkpoints, caches, logs).
+/results/
+
+# Local author workspace: manuscripts, review correspondence, release archives.
+/revise/
+/paper/
 
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.egg-info/
 .ipynb_checkpoints/
 .venv/
 venv/
-env/
-.python-version
+.pytest_cache/
 
-# Logs
-*.log
-*.out
-
-# LaTeX / paper build artifacts
-# Manuscript submission files are handled separately from the public code repo.
-/paper/
-*.aux
-*.bbl
-*.blg
-*.toc
-*.synctex.gz
-*.fls
-*.fdb_latexmk
-*.lof
-*.lot
-
-# External templates and archives
-*.zip
-/HESS_template/
-/copernicus_pkg/
-/copernicus_page.html
-/elsarticle/
-
-# Writing drafts, review notes, and local submission material
-/paper.md
-/paper_outline.md
-/introduction_contributions_draft.md
-/discussion_exchangeability_draft.md
-/discussion_practitioner_guide.md
-/review_revision_strategy.md
-/manuscript_*_audit_zh.md
-/submission/
-
-# Local figure-design scratch helper. The production architecture source is
-# maintained with the submission files under paper/figures/.
-/experiments/analysis/make_architecture_preview.py
-
-# Reference PDFs (copyrighted published papers; do not redistribute)
-/pdf/
-
-# Editors / OS
-.vscode/
-.idea/
+# OS
 .DS_Store
 Thumbs.db
-
-# Scratch / temp
-/tmp/
-
-# Local agent / tooling state
-/.claude/
-/.agents/
-/.codex/
-
-# Tier-3 GPU-resident mirror caches (771 MB, regenerable: revision_work/tier3_prepare_gpu.py)
-/results/cache/
-
-# Per-basin ungauged transfer tables are large reproducibility intermediates
-# (12 x 13.7k lines); the compact ungauged_summary.json stays tracked instead.
-/results/tables/ungauged_scarcity/scarcity_*_unseen_modelseed*.json
-
-# Revision scratch: one-off diagnostics, smoke tests, backups, previews
-/revision_work/_*
-/revision_work/*_backup_before_tier0.tex
-/revision_work/*.png
-/revision_work/*.csv
-
-# Revision folder: queue/ops scripts and preview fragments stay local
-/revision_work/*.bat
-/revision_work/gen_*.tex
-# Author-side LaTeX table-row emitters (write into paper/generated, not needed
-# to reproduce the numerical results)
-/revision_work/*_rows.py
-
-# JOH revision: scientific code/compact tables remain versionable; large arrays
-# and private author/reviewer materials are separate local attachments.
-/revise/cache/
-/revise/checkpoints/
-/revise/predictions/
-/revise/baseline/
-/revise/logs/
-/revise/drafts/
-/revise/reports/
-/revise/release/
-/revise/qa/*/
-/revise/qa/*.png
-/revise/qa/*.pdf
-/revise/qa/*.tex
-/revise/qa/*.aux
-/revise/qa/*.log
-/revise/qa/*.out
-/revise/qa/*.spl
-/revise/*.pdf
-/revise/*.docx
-/revise/*.md
-!/revise/REPRODUCE.md
-/revise/*.json
-/revise/*.py
-/revise/code/response_items.py
-/revise/tables/progress_*.json

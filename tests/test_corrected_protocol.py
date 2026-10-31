@@ -12,25 +12,16 @@ from src.losses.cqr import finite_sample_quantile
 from src.losses.pinball_loss import PinballLoss
 from src.models.lpu_stream import LPUStreamModel
 from src.models.lstm import LSTMModel
-from experiments.uncertainty.evaluate_corrected_methods import (
+from experiments.evaluate.evaluate_corrected_methods import (
     destandardize_log_scale,
     protocol_identifier,
 )
-from experiments.orchestrator import ROOT as REPOSITORY_ROOT
-from experiments.orchestrator import repository_path
-from experiments.analysis.analyze_corrected_scarcity import (
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+from experiments.analyze.summarize_scarcity import (
     repository_path as scarcity_repository_path,
 )
-from experiments.analysis.analyze_scarcity_robustness_experiments import (
+from experiments.analyze.summarize_replications import (
     repository_path as robustness_repository_path,
-)
-from experiments.analysis.verify_manuscript import (
-    repository_path as verification_repository_path,
-)
-from experiments.analysis.prepare_submission_sources import (
-    expand_result_macros,
-    parse_result_macros,
-    remove_authoring_helpers,
 )
 
 
@@ -164,10 +155,8 @@ class CorrectedProtocolTests(unittest.TestCase):
     def test_repository_artifact_paths_are_cross_platform(self):
         expected = REPOSITORY_ROOT / "results" / "tables" / "result.json"
         resolvers = (
-            repository_path,
             scarcity_repository_path,
             robustness_repository_path,
-            verification_repository_path,
         )
         for resolver in resolvers:
             with self.subTest(resolver=resolver.__module__):
@@ -176,32 +165,6 @@ class CorrectedProtocolTests(unittest.TestCase):
                 for invalid in ("../outside.json", "/outside.json", r"C:\outside.json"):
                     with self.assertRaises(ValueError):
                         resolver(invalid)
-
-    def test_submission_macro_expansion_handles_tex_control_space(self):
-        macros = parse_result_macros(
-            "\\newcommand{\\ResultValue}{0.666}\n"
-            "\\newcommand{\\ImprovedFraction}{94\\%}\n"
-        )
-        expanded = expand_result_macros(
-            "From \\ResultValue\\ to a \\ImprovedFraction improvement.",
-            macros,
-        )
-        self.assertEqual(expanded, "From 0.666 to a 94\\% improvement.")
-
-    def test_submission_helper_removal_produces_hess_compatible_source(self):
-        source = (
-            "\\usepackage{enumitem}\n"
-            "\\input{generated/result_macros.tex}\n"
-            "\\makeatletter\n"
-            "\\newcommand{\\inputtablerows}[1]{\\@@input{#1}}\n"
-            "\\makeatother\n"
-            "\\begin{enumerate}[nosep]\n\\end{enumerate}\n"
-        )
-        cleaned = remove_authoring_helpers(source, hess_main=True)
-        self.assertNotIn("\\usepackage", cleaned)
-        self.assertNotIn("\\newcommand", cleaned)
-        self.assertNotIn("[nosep]", cleaned)
-        self.assertIn("\\begin{enumerate}", cleaned)
 
 
 if __name__ == "__main__":
