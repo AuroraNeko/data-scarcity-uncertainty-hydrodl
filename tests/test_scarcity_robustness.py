@@ -80,6 +80,10 @@ class ScarcityRobustnessArtifactTests(unittest.TestCase):
             sanitizer_tensor_sha256(model.state_dict()),
         )
 
+    @unittest.skipUnless(
+        (ROOT / "results" / "tables" / "scarcity_replications" / "replication_subsets.csv").exists(),
+        "recorded artifacts not present in a fresh clone",
+    )
     def test_replication_subsets_are_disjoint_and_match_primary_run(self):
         subset_path = (
             ROOT
@@ -119,6 +123,10 @@ class ScarcityRobustnessArtifactTests(unittest.TestCase):
         )
         self.assertEqual([row["basin_id"] for row in primary], result["selected_basins"])
 
+    @unittest.skipUnless(
+        (ROOT / "results" / "tables" / "scarcity_equal_updates").is_dir(),
+        "recorded artifacts not present in a fresh clone",
+    )
     def test_equal_update_runs_have_identical_step_budgets(self):
         directory = ROOT / "results" / "tables" / "scarcity_equal_updates"
         results = []
@@ -134,6 +142,10 @@ class ScarcityRobustnessArtifactTests(unittest.TestCase):
         basin_sets = {tuple(result["selected_basins"]) for result in results}
         self.assertEqual(len(basin_sets), 1)
 
+    @unittest.skipUnless(
+        (ROOT / "results" / "tables" / "corrected_scarcity" / "conditional_robustness.json").exists(),
+        "recorded artifacts not present in a fresh clone",
+    )
     def test_conditional_robustness_outputs_expected_units_and_counts(self):
         directory = ROOT / "results" / "tables" / "corrected_scarcity"
         result = json.loads(
