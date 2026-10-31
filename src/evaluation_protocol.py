@@ -1,0 +1,122 @@
+"""Shared evaluation definitions for the JOH major revision.
+
+Targets and bounds passed to these functions must already share one scale.
+Observed-flow groups are retrospective diagnostics; reference-prediction groups
+can be assigned prospectively when their thresholds were fitted before testing.
+"""
+from __future__ import annotations
+import numpy as np
+from scipy.special import ndtr
+
+PRIMARY_CUTS=(0.33,0.67)
+
+def conformal_radius(scores,alpha=0.1):
+    scores=np.asarray(scores,dtype=np.float64)
+    scores=scores[np.isfinite(scores)]
+    if not len(scores):raise ValueError('An empty calibration pool needs an explicit parent-pool fallback')
+    if not 0<alpha<1:raise ValueError('alpha must be in (0,1)')
+    k=int(np.ceil((len(scores)+1)*(1-alpha)))
+    if k>len(scores):return float('inf')
+    return float(np.partition(scores,k-1)[k-1])
+
+def scores(lower,upper,y):
+    return np.maximum(np.asarray(lower)-y,np.asarray(y)-upper)
+
+def project_nonempty(lower,upper):
+    """Replace an empty CQR interval by its midpoint singleton.
+
+    Negative calibration radii can make a valid set-valued conformal interval
+    empty. The singleton is a superset of that empty set, so this projection
+    cannot lower coverage, and permits conventional nonnegative-width scoring.
+    """
+    lo=np.asarray(lower,dtype=float).copy();hi=np.asarray(upper,dtype=float).copy()
+    crossed=lo>hi
+    mid=(lo[crossed]+hi[crossed])/2
+    lo[crossed]=mid;hi[crossed]=mid
+    return lo,hi,int(crossed.sum())
+
+def interval_arrays(lower,upper,y,alpha=0.1):
+    lower,upper,y=np.broadcast_arrays(np.asarray(lower,dtype=float),np.asarray(upper,dtype=float),np.asarray(y,dtype=float))
+    if np.any(lower>upper):raise ValueError('Crossed bounds cannot be scored as ordered intervals')
+    width=upper-lower
+    return {'covered':((y>=lower)&(y<=upper)).astype(float),'width':width,
+            'winkler':width+2/alpha*(np.maximum(lower-y,0)+np.maximum(y-upper,0)),
+            'below':(y<lower).astype(float),'above':(y>upper).astype(float)}
+
+def interval_metrics(lower,upper,y,alpha=0.1):
+    a=interval_arrays(lower,upper,y,alpha)
+    return dict(picp=float(a['covered'].mean()),mpiw=float(a['width'].mean()),
+                winkler=float(a['winkler'].mean()),p_below=float(a['below'].mean()),
+                p_above=float(a['above'].mean()),n=len(np.asarray(y)))
+
+def fit_basin_thresholds(values,basins,cuts=PRIMARY_CUTS):
+    values=np.asarray(values);basins=np.asarray(basins)
+    return {str(b):np.quantile(values[basins==b],cuts) for b in np.unique(basins)}
+
+def assign_basin_groups(values,basins,thresholds):
+    """Right-closed groups: low <= cut1; middle (cut1,cut2]; high > cut2.
+
+    Ties stay in the lower group. A zero upper threshold consequently does not
+    label zero-flow observations as high flow. Empty diagnostic groups remain empty.
+    """
+    values=np.asarray(values);basins=np.asarray(basins);out=np.zeros(len(values),dtype=np.int16)
+    for b in np.unique(basins):
+        sel=basins==b
+        out[sel]=np.searchsorted(thresholds[str(b)],values[sel],side='left')
+    return out
+
+def observed_groups(values,basins,cuts=PRIMARY_CUTS):
+    return assign_basin_groups(values,basins,fit_basin_thresholds(values,basins,cuts))
+
+def predicted_group_intervals(cal_q,cal_y,cal_basin,test_q,test_basin,alpha=0.1,cuts=PRIMARY_CUTS):
+    thresholds=fit_basin_thresholds(cal_q[:,1],cal_basin,cuts)
+    cg=assign_basin_groups(cal_q[:,1],cal_basin,thresholds)
+    tg=assign_basin_groups(test_q[:,1],test_basin,thresholds)
+    cal_scores=scores(cal_q[:,0],cal_q[:,2],cal_y)
+    global_r=conformal_radius(cal_scores,alpha)
+    radii=[];fallback=[]
+    for g in range(len(cuts)+1):
+        sel=cg==g
+        radii.append(conformal_radius(cal_scores[sel],alpha) if sel.any() else global_r)
+        fallback.append(not sel.any())
+    rt=np.asarray(radii)[tg]
+    lo,hi,n_empty=project_nonempty(test_q[:,0]-rt,test_q[:,2]+rt)
+    return lo,hi,{'thresholds':thresholds,'radii':radii,'empty_intervals_projected':n_empty,
+        'fallback_to_global':fallback,'cal_groups':cg,'test_groups':tg}
+
+def pinball(y,q,tau):
+    error=np.asarray(y)-np.asarray(q)
+    return np.maximum(tau*error,(tau-1)*error)
+
+def integrated_quantile_score(y,q,taus):
+    """Twice trapezoidal pinball integral on the stated finite quantile grid."""
+    y=np.asarray(y,dtype=float);q=np.asarray(q,dtype=float);taus=np.asarray(taus,dtype=float)
+    if q.shape!=(len(y),len(taus)):raise ValueError('Quantiles must have shape (n_samples,n_taus)')
+    if len(taus)<2 or np.any(np.diff(taus)<=0) or taus[0]<=0 or taus[-1]>=1:
+        raise ValueError('A strictly increasing grid inside (0,1) is required')
+    weights=np.empty_like(taus);weights[0]=taus[1]-taus[0];weights[-1]=taus[-1]-taus[-2]
+    weights[1:-1]=taus[2:]-taus[:-2]
+    result=np.zeros(len(y),dtype=float)
+    for j,t in enumerate(taus):result+=weights[j]*pinball(y,q[:,j],t)
+    return result
+
+def gaussian_crps(y,mu,sigma):
+    y,mu,sigma=np.broadcast_arrays(np.asarray(y,dtype=float),np.asarray(mu,dtype=float),np.asarray(sigma,dtype=float))
+    if np.any(sigma<=0):raise ValueError('Gaussian scale must be positive')
+    z=(y-mu)/sigma
+    return sigma*(z*(2*ndtr(z)-1)+2*np.exp(-z*z/2)/np.sqrt(2*np.pi)-1/np.sqrt(np.pi))
+
+def gaussian_mixture_crps(y,means,scales,weights):
+    """Analytic CRPS for finite Gaussian mixtures, evaluated in bounded chunks."""
+    means=np.asarray(means,dtype=float);scales=np.asarray(scales,dtype=float);weights=np.asarray(weights,dtype=float)
+    if np.any(scales<=0) or not np.allclose(weights.sum(axis=1),1):raise ValueError('Invalid Gaussian mixture')
+    def a(delta,sd):
+        z=delta/sd
+        return 2*sd*np.exp(-z*z/2)/np.sqrt(2*np.pi)+delta*(2*ndtr(z)-1)
+    first=(weights*a(np.asarray(y)[:,None]-means,scales)).sum(axis=1)
+    second=np.zeros(len(means))
+    for j in range(means.shape[1]):
+        delta=means[:,j,None]-means
+        sd=np.sqrt(scales[:,j,None]**2+scales**2)
+        second+=(weights[:,j,None]*weights*a(delta,sd)).sum(axis=1)
+    return first-0.5*second
