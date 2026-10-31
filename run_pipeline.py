@@ -43,15 +43,12 @@ STAGES: dict[int, tuple[str, list[str]]] = {
     3: ("train-benchmark: eight uncertainty constructions on all 671 basins", [
         "experiments/train_benchmark/prepare_gpu.py",
         "experiments/train_benchmark/train_single_qr.py",
-        "experiments/train_benchmark/train_mc_dropout.py",
-        "experiments/train_benchmark/train_ensemble_fair.py",
         "experiments/train_benchmark/retrain_ensemble_corrected.py",
         "experiments/train_benchmark/train_mdn.py",
         "experiments/train_benchmark/train_gaussian_quantile.py",
         "experiments/train_benchmark/train_mc_dropout_noise.py",
         "experiments/train_benchmark/train_memberwise_splitcqr.py",
         "experiments/train_benchmark/train_point_reselect.py",
-        "experiments/train_benchmark/eval_fair_671.py",
     ]),
     4: ("correct: median-bias-fix diagnostics on the archived scarcity runs", [
         "experiments/bias_correction/apply_bias_fix.py",
