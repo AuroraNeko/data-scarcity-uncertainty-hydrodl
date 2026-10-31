@@ -63,11 +63,9 @@ bytes are kept unchanged so archived hashes stay valid; readers should know:
 Everything regenerates under `results/` (gitignored): `results/tables/`
 (compact summaries), `results/figures/`, `results/predictions/`,
 `results/checkpoints/`, `results/cache/`, `results/logs/`. Nothing under
-`results/` is tracked by git, so the git tag `JOH-revision-20261030` pins
-code only. The complete frozen artifact set (compact tables, per-sample
-prediction archives, checkpoints, figures) lives in the three release
-packages listed with SHA-256 hashes in `revise/release/release_index.json`;
-`revise/REPRODUCE.md` gives the reconstruction order. These are local
-release-ready archives; no public DOI has been issued for them, and no new
-public release or journal submission is performed from this repository
-automatically (those are author actions).
+`results/` is tracked by git, so a git tag pins code only. The complete
+frozen artifact set (compact tables, per-sample prediction archives,
+checkpoints, figures) is packaged as three release archives with a SHA-256
+manifest; they are attached to the repository's GitHub release when one is
+published, and no public DOI is issued by this repository automatically
+(publishing is an author action).
