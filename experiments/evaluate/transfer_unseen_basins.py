@@ -1,8 +1,7 @@
 """Ungauged-basin transfer evaluation of the scarcity models.
 
-Restored from revision_work/tier2_ungauged.py (removed as author-side
-scratch): loads the 12 archived scarcity checkpoints and infers on the 621
-CAMELS basins that the 50-basin pipeline never touched. Training basins,
+Loads the 12 archived scarcity checkpoints and infers on the 621 CAMELS
+basins that the 50-basin pipeline never touched. Training basins,
 normalization statistics, and static-attribute standardization all come from
 the seen basins, so this is a deployable transfer setting. Three calibration
 rules are compared on the unseen test period: raw quantiles, the transferred

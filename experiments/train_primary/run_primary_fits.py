@@ -1,10 +1,9 @@
 """Run the 12 primary scarcity fits (4 training lengths x 3 model seeds).
 
-The pipeline invokes this driver with no arguments. Each fit is launched as
-a subprocess of train_scarcity_corrected.py with the declared primary
-protocol arguments, and a fit whose recorded artifacts already validate
-(protocol identity plus checkpoint/prediction SHA-256) is skipped, so the
-driver is resumable like every other training stage.
+Each fit is launched as a subprocess of train_scarcity_corrected.py with
+the declared primary protocol arguments. A fit whose recorded artifacts
+already validate (protocol identity plus checkpoint/prediction SHA-256)
+is skipped, so interrupted runs can resume where they stopped.
 """
 from __future__ import annotations
 

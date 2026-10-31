@@ -1,4 +1,4 @@
-"""Tier 3: MC Dropout with an explicit aleatoric (observation-noise) term."""
+"""MC Dropout with an explicit aleatoric (observation-noise) term."""
 from __future__ import annotations
 
 import sys

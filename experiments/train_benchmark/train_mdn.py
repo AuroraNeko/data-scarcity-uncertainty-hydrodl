@@ -1,4 +1,4 @@
-"""Tier 3: Gaussian-mixture (MDN/GMM-style) full-671 baseline."""
+"""Gaussian-mixture (MDN/GMM-style) full-671 baseline."""
 from __future__ import annotations
 
 import json

@@ -1,10 +1,10 @@
-"""Remove machine-local paths from v3 scarcity sensitivity checkpoints.
+"""Remove machine-local paths from scarcity sensitivity checkpoints.
 
-This migration changes checkpoint metadata only. A stable digest over the
+This rewrites checkpoint metadata only. A stable digest over the
 model-state tensors is computed before and after rewriting to prove that the
 learned parameters are unchanged; compact result JSON hashes are then updated.
-New training runs already store repository-relative paths and pass through the
-same audit without requiring a checkpoint rewrite.
+Checkpoints that already store repository-relative paths pass through the
+same audit without a rewrite.
 """
 
 from __future__ import annotations

@@ -1,9 +1,8 @@
 """Declared endpoint-sensitivity training protocol.
 
 The 48 predeclared fits are the single source of truth shared by the
-training queue (stage 5), the trainer itself, and the analysis (stage 7);
-ids, windows, seeds and budgets must stay identical wherever they are
-consumed.
+training queue, the trainer itself, and the analysis; ids, windows, seeds
+and budgets must stay identical wherever they are consumed.
 """
 
 QUEUE_PRIORITY = {

@@ -1,8 +1,8 @@
-"""Shared training and evaluation infrastructure for the Tier 3 671 baselines.
+"""Shared training and evaluation infrastructure for the 671-basin baselines.
 
-Protocol mirrors the published full-basin comparison: train window from the
-legacy dataset path (the disclosed 365-day warm-up), calibration and test via
-the corrected context-supplying datasets, batch 1024, Adam 1e-3, 30 epochs,
+Protocol mirrors the published full-basin comparison: the train window uses
+the original dataset path (365-day warm-up), calibration and test use the
+corrected context-supplying datasets, batch 1024, Adam 1e-3, 30 epochs,
 ReduceLROnPlateau(0.5, patience 3) on training loss, best state = minimum
 training loss. All splits are held GPU-resident (see gpu_loader) so the
 training stream never drains between batches. Predictions are de-standardized

@@ -1,4 +1,12 @@
-"""Fair main comparison including the stronger already-trained 671-basin models."""
+"""Main 671-basin method comparison.
+
+Reads the archived calibration/test predictions of every interval method
+(quantile baselines, MDN, Gaussian head, MC-dropout variants, memberwise
+split-CQR), fits one global conformal radius per method on the calibration
+window, and scores raw and calibrated intervals on the shared test window.
+Uncertainty is quantified with basin and HUC2-region bootstrap resampling;
+timing comes from the archived dense-grid reliability table.
+"""
 from pathlib import Path
 import json
 import sys

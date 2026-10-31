@@ -1,4 +1,4 @@
-"""Custom-head LPU-Stream variants for the Tier 3 full-671 baselines.
+"""Custom-head LPU-Stream variants for the full-671 baselines.
 
 All variants reuse the published LPU-Stream backbone unchanged (static
 embedding at every time step, 128-unit LSTM, 64-unit head) and replace only
@@ -170,10 +170,9 @@ class GaussianQuantileStream(HeadStreamModel):
         error = target.unsqueeze(1) - q
         loss = torch.max(taus.unsqueeze(-1) * error, (taus.unsqueeze(-1) - 1) * error)
         n_valid = mask.sum().clamp(min=1.0)
-        # mean over taus -> (batch, 1); the earlier stray .unsqueeze(-1)
-        # made this (batch, 1, 1), which broadcast against mask (batch, 1)
-        # into (batch, batch, 1) and inflated the loss (and its gradient
-        # norm, keeping grad clipping permanently active) by ~batch_size
+        # Mean over taus and keep the result (batch, 1): one extra dimension
+        # would broadcast against the (batch, 1) mask into (batch, batch, 1)
+        # and inflate the loss by ~batch_size.
         return (loss.mean(dim=1) * mask).sum() / n_valid
 
     def predict_quantiles(self, raw: Tensor, taus=(0.05, 0.5, 0.95)) -> Tensor:
@@ -182,8 +181,8 @@ class GaussianQuantileStream(HeadStreamModel):
         return mu + sigma * z.unsqueeze(0)
 
 
-# Legacy artifact/import compatibility only. The archived filename ``umal.pt``
-# identifies this Gaussian head; it does not implement asymmetric Laplacian UMAL.
+# Alias for the archived artifact name ``umal.pt``: it identifies this
+# Gaussian head and does not implement asymmetric Laplacian UMAL.
 UMALStream = GaussianQuantileStream
 
 # --------------------------------------------------------- MC + noise head --

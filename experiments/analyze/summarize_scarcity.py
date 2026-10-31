@@ -32,7 +32,7 @@ from src.utils import repository_path as _repository_path, sha256_file  # noqa: 
 
 
 def repository_path(value: str) -> Path:
-    """Backward-compatible wrapper around the shared resolver."""
+    """Resolve an archived repository-relative path against the project root."""
     return _repository_path(PROJECT_ROOT, value)
 
 

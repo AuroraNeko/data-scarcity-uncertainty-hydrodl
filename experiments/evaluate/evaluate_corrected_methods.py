@@ -1,10 +1,10 @@
 """Evaluate uncertainty methods under one corrected full-basin protocol.
 
-The legacy comparison omitted the first sequence-length of targets from both
-calibration and test periods. This script supplies antecedent context while
-retaining every declared target date, evaluates raw and globally conformalized
-versions of each interval method, and quantifies uncertainty by resampling
-whole basins.
+The original comparison omitted the first sequence-length of targets from
+both calibration and test periods. This script supplies antecedent context
+while retaining every declared target date, evaluates raw and globally
+conformalized versions of each interval method, and quantifies uncertainty
+by resampling whole basins.
 
 The script reuses the published full-data checkpoints. It does not retrain or
 modify them. Cached predictions are keyed by checkpoint hashes and protocol.

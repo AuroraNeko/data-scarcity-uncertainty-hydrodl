@@ -1,4 +1,4 @@
-"""Tier 1, Q4: training-loss trajectories for the equal-update sensitivity.
+"""Training-loss trajectories for the equal-update sensitivity.
 
 Produces paper/figures/figS8_learning_curves.pdf:
   (a) masked pinball training loss vs cumulative optimizer updates for the

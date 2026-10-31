@@ -1,7 +1,6 @@
 """Dense 13-tau grids and multi-level reliability for the dense 671 heads.
 
-Restored from revision_work/tier3_s18.py (removed as author-side scratch):
-regenerates the 13-tau calibration/test prediction grids for the MDN,
+Regenerates the 13-tau calibration/test prediction grids for the MDN,
 Gaussian-quantile ('umal'), and MC-dropout+noise heads from their
 checkpoints, verifies bitwise agreement with the archived three-tau
 predictions, and writes both the dense grids consumed by
@@ -47,7 +46,7 @@ TAUS = [0.005, 0.01, 0.025, 0.05, 0.10, 0.25, 0.50,
 LEVELS = [0.50, 0.80, 0.90, 0.95, 0.99]
 for _LEVEL in LEVELS:
     # A level needs both tail taus present on the grid; a nearest-neighbour
-    # lookup silently aliased 70% to the 80% interval in v1.
+    # lookup can silently alias 70% onto the 80% interval.
     for _T in ((1 - _LEVEL) / 2, 1 - (1 - _LEVEL) / 2):
         assert any(abs(_T - t) < 1e-12 for t in TAUS), (_LEVEL, _T)
 MC_N, MC_SEED_EVAL = 50, 20260713

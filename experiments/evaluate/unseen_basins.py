@@ -1,4 +1,10 @@
-"""Separate no-local-observation transfer from locally informed calibration."""
+"""How much local calibration data the ungauged transfer needs.
+
+Reads the ungauged-basin prediction archives and compares, for the 1-year
+and 15-year models, the transferred seen-basin radius (no local
+observations) against radii refitted on 1-5 years of pooled observations
+from the unseen basins themselves.
+"""
 from pathlib import Path
 import gc,json,sys
 import numpy as np

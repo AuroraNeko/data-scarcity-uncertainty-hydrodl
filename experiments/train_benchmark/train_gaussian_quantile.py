@@ -1,6 +1,8 @@
-"""Gaussian location-scale quantile baseline; legacy ``umal`` artifact IDs retained.
+"""Gaussian location-scale quantile baseline (archived artifact id ``umal``).
 
-This model is not an uncountable mixture of asymmetric Laplacians.
+A single Gaussian head predicts mu and sigma; quantiles come from
+mu + sigma * Phi^-1(tau). Despite the artifact id it is not a mixture of
+asymmetric Laplacians.
 """
 from __future__ import annotations
 

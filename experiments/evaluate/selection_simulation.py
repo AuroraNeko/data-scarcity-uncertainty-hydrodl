@@ -1,4 +1,12 @@
-"""Known conditional quantiles separate outcome selection from calibration errors."""
+"""Simulation study: grouping by predicted value versus grouping by outcome.
+
+Generates data with known conditional quantiles, then compares two interval
+constructions (correct oracle quantiles and a biased, narrower model) when
+coverage is measured within groups defined before the outcome is known
+(predicted mean) versus groups selected after observing it (realized
+outcome). This isolates how much conditional undercoverage is created by
+the grouping choice itself.
+"""
 from pathlib import Path
 import sys
 import numpy as np

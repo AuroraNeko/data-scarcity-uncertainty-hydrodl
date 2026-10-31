@@ -1,4 +1,12 @@
-"""Causal sequential, adaptive and asymmetric variants under the shared scorer."""
+"""Calibration variants that update over time, all scored the same way.
+
+Starting from each archived scarcity fit, the global conformal radius is
+compared against rolling-window and expanding-window radii refitted on past
+days only, adaptive-radius variants that adjust the miscoverage level from
+realized misses, and an asymmetric variant with separate lower and upper
+radii. Every scheme is scored with the same interval metrics on the same
+test days.
+"""
 from pathlib import Path
 import sys
 import numpy as np

@@ -118,7 +118,7 @@ def main():
     rows('revision_calibration_window_rows.tex',[[year,years,f'{int(select_mean(win,year=year,calibration_years=years).n_cal.iloc[0]):,}',pm(select_mean(win,year=year,calibration_years=years).picp),
         num(select_mean(win,year=year,calibration_years=years).mpiw.mean()),num(select_mean(win,year=year,calibration_years=years).winkler.mean())]
         for year in [1,3,5,15] for years in [1,2,3,4,5]])
-    # Physical-scale and retrospective bias tables now share the main grouping rule.
+    # Physical-scale and retrospective bias tables share the main grouping rule.
     pf=pd.read_csv(BASE/'tables/physical_interval_metrics.csv');bd=pd.read_csv(BASE/'tables/bias_diagnostics.csv',dtype={'basin':str})
     phys=[];bias_rows=[]
     for year in [1,3,5,15]:

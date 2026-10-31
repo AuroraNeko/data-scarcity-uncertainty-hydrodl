@@ -1,5 +1,5 @@
 """
-train_quantile.py  -  Train the seed-42 full-basin quantile checkpoint.
+Train the seed-42 full-basin quantile checkpoint.
 
 Usage:
     python experiments/train_benchmark/train_single_qr.py

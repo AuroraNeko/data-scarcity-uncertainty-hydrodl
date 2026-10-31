@@ -1,8 +1,7 @@
 """Train the 671-basin LPU-Stream point model behind the MC-dropout method.
 
-Restored from experiments/baseline/train_model.py (removed by the library
-restructure): same architecture, sequence length, optimizer, and
-minimum-validation-MSE checkpoint selection that produced the archived
+Same architecture, sequence length, optimizer, and minimum-validation-MSE
+checkpoint selection as the archived
 results/checkpoints/lpu_stream_best.pt. Retraining is deterministic in seed
 but not bit-identical across torch/CUDA versions, so the archived checkpoint
 plus its SHA-256 in the frozen tables remains the reference; this script

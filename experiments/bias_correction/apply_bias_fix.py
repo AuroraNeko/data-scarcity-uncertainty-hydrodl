@@ -8,12 +8,12 @@ parameters use calibration-period information only:
 - "basin": per-basin mean residual delta_b = mean_cal(y - q50) shifts the
   whole (q05, q50, q95) triple;
 - "basin_tercile": the same mean within each (basin, calibration-period
-  predicted-median stratum) cell, with 0.33/0.67 cuts fitted within each basin
-  from calibration predictions (within-basin 0.33/0.67 cuts on calibration predictions).
+  predicted-median stratum) cell, with 0.33/0.67 cuts fitted within each
+  basin from calibration predictions.
 
 After the shift, the global conformal radius is refitted on the shifted
 calibration scores, and coverage/quality are reported pooled and on the
-within-basin observed upper tercile (the within-basin observed upper tercile).
+within-basin observed upper tercile.
 """
 from __future__ import annotations
 
@@ -90,7 +90,7 @@ def shifted_metrics(cal_q, cal_y, cal_basin, test_q, test_y, test_basin,
     raw_u = metrics(tq[upper, 0], tq[upper, 2], test_y[upper])
     cqr_u = metrics(tq[upper, 0] - radius, tq[upper, 2] + radius,
                     test_y[upper])
-    # q50 - y convention (negative = under-prediction), S13 basin-median metric
+    # q50 - y convention (negative = under-prediction) for the basin-median bias
     bias = tq[:, 1] - test_y
     return {
         "radius": radius,

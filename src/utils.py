@@ -1,9 +1,8 @@
 """
 utils.py  -  Project-level shared helpers for LPU-Stream.
 
-Centralises small utilities that were previously duplicated across the
-experiment scripts so that every script selects the device and seeds RNGs
-in the same way.
+Small utilities used by many scripts so that the device is selected and the
+RNGs are seeded the same way everywhere.
 """
 
 import hashlib

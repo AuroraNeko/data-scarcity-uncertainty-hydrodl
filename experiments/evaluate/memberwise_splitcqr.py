@@ -6,8 +6,9 @@ regenerates per-member predictions on the archived calibration and test
 windows, validates them sample-by-sample against the archived single_qr and
 ensemble arrays, and fits one split-conformal radius per member fitted
 on that member's calibration residuals, with the final interval the average of
-the five calibrated member intervals. This is a distinct static ensemble
-calibration variant, not the leave-out, sequential EnCQR algorithm of Jensen et al.
+the five calibrated member intervals. This is a static ensemble calibration
+variant; it differs from the leave-out, sequential EnCQR algorithm of
+Jensen et al.
 """
 from __future__ import annotations
 
@@ -162,9 +163,9 @@ def main():
             dropout=config.get("dropout", 0.3),
             quantiles=QUANTILES,
         ).to(device)
-        # Mirror evaluate_corrected_methods.py: train_loss checkpoints carry
-        # their selected best_state separately from the final model_state_dict,
-        # and these models were trained without the monotonic parameterization.
+        # train_loss checkpoints carry their selected best_state separately
+        # from the final model_state_dict, and these models were trained
+        # without the monotonic parameterization.
         state = ckpt.get("best_state") if ckpt.get("procedure") == "train_loss" else None
         model.load_state_dict(state or ckpt["model_state_dict"])
         member_preds[tag] = {}

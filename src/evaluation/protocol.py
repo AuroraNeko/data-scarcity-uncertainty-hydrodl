@@ -1,4 +1,4 @@
-"""Shared evaluation definitions for the paper's revision analyses.
+"""Shared evaluation definitions for the paper's analyses.
 
 Targets and bounds passed to these functions must already share one scale.
 Observed-flow groups are retrospective diagnostics; reference-prediction groups

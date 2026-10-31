@@ -155,7 +155,8 @@ class CamelsDataset(Dataset):
                 continue
 
             # Dynamic features. Corrected experiments provide condition-specific
-            # training statistics; legacy callers continue to use stored columns.
+            # training statistics; without them the stored normalized columns
+            # are used as-is.
             if normalization_stats is not None:
                 dynamic = df[DYNAMIC_VARS].values.astype(np.float32)
                 for index, name in enumerate(DYNAMIC_VARS):

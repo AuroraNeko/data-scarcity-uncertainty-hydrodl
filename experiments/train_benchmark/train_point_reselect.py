@@ -1,4 +1,4 @@
-"""Tier 3: point-model checkpoint reselection on an independent segment.
+"""Point-model checkpoint reselection on an independent segment.
 
 The archived point checkpoint (MC Dropout base) was selected by validation
 MSE on 1995-2000, which the CQR calibration later reuses. This retraining

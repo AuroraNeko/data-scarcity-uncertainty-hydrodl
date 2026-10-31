@@ -1,11 +1,10 @@
-"""GPU-resident window gather for the Tier 3 trainings.
+"""GPU-resident window gather for the 671-basin trainings.
 
-On this workstation, any CPU-side gap between GPU batches (loader fetch,
-pipe deserialization, GIL) drains the CUDA queue, and re-submitting work
-after the driver hands the GPU to competing desktop contexts costs hundreds
-of milliseconds per batch. Holding each split's arrays on the GPU and
-assembling windows there removes every such gap: the training loop becomes
-the same back-to-back kernel stream that benchmarks at ~52 ms per batch.
+Any CPU-side gap between GPU batches (loader fetch, pipe deserialization,
+GIL) drains the CUDA queue, and resubmitting work after the driver hands the
+GPU to competing desktop contexts costs hundreds of milliseconds per batch.
+Holding each split's arrays on the GPU and assembling windows there removes
+those gaps; batches then run back-to-back at roughly 52 ms each.
 
 Window assembly reproduces CamelsDataset.__getitem__ exactly: dynamic slice
 [start, start+seq_len), target/mask at start+seq_len, and the basin's static

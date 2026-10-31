@@ -155,9 +155,7 @@ class ScarcityRobustnessArtifactTests(unittest.TestCase):
         top_third = result["threshold_curve"]["1"]["global_cqr"]["0.33"]["picp"]
         top_two = result["threshold_curve"]["1"]["global_cqr"]["0.02"]["picp"]
         predicted_top_two = result["threshold_curve"]["1"]["predicted_regime_cqr"]["0.02"]["picp"]
-        # Recorded against the strict quantile-exceedance top-flow mask
-        # (current code); the pre-revision table used an exact-share mask
-        # and recorded 0.8440705 / 0.6485711 / 0.6914929.
+        # Recorded against the strict quantile-exceedance top-flow mask.
         self.assertAlmostEqual(top_third["value"], 0.8412255, places=6)
         self.assertAlmostEqual(top_two["value"], 0.6486486, places=6)
         self.assertAlmostEqual(predicted_top_two["value"], 0.6915805, places=6)

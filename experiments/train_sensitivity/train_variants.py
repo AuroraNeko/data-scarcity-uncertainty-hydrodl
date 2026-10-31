@@ -90,8 +90,8 @@ def run(spec,benchmark=False):
         raise RuntimeError(f'Existing result does not match protocol: {tag}')
     device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     torch.set_num_threads(2);set_seed(spec['seed'],deterministic=True)
-    # Match the original cuDNN default verified by complete archived-prediction
-    # replay. Float32 tensor storage does not imply TF32 kernels were disabled.
+    # Match the original cuDNN default so a rerun reproduces the archived
+    # predictions; float32 tensor storage alone does not disable TF32 kernels.
     torch.backends.cudnn.allow_tf32=True
     torch.backends.cuda.matmul.allow_tf32=False
     raw=np.load(BASE/'cache/primary_raw.npz')

@@ -1,9 +1,10 @@
-"""Repository-wide structural contracts from the 2026-10 full audit.
+"""Repository-wide structural contracts.
 
-These checks need no dataset and no GPU: they keep the one-way import rule
-(run_pipeline -> experiments -> src), the bare-invocation CLI contract for
-every stage script, byte-compilation, the sensitivity spec table, run_pipeline
---only resolution, and the shared path/hash helpers honest.
+These checks need no dataset and no GPU. They enforce the one-way import
+rule (run_pipeline calls experiments scripts, which import from src;
+scripts never import each other), the bare-invocation CLI contract for
+every stage script, byte-compilation, the sensitivity spec table,
+run_pipeline --only resolution, and the shared path/hash helpers.
 """
 import ast
 import hashlib
