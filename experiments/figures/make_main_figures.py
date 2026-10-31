@@ -290,7 +290,7 @@ def main():
     if training_path.exists():
         tr=json.loads(training_path.read_text())
         if not tr['missing'] or args.preview:
-            from publication_training_outputs import training_outputs
+            from src.visualization.training_outputs import training_outputs
             if args.preview:tr['preview']=True
             training_outputs(tr,macros,rows,save)
         elif args.require_complete:raise RuntimeError(f'{len(tr["missing"])} training fits missing')

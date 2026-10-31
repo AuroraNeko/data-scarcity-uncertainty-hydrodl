@@ -18,13 +18,15 @@ from src.data.dataset import DYNAMIC_VARS, STATIC_COLS
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--processed-dir", type=Path, required=True)
+    parser.add_argument("--processed-dir", type=Path,
+                        default=PROJECT_ROOT / "data" / "processed" / "camels_us")
     parser.add_argument("--expected-start", default="1980-01-01")
     parser.add_argument("--expected-end", default="2008-12-31")
     parser.add_argument("--calibration-start", default="1995-10-01")
     parser.add_argument("--calibration-end", default="2000-09-30")
     parser.add_argument("--test-start", default="2000-10-01")
-    parser.add_argument("--output", type=Path)
+    parser.add_argument("--output", type=Path,
+                        default=PROJECT_ROOT / "results" / "tables" / "processed_data_audit.json")
     args = parser.parse_args()
 
     files = sorted(args.processed_dir.glob("*.csv"))

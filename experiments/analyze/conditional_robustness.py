@@ -13,7 +13,7 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from experiments.analyze.summarize_scarcity import (  # noqa: E402
+from src.corrections.scarcity_runs import (  # noqa: E402
     ALPHA,
     SEEDS,
     YEARS,
@@ -22,6 +22,7 @@ from experiments.analyze.summarize_scarcity import (  # noqa: E402
     per_basin_regimes,
     reference_regimes,
 )
+from src.evaluation.protocol import project_nonempty  # noqa: E402
 from src.losses.cqr import finite_sample_quantile  # noqa: E402
 
 
@@ -68,13 +69,13 @@ def interval_arrays(result: dict) -> tuple[np.ndarray, np.ndarray, dict[str, tup
 
     raw_lower = test_prediction[:, 0]
     raw_upper = test_prediction[:, 2]
+    stratified_lower, stratified_upper, _ = project_nonempty(
+        raw_lower - sample_adjustment, raw_upper + sample_adjustment
+    )
     intervals = {
         "raw": (raw_lower, raw_upper),
         "global_cqr": (raw_lower - global_q, raw_upper + global_q),
-        "predicted_regime_cqr": (
-            raw_lower - sample_adjustment,
-            raw_upper + sample_adjustment,
-        ),
+        "predicted_regime_cqr": (stratified_lower, stratified_upper),
     }
     return test_target, test_basins.astype(str), intervals
 

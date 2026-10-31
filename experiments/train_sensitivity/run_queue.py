@@ -5,15 +5,10 @@ import subprocess
 import sys
 import time
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
-from src.sensitivity import specs
+from src.sensitivity import specs, queue_position
 from src.utils import sha256_file
 
 BASE=ROOT/'results'
-priority={'validation_':0,'temporal_':1,'multilevel_':2,'tcn_':3,'memory':4}
-def queue_position(spec):
-    for prefix,rank in priority.items():
-        if spec['id'].startswith(prefix):return rank
-    raise ValueError(f'no queue priority declared for spec id {spec["id"]}')
 def write_status(status):
     temp=BASE/'training_queue_status.json.tmp'
     temp.write_text(json.dumps(status,indent=2),encoding='utf-8');temp.replace(BASE/'training_queue_status.json')

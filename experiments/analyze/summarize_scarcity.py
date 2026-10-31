@@ -3,88 +3,41 @@
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 import sys
 from pathlib import Path
 
 import numpy as np
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.corrections.scarcity_runs import (  # noqa: E402,F401
+    ALPHA,
+    PROTOCOL_VERSION,
+    SEEDS,
+    TABLE_DIR,
+    YEARS,
+    artifact_path,
+    basin_interval_metrics,
+    load_predictions,
+    load_result,
+    metric_value,
+    per_basin_regimes,
+    reference_regimes,
+)
+from src.evaluation.protocol import project_nonempty  # noqa: E402
 from src.losses.cqr import compute_uncertainty_metrics, finite_sample_quantile  # noqa: E402
-
-
-YEARS = [1, 3, 5, 15]
-SEEDS = [42, 123, 456]
-ALPHA = 0.10
-PROTOCOL_VERSION = "scarcity_v2_fixed_end_fixed_memory"
-TABLE_DIR = PROJECT_ROOT / "results" / "tables" / "corrected_scarcity"
-
-
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def artifact_path(years: int, seed: int) -> Path:
-    return TABLE_DIR / f"scarcity_{years}yr_basinseed42_modelseed{seed}.json"
+from src.utils import repository_path as _repository_path, sha256_file  # noqa: E402
 
 
 def repository_path(value: str) -> Path:
-    """Resolve artifact paths written by either Windows or POSIX runs."""
-    parts = value.replace("\\", "/").split("/")
-    if (
-        not value
-        or any(part in {"", ".", ".."} or ":" in part for part in parts)
-    ):
-        raise ValueError(f"Invalid repository-relative path: {value!r}")
-    path = PROJECT_ROOT.joinpath(*parts)
-    try:
-        path.resolve().relative_to(PROJECT_ROOT.resolve())
-    except ValueError as exc:
-        raise ValueError(f"Path escapes repository root: {value!r}") from exc
-    return path
+    """Backward-compatible wrapper around the shared resolver."""
+    return _repository_path(PROJECT_ROOT, value)
 
 
-def load_result(years: int, seed: int) -> dict:
-    path = artifact_path(years, seed)
-    result = json.loads(path.read_text(encoding="utf-8"))
-    if result["protocol_version"] != PROTOCOL_VERSION:
-        raise ValueError(f"Unexpected protocol in {path}")
-    for key, expected in {
-        "years": years,
-        "model_seed": seed,
-        "basin_seed": 42,
-        "seq_len": 180,
-        "batch_size": 512,
-        "epochs": 30,
-        "calibration_target_period": ["1995-10-01", "2000-09-30"],
-        "test_target_period": ["2000-10-01", "2008-12-31"],
-    }.items():
-        if result[key] != expected:
-            raise ValueError(f"{path.name}: {key}={result[key]!r}, expected {expected!r}")
-
-    for path_key, hash_key in [
-        ("checkpoint", "checkpoint_sha256"),
-        ("predictions", "predictions_sha256"),
-    ]:
-        data_path = repository_path(result[path_key])
-        actual = sha256(data_path)
-        if actual != result[hash_key]:
-            raise ValueError(f"Hash mismatch for {data_path}")
-    return result
-
-
-def load_predictions(result: dict) -> dict[str, np.ndarray]:
-    path = repository_path(result["predictions"])
-    with np.load(path) as archive:
-        return {name: archive[name] for name in archive.files}
+def sha256(path: Path) -> str:
+    return sha256_file(path)
 
 
 def summary(values: list[float]) -> dict:
@@ -96,53 +49,6 @@ def summary(values: list[float]) -> dict:
         "max": float(array.max()),
         "values": [float(value) for value in array],
     }
-
-
-def metric_value(result: dict, metric: str) -> float:
-    mapping = {
-        "median_nse": result["point_metrics"]["median"],
-        "pooled_log_nse": result["point_metrics"]["pooled_log_nse"],
-        "raw_picp": result["raw_interval_metrics"]["picp"],
-        "cqr_picp": result["calibrated_interval_metrics"]["picp"],
-        "raw_mpiw_log": result["raw_interval_metrics"]["mpiw"],
-        "cqr_mpiw_log": result["calibrated_interval_metrics"]["mpiw"],
-        "raw_winkler_log": result["raw_interval_metrics"]["winkler_score"],
-        "cqr_winkler_log": result["calibrated_interval_metrics"]["winkler_score"],
-        "raw_high_flow_picp": result["raw_interval_metrics"]["basin_relative_regimes"]["high"]["picp"],
-        "cqr_high_flow_picp": result["calibrated_interval_metrics"]["basin_relative_regimes"]["high"]["picp"],
-        "q_cal_log": result["q_cal_log"],
-    }
-    return float(mapping[metric])
-
-
-def per_basin_regimes(values: np.ndarray, basin_ids: np.ndarray) -> np.ndarray:
-    regimes = np.empty(len(values), dtype="U6")
-    for basin_id in np.unique(basin_ids):
-        selected = basin_ids == basin_id
-        q33, q67 = np.quantile(values[selected], [0.33, 0.67])
-        regimes[selected & (values <= q33)] = "low"
-        regimes[selected & (values > q33) & (values <= q67)] = "normal"
-        regimes[selected & (values > q67)] = "high"
-    return regimes
-
-
-def reference_regimes(
-    reference_values: np.ndarray,
-    reference_basins: np.ndarray,
-    values: np.ndarray,
-    basin_ids: np.ndarray,
-) -> np.ndarray:
-    regimes = np.empty(len(values), dtype="U6")
-    for basin_id in np.unique(basin_ids):
-        reference = reference_values[reference_basins == basin_id]
-        if len(reference) == 0:
-            raise ValueError(f"No reference values for basin {basin_id}")
-        q33, q67 = np.quantile(reference, [0.33, 0.67])
-        selected = basin_ids == basin_id
-        regimes[selected & (values <= q33)] = "low"
-        regimes[selected & (values > q33) & (values <= q67)] = "normal"
-        regimes[selected & (values > q67)] = "high"
-    return regimes
 
 
 def group_coverage(
@@ -203,6 +109,7 @@ def conditional_cqr(result: dict) -> dict:
         sample_adjustment[predicted_test_regimes == name] = adjustment
     predicted_lower = raw_lower - sample_adjustment
     predicted_upper = raw_upper + sample_adjustment
+    predicted_lower, predicted_upper, _ = project_nonempty(predicted_lower, predicted_upper)
 
     observed_val_regimes = per_basin_regimes(val_target, val_basins)
     observed_test_assignment = reference_regimes(
@@ -216,6 +123,7 @@ def conditional_cqr(result: dict) -> dict:
         oracle_sample_adjustment[observed_test_assignment == name] = adjustment
     oracle_lower = raw_lower - oracle_sample_adjustment
     oracle_upper = raw_upper + oracle_sample_adjustment
+    oracle_lower, oracle_upper, _ = project_nonempty(oracle_lower, oracle_upper)
 
     return {
         "global_q_cal_log": global_q,

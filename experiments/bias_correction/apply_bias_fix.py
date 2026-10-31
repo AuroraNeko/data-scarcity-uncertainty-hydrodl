@@ -18,15 +18,18 @@ within-basin observed upper tercile (the within-basin observed upper tercile).
 from __future__ import annotations
 
 import csv
+import sys
 from pathlib import Path
 
 import numpy as np
 
-from src.corrections.common import (LENGTHS, SEEDS, conformal_radius, crosscheck,
-                           load_run, metrics, observed_split)
-from src.evaluation.protocol import fit_basin_thresholds,assign_basin_groups
-
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
+from src.corrections.common import (LENGTHS, SEEDS, conformal_radius, crosscheck,  # noqa: E402
+                           load_run, metrics, observed_split)
+from src.evaluation.protocol import fit_basin_thresholds,assign_basin_groups  # noqa: E402
+
 OUT_CSV = ROOT / "results" / "tables" / "biasfix_check.csv"
 
 

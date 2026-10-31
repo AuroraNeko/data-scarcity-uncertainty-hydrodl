@@ -109,7 +109,7 @@ def run(spec,benchmark=False):
     epochs=30;batch_size=512
     updates_per_epoch=math.ceil(len(train)/batch_size)
     updates_per_round=36 if spec['budget']=='equal_updates' else updates_per_epoch
-    checkpoint=BASE/f'checkpoints/{tag}.pt';progress=BASE/f'checkpoints/{tag}_resume.pt'
+    checkpoint=BASE/f'checkpoints/sensitivity/{tag}.pt';progress=BASE/f'checkpoints/sensitivity/{tag}_resume.pt'
     start_epoch=0;history=[];best=math.inf;best_state=None;steps=0;budget_order=None;budget_cursor=0
     if progress.exists() and not benchmark:
         saved=torch.load(progress,map_location=device,weights_only=False)
@@ -182,7 +182,7 @@ def run(spec,benchmark=False):
         model.load_state_dict(best_state)
         for split,idx in [('calibration',cal),('test',test)]:
             arrays[f'{split}_selected_quantiles_log']=predict(model,windows,idx).astype(np.float32)
-    prediction=BASE/f'predictions/{tag}.npz';np.savez_compressed(prediction,**arrays)
+    prediction=BASE/f'predictions/sensitivity/{tag}.npz';np.savez_compressed(prediction,**arrays)
     atomic(result,{'completed':True,'spec':spec,'train_target_count':len(train),'optimizer_updates':steps,
         'n_parameters':sum(p.numel() for p in model.parameters()),'normalization':windows.norm,'history':history,
         'checkpoint':checkpoint.relative_to(ROOT).as_posix(),'checkpoint_sha256':sha256_file(checkpoint),

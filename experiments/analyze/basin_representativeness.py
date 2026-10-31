@@ -21,7 +21,7 @@ from scipy import stats
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.data.dataset import PROCESSED_DIR, get_basin_list
+from src.data.dataset import PROCESSED_DIR, get_basin_list, primary_basin_ids
 
 
 SELECTION_SEED = 42
@@ -107,7 +107,8 @@ def main() -> None:
         raise RuntimeError(f"Expected 671 basins, found {len(all_basins)}")
 
     rng = np.random.RandomState(SELECTION_SEED)
-    selected_list = rng.choice(all_basins, N_SCARCITY_BASINS, replace=False).tolist()
+    selected_list = primary_basin_ids(all_basins)
+    assert selected_list == rng.choice(all_basins, N_SCARCITY_BASINS, replace=False).tolist()
     selected = set(selected_list)
     remaining = set(all_basins) - selected
 

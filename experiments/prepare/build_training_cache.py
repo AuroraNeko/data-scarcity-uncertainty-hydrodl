@@ -5,18 +5,18 @@ import json
 import sys
 import numpy as np
 import pandas as pd
-
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT))
-from src.data.dataset import DYNAMIC_VARS, STATIC_COLS
+from src.data.dataset import DYNAMIC_VARS, STATIC_COLS, primary_basin_ids
 
 def main():
     out=ROOT/'results/cache/primary_raw.npz'
     if out.exists():
         print('Existing raw cache:',out,flush=True)
         return
-    meta=json.loads((ROOT/'results/tables/corrected_scarcity/scarcity_1yr_basinseed42_modelseed42.json').read_text())
-    basins=meta['selected_basins']
+    # The primary basin set is derived from metadata alone, so this stage
+    # does not depend on any training-stage output.
+    basins=primary_basin_ids()
     dynamic=[];target=[];mask=[];static=[];hashes={};dates=None
     for b in basins:
         p=ROOT/f'data/processed/camels_us/{b}.csv'
