@@ -595,7 +595,7 @@ def make_method_figure(result: dict) -> None:
         figsize=(7.25, 3.65),
         gridspec_kw={"width_ratios": [1.14, 1.10, 1.04]},
     )
-    figure.subplots_adjust(left=0.195, right=0.985, bottom=0.22, top=0.91, wspace=0.30)
+    figure.subplots_adjust(left=0.195, right=0.985, bottom=0.22, top=0.91, wspace=0.55)
 
     for panel, metric, xlabel in [
         (axes[0], "picp", "PICP"),
@@ -639,26 +639,11 @@ def make_method_figure(result: dict) -> None:
         axis.scatter(value, row, color=color, s=34, zorder=3)
     axis.set_xscale("log")
     axis.set_yticks(cost_y)
-    axis.set_yticklabels([])
-    axis.tick_params(axis="y", which="both", left=False)
-    axis.spines["left"].set_visible(False)
+    axis.set_yticklabels(unique_labels)
     axis.invert_yaxis()
     axis.set_xlabel("Relative forward time\n(single QR = 1; log scale)")
     axis.grid(axis="x")
     axis.set_xlim(0.28, max(costs) * 1.35)
-    for row, label in zip(cost_y, unique_labels):
-        axis.text(
-            0.78,
-            row,
-            label,
-            transform=axis.transData,
-            ha="right",
-            va="center",
-            fontsize=7.7,
-            color=INK,
-            bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.6, "alpha": 0.90},
-            zorder=4,
-        )
     for row, value in zip(cost_y, costs):
         is_largest = np.isclose(value, max(costs))
         axis.annotate(

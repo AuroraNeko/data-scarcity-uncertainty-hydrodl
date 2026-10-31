@@ -1,9 +1,27 @@
 # Reproducibility Guide
 
+The authoritative JOH revision workflow is [revise/REPRODUCE.md](revise/REPRODUCE.md),
+with frozen submission-package identifier `JOH-revision-20261030`. The earlier
+commands below document the original training and archival protocols. Their old
+figure/export and HESS-submission steps do **not** regenerate the revised JOH
+manuscript; use `revise/code/publication_outputs.py` and the revision builders.
+Finite-grid distribution scores are IQS; the corrected Gaussian analytic score
+is full CRPS. The legacy `umal` and `encqr` filenames map to a Gaussian quantile
+head and static memberwise split-CQR averaging, respectively. Neither represents
+the originally cited algorithm. Data-budget, outcome-selection, and conditional
+uncertainty limits in the revision README supersede broad older interpretations.
+
+The raw-source forcing audit found no missing/sentinel values and no changed
+values within the common 1980--2008 range: preprocessing allows interpolation,
+but no imputed forcing values enter this range. Missing flow is always masked.
+No new public release or DOI is implied by the local frozen submission archive.
+
+## Original protocol commands and provenance
+
+
 This guide describes the corrected experiments for:
 
-**Data Scarcity in Deep Learning Streamflow Forecasting: Prediction Skill,
-Interval Reliability, and Conformal Calibration**
+**How supervised training-record length affects point skill and interval reliability in streamflow forecasting**
 
 Versioned code and compact result snapshots are maintained under the Zenodo
 concept DOI [10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955).

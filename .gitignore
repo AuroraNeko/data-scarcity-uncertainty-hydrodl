@@ -94,3 +94,30 @@ Thumbs.db
 # Author-side LaTeX table-row emitters (write into paper/generated, not needed
 # to reproduce the numerical results)
 /revision_work/*_rows.py
+
+# JOH revision: scientific code/compact tables remain versionable; large arrays
+# and private author/reviewer materials are separate local attachments.
+/revise/cache/
+/revise/checkpoints/
+/revise/predictions/
+/revise/baseline/
+/revise/logs/
+/revise/drafts/
+/revise/reports/
+/revise/release/
+/revise/qa/*/
+/revise/qa/*.png
+/revise/qa/*.pdf
+/revise/qa/*.tex
+/revise/qa/*.aux
+/revise/qa/*.log
+/revise/qa/*.out
+/revise/qa/*.spl
+/revise/*.pdf
+/revise/*.docx
+/revise/*.md
+!/revise/REPRODUCE.md
+/revise/*.json
+/revise/*.py
+/revise/code/response_items.py
+/revise/tables/progress_*.json

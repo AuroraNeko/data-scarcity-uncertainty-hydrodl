@@ -1,6 +1,6 @@
 {
-  "title": "Data Scarcity in Deep Learning Streamflow Forecasting: Prediction Skill, Interval Reliability, and Conformal Calibration",
-  "description": "Code and compact derived results for a controlled CAMELS-US study of how supervised streamflow record length affects point-prediction skill, prediction-interval reliability, and conformal calibration.",
+  "title": "How supervised training-record length affects point skill and interval reliability in streamflow forecasting",
+  "description": "Revision submission source/compact results: supervised training-label scarcity with separate calibration observations; corrected scoring and method identities. Local package metadata does not imply a public upload.",
   "creators": [
     {
       "name": "AuroraNeko"
@@ -18,7 +18,7 @@
   "upload_type": "software",
   "access_right": "open",
   "language": "eng",
-  "version": "2.1.0",
+  "version": "JOH-revision-20261030",
   "related_identifiers": [
     {
       "scheme": "url",

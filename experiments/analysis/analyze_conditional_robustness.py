@@ -84,13 +84,18 @@ def top_flow_mask(
     basins: np.ndarray,
     fraction: float,
 ) -> np.ndarray:
-    """Select an exact upper share within each basin using stable ranks."""
+    """Strict within-basin quantile exceedance; ties stay below the threshold.
+
+    The 33% threshold now agrees with the main Q0.67 high-flow diagnostic.
+    Actual selected fractions can be smaller when observations are tied.
+    """
     selected = np.zeros(len(target), dtype=bool)
     for basin in np.unique(basins):
         indices = np.flatnonzero(basins == basin)
-        count = len(indices) if fraction >= 1 else max(1, int(np.ceil(len(indices) * fraction)))
-        order = np.argsort(target[indices], kind="mergesort")
-        selected[indices[order[-count:]]] = True
+        if fraction >= 1:
+            selected[indices] = True
+        else:
+            selected[indices] = target[indices] > np.quantile(target[indices], 1-fraction)
     return selected
 
 

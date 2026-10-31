@@ -1,12 +1,10 @@
 cff-version: 1.2.0
-message: "If you use this code, cite the versioned archive corresponding to the release used."
+message: "If you use this code, cite the frozen submission archive identity used; this local revision has no newly issued public DOI."
 type: software
-title: "Data Scarcity in Deep Learning Streamflow Forecasting: Prediction Skill, Interval Reliability, and Conformal Calibration"
+title: "How supervised training-record length affects point skill and interval reliability in streamflow forecasting"
 authors:
   - name: AuroraNeko
-version: 2.1.0
-date-released: "2026-08-21"
-doi: 10.5281/zenodo.21256955
-url: "https://doi.org/10.5281/zenodo.21256955"
+version: "JOH-revision-20261030"
+url: "https://github.com/AuroraNeko/data-scarcity-uncertainty-hydrodl"
 repository-code: "https://github.com/AuroraNeko/data-scarcity-uncertainty-hydrodl"
 license: MIT

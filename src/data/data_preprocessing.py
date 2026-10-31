@@ -197,7 +197,7 @@ def cfs_to_mmday(streamflow_cfs: pd.Series, area_km2: float) -> pd.Series:
            = cfs * 0.0283168 * 86400 / (area_km2 * 1e3)
            = cfs * 2446.57152 / (area_km2 * 1e3)
     """
-    conversion = 0.0283168 * 86400.0 / (area_km2 * 1e6) * 1000.0  # = 2446.57 / area_km2
+    conversion = 0.0283168 * 86400.0 / (area_km2 * 1e6) * 1000.0  # = 2.44657152 / area_km2
     return streamflow_cfs * conversion
 
 

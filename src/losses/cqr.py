@@ -17,20 +17,14 @@ calibration and test examples are exchangeable.
 import numpy as np
 import torch
 from torch import Tensor
+from src.evaluation_protocol import conformal_radius, project_nonempty
 
 
 def finite_sample_quantile(scores: np.ndarray, alpha: float) -> float:
     """Return the split-conformal order statistic without interpolation."""
-    values = np.asarray(scores, dtype=np.float64).reshape(-1)
-    values = values[np.isfinite(values)]
-    if values.size == 0:
-        raise ValueError("At least one finite calibration score is required")
-    if not 0.0 < alpha < 1.0:
-        raise ValueError(f"alpha must be in (0, 1), got {alpha}")
-
-    rank = int(np.ceil((values.size + 1) * (1 - alpha)))
-    rank = min(max(rank, 1), values.size)
-    return float(np.partition(values, rank - 1)[rank - 1])
+    # A rank beyond n requires +infinity; clipping it to the largest finite
+    # score would overstate the finite-sample guarantee for tiny pools.
+    return conformal_radius(np.asarray(scores).reshape(-1), alpha)
 
 
 class CQRCalibrator:
@@ -70,7 +64,8 @@ class CQRCalibrator:
             (adjusted_lower, adjusted_upper)
         """
         assert self.q_cal is not None, "Must call fit() first"
-        return q_lower - self.q_cal, q_upper + self.q_cal
+        lower, upper, _ = project_nonempty(q_lower - self.q_cal, q_upper + self.q_cal)
+        return lower, upper
 
 
 def compute_uncertainty_metrics(
