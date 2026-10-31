@@ -297,6 +297,22 @@ def get_basin_list() -> list[str]:
     return [f.stem for f in sorted(PROCESSED_DIR.glob("*.csv"))]
 
 
+SCARCITY_SELECTION_SEED = 42
+N_SCARCITY_BASINS = 50
+
+
+def primary_basin_ids(basins: list[str] | None = None) -> list[str]:
+    """The fixed 50-basin primary set: seeded choice over the full basin list.
+
+    This derivation depends only on ``data/metadata``, so every stage can
+    reconstruct the primary set without reading another stage's outputs.
+    """
+    if basins is None:
+        basins = get_basin_list()
+    rng = np.random.RandomState(SCARCITY_SELECTION_SEED)
+    return rng.choice(basins, N_SCARCITY_BASINS, replace=False).tolist()
+
+
 def create_dataloaders(
     seq_len: int = 365,
     batch_size: int = 256,

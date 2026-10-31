@@ -6,6 +6,22 @@ ids, windows, seeds and budgets must stay identical wherever they are
 consumed.
 """
 
+QUEUE_PRIORITY = {
+    'validation_': 0,
+    'temporal_': 1,
+    'multilevel_': 2,
+    'tcn_': 3,
+    'memory': 4,
+}
+
+
+def queue_position(spec: dict) -> int:
+    """Execution rank of a spec; every declared id must match a prefix."""
+    for prefix, rank in QUEUE_PRIORITY.items():
+        if spec['id'].startswith(prefix):
+            return rank
+    raise ValueError(f'no queue priority declared for spec id {spec["id"]}')
+
 
 def specs():
     rows=[]

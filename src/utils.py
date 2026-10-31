@@ -10,8 +10,31 @@ import hashlib
 
 import random
 
+from pathlib import Path
+
 import numpy as np
 import torch
+
+
+def repository_path(root: Path, value: str) -> Path:
+    """Resolve a repository-relative artifact path written by any OS.
+
+    Rejects empty segments, dot segments, drive letters, and anything that
+    resolves outside ``root``; accepts the Windows separators an earlier
+    generation of artifacts embedded.
+    """
+    parts = value.replace("\\", "/").split("/")
+    if (
+        not value
+        or any(part in {"", ".", ".."} or ":" in part for part in parts)
+    ):
+        raise ValueError(f"Invalid repository-relative path: {value!r}")
+    path = root.joinpath(*parts)
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError as exc:
+        raise ValueError(f"Path escapes repository root: {value!r}") from exc
+    return path
 
 
 def get_device() -> torch.device:
