@@ -96,7 +96,6 @@ experiments/            运行层,每脚本一个职责
 
 run_pipeline.py         唯一总入口,按阶段顺序调度
 download_camels.py      下载 CAMELS-US 数据档案
-configs/                数据配置
 ```
 
 依赖是单向的:`run_pipeline.py` 调用 `experiments/` 下的脚本,脚本再从

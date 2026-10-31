@@ -12,6 +12,7 @@
 
 # Local development checks; not part of the published pipeline.
 /tests/
+experiments/evaluate/_smoke_ungauged/
 
 # Python
 __pycache__/

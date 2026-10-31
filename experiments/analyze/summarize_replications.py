@@ -21,7 +21,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from src.corrections.scarcity_runs import (  # noqa: E402
+from src.corrections.common import (  # noqa: E402
     basin_interval_metrics,
     metric_value,
 )

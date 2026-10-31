@@ -116,7 +116,6 @@ experiments/            runnable pipeline, one job per script
 
 run_pipeline.py         single entry point; runs the stages in order
 download_camels.py      fetches the CAMELS-US archive
-configs/                data configuration
 ```
 
 Dependencies flow one way: `run_pipeline.py` calls the scripts in

@@ -125,14 +125,10 @@ class CamelsDataset(Dataset):
         end_date: str,
         seq_len: int = 365,
         preview: bool = False,
-        per_basin_stats: dict | None = None,
         normalization_stats: dict | None = None,
         target_start_date: str | None = None,
         target_end_date: str | None = None,
     ):
-        if per_basin_stats is not None and normalization_stats is not None:
-            raise ValueError("per_basin_stats and normalization_stats are mutually exclusive")
-
         self.seq_len = seq_len
         self.indices = []  # (basin_array_idx, window_start)
         self.basin_data = []  # list of dicts with numpy arrays
@@ -192,20 +188,13 @@ class CamelsDataset(Dataset):
                 target = (
                     raw - normalization_stats["target_mean"]
                 ) / normalization_stats["target_std"]
-            elif per_basin_stats is not None:
-                # Per-basin normalization (CAMELS convention): normalizes log-flow
-                # by each basin's own training-period mean/std. Removes inter-basin
-                # variance and yields literature-comparable per-basin NSE.
-                raw = df["target"].values.astype(np.float32)
-                bs = per_basin_stats.get(basin_id)
-                target = (raw - bs["mean"]) / bs["std"] if bs else raw
             else:
                 target_col = "target_norm" if "target_norm" in df.columns else "target"
                 target = df[target_col].values.astype(np.float32)
             mask = df["flow_mask"].values.astype(np.float32)
             target = np.nan_to_num(target, nan=0.0)
 
-            # Water year index for physics loss grouping
+            # Water-year index carried alongside each sample.
             dates = df.index
             water_years = dates.year + (dates.month >= 10).astype(int)
             year_offset = water_years.min()
@@ -255,17 +244,6 @@ class CamelsDataset(Dataset):
             torch.tensor(bidx, dtype=torch.int32),
             torch.tensor(bd["year_idx"][end], dtype=torch.int32),
         )
-
-    def compute_q95(self) -> float:
-        """Compute 95th percentile of observed target values (for extreme weighting)."""
-        all_targets = []
-        for bidx, start in self.indices:
-            target_index = start + self.seq_len
-            basin = self.basin_data[bidx]
-            if basin["mask"][target_index] > 0:
-                all_targets.append(basin["target"][target_index])
-        all_targets = np.asarray(all_targets)
-        return float(np.percentile(all_targets, 95))
 
     def dynamic_missing_fraction(self) -> np.ndarray:
         """Return missing fractions for the dynamic inputs before zero imputation."""
@@ -319,9 +297,12 @@ def create_dataloaders(
     batch_size: int = 256,
     num_workers: int = 4,
     basin_list: list[str] | None = None,
-    per_basin_stats: dict | None = None,
 ) -> tuple[DataLoader, DataLoader, DataLoader]:
-    """Create train/val/test DataLoaders (seen basins, temporal split)."""
+    """Create train/val/test DataLoaders over all basins (temporal split).
+
+    Used by the 671-basin benchmark trainings; the scarcity experiments
+    construct CamelsDataset directly with condition-specific statistics.
+    """
     from src.data.data_preprocessing import TRAIN_START, TRAIN_END, VAL_START, VAL_END, TEST_START, TEST_END
 
     if basin_list is None:
@@ -332,9 +313,9 @@ def create_dataloaders(
     print(f"  Val:   {VAL_START} to {VAL_END}")
     print(f"  Test:  {TEST_START} to {TEST_END}")
 
-    train_ds = CamelsDataset(basin_list, TRAIN_START, TRAIN_END, seq_len, preview=True, per_basin_stats=per_basin_stats)
-    val_ds = CamelsDataset(basin_list, VAL_START, VAL_END, seq_len, preview=True, per_basin_stats=per_basin_stats)
-    test_ds = CamelsDataset(basin_list, TEST_START, TEST_END, seq_len, preview=True, per_basin_stats=per_basin_stats)
+    train_ds = CamelsDataset(basin_list, TRAIN_START, TRAIN_END, seq_len, preview=True)
+    val_ds = CamelsDataset(basin_list, VAL_START, VAL_END, seq_len, preview=True)
+    test_ds = CamelsDataset(basin_list, TEST_START, TEST_END, seq_len, preview=True)
 
     # Only the train loader (shuffled, multi-epoch) benefits from workers;
     # val/test are single/light passes; workers there just waste RAM.
