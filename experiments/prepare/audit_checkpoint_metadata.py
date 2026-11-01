@@ -137,7 +137,10 @@ def main() -> None:
     for group in GROUPS:
         directory = ROOT / "results" / "tables" / group
         if directory.exists():
-            paths.extend(sorted(directory.glob("scarcity_*.json")))
+            # Per-fit results carry a modelseed suffix; aggregate summaries
+            # such as scarcity_replication_summary.json have no checkpoint
+            # and must stay out of the checkpoint/result audit.
+            paths.extend(sorted(directory.glob("scarcity_*_modelseed*.json")))
     if not paths:
         raise FileNotFoundError("No v3 scarcity sensitivity result files found")
 

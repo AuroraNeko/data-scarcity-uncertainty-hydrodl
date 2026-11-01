@@ -59,7 +59,7 @@ bytes are kept unchanged so archived hashes stay valid; readers should know:
   `experiments/evaluate/coverage_groups.py`.
 - `cluster_bootstrap_ci95` fields hold a basin-level bootstrap, not a
   HUC2-cluster bootstrap.
-- Timing entries in `results/tables/benchmark_671/s18_reliability.json`
+- Timing entries in `results/tables/benchmark_671/dense_reliability.json`
   reflect the archived workstation; reruns will differ and this is expected.
 
 ## Outputs

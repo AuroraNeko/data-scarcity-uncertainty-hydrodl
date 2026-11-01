@@ -112,8 +112,8 @@ def main():
     for key in ['mc_dropout','mc_dropout_noise','mc_dropout_reselect','single_qr','mdn','umal','ensemble']:
         m=methods[key];s17.append([labels[key],m['passes'],*[num(m['raw'][c]) for c in ['picp','mpiw','winkler']],
                                  *[num(m['cqr'][c]) for c in ['picp','mpiw','winkler']],num(m['median_basin_nse'])])
-    rows('s17_methods_rows.tex',s17)
-    rows('s14_encqr_rows.tex',[[labels[k],num(methods[k]['cqr']['picp']),num(methods[k]['cqr']['mpiw']),num(methods[k]['cqr']['winkler'])] for k in ['single_qr','ensemble','memberwise_cqr']])
+    rows('methods_rows.tex',s17)
+    rows('encqr_rows.tex',[[labels[k],num(methods[k]['cqr']['picp']),num(methods[k]['cqr']['mpiw']),num(methods[k]['cqr']['winkler'])] for k in ['single_qr','ensemble','memberwise_cqr']])
     # Calibration windows: all training lengths and all stated window budgets.
     rows('revision_calibration_window_rows.tex',[[year,years,f'{int(select_mean(win,year=year,calibration_years=years).n_cal.iloc[0]):,}',pm(select_mean(win,year=year,calibration_years=years).picp),
         num(select_mean(win,year=year,calibration_years=years).mpiw.mean()),num(select_mean(win,year=year,calibration_years=years).winkler.mean())]
@@ -129,7 +129,7 @@ def main():
         f=select_mean(bd,year=year,dimension='observed_flow',group=2)
         row.extend([num(100*f.groupby('seed').relative_mean_bias_physical.median().mean(),1),num(100*f.groupby('seed').mean_median_forecast_bias_log.apply(lambda v:(v<0).mean()).mean(),0)])
         bias_rows.append(row)
-    rows('physical_scale_rows.tex',phys);rows('s13_bias_rows.tex',bias_rows)
+    rows('physical_scale_rows.tex',phys);rows('bias_rows.tex',bias_rows)
     per=[]
     for year in [1,3,5,15]:
         row=[year]
@@ -137,7 +137,7 @@ def main():
             f=pooled(year,method);band=cov['basin_tolerance_band'][f'{year}_{method}']['fraction_in_085_095']
             row.extend([pm(f.picp),num(band,2),num(f.winkler.mean())])
         per.append(row)
-    rows('s19_perbasin_rows.tex',per)
+    rows('per_basin_rows.tex',per)
     dec=[]
     for label,dim,col,gr in [('Pooled PICP','pooled','picp',None),('Observed high PICP','observed_flow','picp','high'),
                              ('Predicted high PICP','predicted_flow','picp','high'),('Top 2\\% PICP','tail','picp',None),('Winkler','pooled','winkler',None)]:
@@ -147,7 +147,7 @@ def main():
                 f=select_mean(tail,year=year,method=method,requested_upper_fraction=.02) if dim=='tail' else (pooled(year,method) if dim=='pooled' else group(year,method,dim,gr))
                 row.append(pm(f[col]) if col=='picp' else num(f[col].mean()))
         dec.append(row)
-    rows('s19_decile_rows.tex',dec)
+    rows('decile_rows.tex',dec)
     sb=pd.read_csv(BASE/'tables/shifted_bias_diagnostics.csv',dtype={'basin':str});shiftrows=[]
     for label,dim,col,gr in [('Pooled PICP','pooled','picp',None),('Observed high PICP','observed_flow','picp','high'),
                             ('Winkler','pooled','winkler',None),('Upper-group median bias','bias','bias',None)]:
@@ -159,18 +159,18 @@ def main():
                     f=pooled(year,method) if dim=='pooled' else group(year,method,dim,gr)
                     row.append(pm(f[col]) if col=='picp' else num(f[col].mean()))
         shiftrows.append(row)
-    rows('s19_biasfix_rows.tex',shiftrows)
+    rows('biasfix_rows.tex',shiftrows)
     quantile=[]
     for year in [1,3,5,15]:
         run=[r for r in cov['runs'] if r['year']==year]
         raw=pooled(year,'raw');cal=pooled(year,'global')
         quantile.append([year,*[pm([r['quantile_coverage'][j] for r in run]) for j in range(3)],
             num(raw.p_below.mean())+' / '+num(raw.p_above.mean()),num(cal.p_below.mean())+' / '+num(cal.p_above.mean())])
-    rows('s18_quantile_rows.tex',quantile)
+    rows('quantile_rows.tex',quantile)
     variant_path=BASE/'tables/sequential_calibration_variants.csv'
     if variant_path.exists():
         seq=pd.read_csv(variant_path);asym=pd.read_csv(BASE/'tables/asymmetric_calibration.csv')
-        for metric,output in [('picp','s14_picp_rows.tex'),('winkler','s14_winkler_rows.tex')]:
+        for metric,output in [('picp','calibration_variant_picp_rows.tex'),('winkler','calibration_variant_winkler_rows.tex')]:
             variants=[]
             for label,frame,scheme in [('Global CQR',seq,'global'),('Rolling 90 days',seq,'roll90'),('Rolling 180 days',seq,'roll180'),
                 ('Rolling 365 days',seq,'roll365'),('Expanding',seq,'expand'),('ACI ($\\gamma=0.01$)',seq,'aci_g0.01'),('Asymmetric per side',asym,'asym')]:
@@ -191,7 +191,7 @@ def main():
         for method in ['mdn','umal','mc_dropout_noise']:
             for mode in ['raw','cqr']:row.append(num(select_mean(dense,method=method,nominal=level,mode=mode).picp.iloc[0]))
         lev.append(row)
-    rows('s18_level_rows.tex',lev)
+    rows('level_rows.tex',lev)
     # Coverage uncertainty table.
     uncertainty=[]
     for key,label,mult,d in [('raw_nse','NSE: 15 minus 1 yr',1,3),('raw_picp','Raw PICP difference (pp)',100,1),
@@ -295,7 +295,7 @@ def main():
             training_outputs(tr,macros,rows,save)
         elif args.require_complete:raise RuntimeError(f'{len(tr["missing"])} training fits missing')
     elif args.require_complete:raise RuntimeError('Training analysis is missing')
-    macros['RevisionPackageID']=r'JOH-revision-20261030'
+    macros['RevisionPackageID']='1.1.0'
     (GEN/'result_macros.tex').write_text('\n'.join('\\newcommand{\\'+k+'}{'+str(v)+'}' for k,v in macros.items())+'\n',encoding='utf-8')
     dump(BASE/'tables/publication_macro_values.json',macros)
     print('Publication tables and core figures generated',flush=True)

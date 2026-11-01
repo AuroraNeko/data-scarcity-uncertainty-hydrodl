@@ -294,12 +294,18 @@ def make_protocol_figure(summary: dict, methods: dict) -> None:
     axis.text(
         0.035,
         0.51,
-        f"{summary['n_basins']} fixed basins x {len(summary['years'])} windows x "
-        f"{len(summary['model_seeds'])} seeds",
+        f"{len(summary['years'])} record lengths x {len(summary['model_seeds'])} seeds",
         fontsize=7.8,
         color=INK,
     )
-    axis.text(0.035, 0.29, f"= {protocol['n_model_fits']} quantile-model fits", fontsize=7.8, color=INK)
+    axis.text(
+        0.035,
+        0.29,
+        f"= {protocol['n_model_fits']} quantile-model fits on "
+        f"{summary['n_basins']} shared basins",
+        fontsize=7.8,
+        color=INK,
+    )
     axis.text(0.035, 0.08, "Only supervised record length changes", fontsize=7.4, color=GRAY)
     axis.text(0.555, 0.80, "Independent method comparison", fontsize=8.4, fontweight="semibold", color=INK)
     axis.text(0.555, 0.51, f"{methods['protocol']['n_basins']} basins x 3 base methods", fontsize=7.8, color=INK)

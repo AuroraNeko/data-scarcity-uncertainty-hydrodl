@@ -26,7 +26,7 @@ def main():
     regions=basin_names.loc[names,'huc_02'].to_numpy();rng=np.random.default_rng(20261030)
     draw=rng.integers(0,671,(2000,671));unique=np.unique(regions);rids=[np.flatnonzero(regions==r) for r in unique]
     spatial=[np.concatenate([rids[j] for j in rng.integers(0,len(unique),len(unique))]) for _ in range(2000)]
-    timing=json.loads((ROOT/'results/tables/benchmark_671/s18_reliability.json').read_text())['timing']
+    timing=json.loads((ROOT/'results/tables/benchmark_671/dense_reliability.json').read_text())['timing']
     methods=[];sufficient={};paired={}
     entries=[('mc_dropout','MC Dropout, archived spread',50),('single_qr','Single QR',1),('ensemble','Mean-quantile ensemble',5),
              ('mc_dropout_noise','MC Dropout + Gaussian noise',50),('mc_dropout_reselect','MC Dropout, tail-selected',50),
