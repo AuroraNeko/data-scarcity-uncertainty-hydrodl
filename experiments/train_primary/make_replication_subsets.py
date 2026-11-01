@@ -19,11 +19,9 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.data.dataset import PROCESSED_DIR, get_basin_list  # noqa: E402
+from src.data.dataset import PROCESSED_DIR, get_basin_list, primary_basin_ids  # noqa: E402
 
 
-PRIMARY_SEED = 42
-N_BASINS = 50
 REPLICATE_SEEDS = [20260721, 20260722, 20260723, 20260724]
 TABLE_DIR = PROJECT_ROOT / "results" / "tables" / "scarcity_replications"
 CSV_PATH = TABLE_DIR / "replication_subsets.csv"
@@ -120,16 +118,15 @@ def main() -> None:
         raise RuntimeError(f"Expected 671 basins, found {len(basins)}")
     frame = load_attributes(basins).set_index("basin_id", drop=False)
 
-    primary_rng = np.random.RandomState(PRIMARY_SEED)
-    primary = primary_rng.choice(basins, N_BASINS, replace=False).tolist()
+    primary = primary_basin_ids()
     available = set(basins) - set(primary)
     subsets: dict[str, list[str]] = {"primary_seed42": primary}
-    selection_seeds: dict[str, int] = {"primary_seed42": PRIMARY_SEED}
+    selection_seeds: dict[str, int] = {"primary_seed42": 42}
 
     for index, seed in enumerate(REPLICATE_SEEDS, start=1):
         subset_id = f"stratified_{index}"
         candidates = frame.loc[sorted(available)].copy()
-        selected = select_stratified(candidates, N_BASINS, seed)
+        selected = select_stratified(candidates, len(primary), seed)
         subsets[subset_id] = selected
         selection_seeds[subset_id] = seed
         available.difference_update(selected)
@@ -167,7 +164,7 @@ def main() -> None:
         "design": "one existing random subset plus four disjoint stratified replication subsets",
         "stratification": "joint quartiles of aridity and log1p drainage area",
         "n_subsets": len(subsets),
-        "n_basins_per_subset": N_BASINS,
+        "n_basins_per_subset": len(primary),
         "n_unique_basins": len(set(all_selected)),
         "remaining_unselected_basins": len(available),
         "subset_seeds": selection_seeds,

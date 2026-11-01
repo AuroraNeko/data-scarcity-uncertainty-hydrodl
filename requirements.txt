@@ -1,5 +1,7 @@
 # Python dependencies for LPU-Stream (tested versions in parentheses).
-# A CUDA-enabled PyTorch is recommended for training; CPU works for analysis.
+# Requires Python 3.10+. A CUDA-enabled PyTorch is recommended for training;
+# CPU works for analysis. For the exact pinned CUDA 12.8 environment of the
+# reported runs, see requirements-reference-cu128.txt.
 
 torch>=2.0          # 2.11.0 (CUDA 12.8 build)
 numpy>=1.24         # 2.4.4

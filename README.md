@@ -6,7 +6,7 @@ This repository holds the full pipeline for a study of training-record
 scarcity in deep-learning streamflow forecasting: how much does the model
 gain from each additional year of gauge record, and what does it take for
 its 90% uncertainty bands to reach their nominal coverage? Point skill grows
-steadily with the record. Interval coverage does not; it is fixed by
+steadily with the record. Interval coverage does not; it is restored by
 recalibrating on a short held-out window.
 
 ## Approach
@@ -17,7 +17,7 @@ recalibrating on a short held-out window.
 September 1995 cutoff. The calibration window (1995-2000) and the test
 period (2000-2008) are identical for every training length.*
 
-**The model.** All experiments share one LSTM forecaster. Each day it reads
+**The model.** All experiments share one LSTM architecture. Each day it reads
 the previous 180 days of weather forcings plus static catchment attributes
 and outputs a median streamflow forecast with a 0.05/0.95 band around it. A
 quantile (pinball) loss keeps the band monotone, so the upper bound never
@@ -43,8 +43,8 @@ basins, a 671-basin benchmark compares eight uncertainty constructions, and
 48 further fits cover architecture and protocol sensitivities (TCN, a
 13-quantile head, alternative training years, 365-day memory). A standard
 LSTM repeats both endpoints as a separate architecture check. Every reported
-effect carries a bootstrap interval that resamples basins and HUC2 regions
-jointly.
+effect carries bootstrap intervals from two resampling schemes, an
+equal-basin resample and a HUC2-cluster resample, reported side by side.
 
 ## Key results
 
@@ -69,10 +69,12 @@ coverage back to the nominal level, and stratifying the correction on
 predicted flow restores coverage within each flow regime. The high
 predicted-flow group, where raw intervals miss most, gains the most.
 
-![Conditional coverage before and after CQR calibration](docs/figures/fig2_conditional_coverage.png)
+![Conditional coverage after CQR calibration](docs/figures/fig2_conditional_coverage.png)
 
-*Coverage by predicted-flow regime before and after CQR recalibration on the
-held-out calibration window.*
+*Coverage by observed-flow regime. (a) After global CQR recalibration, by
+training length. (b) The 1-year condition: raw quantile bands, global CQR,
+predicted-regime CQR, and an observed-regime reference. Radii are fitted on
+the 1995-2000 calibration window; coverage is scored on the test window.*
 
 | Claim | Value |
 |---|---|
@@ -105,8 +107,9 @@ experiments/            runnable pipeline, one job per script
 ├─ prepare/             cache build/verify, data-chain and checkpoint audits
 ├─ train_primary/       the 12 main fits (queue driver), replication subsets,
 │                       endpoint reruns
-├─ train_benchmark/     point model and the eight 671-basin constructions,
-│                       dense 13-tau export
+├─ train_benchmark/     point model and the trained 671-basin constructions
+│                       (the eighth compared construction, memberwise
+│                       split-CQR, is assembled in evaluate/)
 ├─ bias_correction/     median-bias-fix diagnostics
 ├─ train_sensitivity/   the 48 endpoint fits (queue-driven)
 ├─ evaluate/            method comparison, memberwise split-CQR, coverage,
@@ -130,18 +133,24 @@ python download_camels.py
 python src/data/data_preprocessing.py
 python run_pipeline.py --list      # inspect the stages
 python run_pipeline.py --dry-run   # resolve every script path, run nothing
-python run_pipeline.py             # full rerun (stages 2/3/5 need a CUDA GPU)
+python run_pipeline.py             # full rerun (stages 2/3/5 retrain on a
+                                    # CUDA GPU; stage 6 needs CUDA for one
+                                    # timing script)
 ```
 
-Reference environment: Python 3.11, PyTorch 2.11.0+cu128, RTX 5060 Ti (8 GB);
-see `requirements-reference-cu128.txt`. Data, trained weights and per-sample
+Reference environment: Python 3.11 (3.10 or newer required), PyTorch
+2.11.0+cu128, RTX 5060 Ti (8 GB); the exact pinned environment is in
+`requirements-reference-cu128.txt`. Data, trained weights and per-sample
 prediction arrays are not tracked; each stage regenerates its outputs under
-`results/`. See [REPRODUCIBILITY.md](REPRODUCIBILITY.md) for the frozen
-release packages and their SHA-256 hashes.
+`results/`. The images under `docs/figures/` are committed copies of the
+stage-9 figure outputs, plus one hand-made design sketch. See
+[REPRODUCIBILITY.md](REPRODUCIBILITY.md) for the frozen release packages and
+their SHA-256 hashes.
 
 ## Citation and license
 
 See [CITATION.cff](CITATION.cff) and [LICENSE](LICENSE). The earlier release
 series has Zenodo concept DOI
-[10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955); that
-concept record alone does not identify the revision round.
+[10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955); the
+concept record groups all versions, and each published version receives its
+own DOI.

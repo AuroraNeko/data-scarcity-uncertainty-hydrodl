@@ -2,10 +2,11 @@
 
 Regenerates the 13-tau calibration/test prediction grids for the MDN,
 Gaussian-quantile ('umal'), and MC-dropout+noise heads from their
-checkpoints, verifies bitwise agreement with the archived three-tau
-predictions, and writes both the dense grids consumed by
-evaluate/distribution_scores.py and the multi-level reliability table
-consumed by evaluate/method_comparison.py (timing block).
+checkpoints, checks them against the archived three-tau predictions
+(max abs diff < 1e-4 on the shared float32 grid), and writes both the
+dense grids consumed by evaluate/distribution_scores.py and the
+multi-level reliability table consumed by
+evaluate/method_comparison.py (timing block).
 
 The timing block measures this workstation's GPU; the archived copy in the
 frozen results tree records the reference hardware, so a rerun may update

@@ -240,39 +240,6 @@ def per_basin_endpoint_effect(results: dict[tuple[int, int], dict]) -> dict:
     }
 
 
-def basin_interval_metrics(result: dict) -> dict[str, dict[str, float]]:
-    data = load_predictions(result)
-    valid = data["test_mask"] > 0
-    prediction = data["test_prediction_log"][valid]
-    target = data["test_target_log"][valid]
-    basins = data["test_basin_ids"][valid]
-    regimes = per_basin_regimes(target, basins)
-    q_cal = float(result["q_cal_log"])
-    intervals = {
-        "raw": (prediction[:, 0], prediction[:, 2]),
-        "cqr": (prediction[:, 0] - q_cal, prediction[:, 2] + q_cal),
-    }
-    output = {}
-    for basin in np.unique(basins):
-        selected = basins == basin
-        high = selected & (regimes == "high")
-        basin_metrics = {}
-        for method, (lower, upper) in intervals.items():
-            covered = (target >= lower) & (target <= upper)
-            width = upper - lower
-            winkler = (
-                width
-                + (2 / ALPHA) * np.maximum(lower - target, 0)
-                + (2 / ALPHA) * np.maximum(target - upper, 0)
-            )
-            basin_metrics[f"{method}_picp"] = float(covered[selected].mean())
-            basin_metrics[f"{method}_mpiw_log"] = float(width[selected].mean())
-            basin_metrics[f"{method}_winkler_log"] = float(winkler[selected].mean())
-            basin_metrics[f"{method}_high_flow_picp"] = float(covered[high].mean())
-        output[str(basin)] = basin_metrics
-    return output
-
-
 def basin_cluster_endpoint_intervals(results: dict[tuple[int, int], dict]) -> dict:
     """Paired endpoint effects after averaging each basin over model seeds."""
     metrics = [

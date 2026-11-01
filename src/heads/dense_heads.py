@@ -23,7 +23,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.models.lpu_stream import LPUStreamModel  # noqa: E402
 
 SQRT2 = 1.4142135623730951
-SQRT2PI = 2.5066282746310002
 
 
 class ChunkedForwardMixin:
@@ -58,20 +57,13 @@ class ChunkedForwardMixin:
         return h
 
     def forward(self, dynamic_seq: Tensor, static_attrs: Tensor) -> Tensor:
-        if self.no_static:
-            z_basin = None
-            lstm_input = dynamic_seq
-        else:
-            z_basin = self.embedding(static_attrs)  # (batch, embed_dim)
-            z_expanded = z_basin.unsqueeze(1).expand(-1, dynamic_seq.size(1), -1)
-            lstm_input = torch.cat([dynamic_seq, z_expanded], dim=-1)
+        z_basin = self.embedding(static_attrs)  # (batch, embed_dim)
+        z_expanded = z_basin.unsqueeze(1).expand(-1, dynamic_seq.size(1), -1)
+        lstm_input = torch.cat([dynamic_seq, z_expanded], dim=-1)
 
         h_final = self.dropout(self._chunked_lstm(lstm_input)[-1])
 
-        if self.no_static:
-            combined = h_final
-        else:
-            combined = torch.cat([h_final, z_basin], dim=-1)
+        combined = torch.cat([h_final, z_basin], dim=-1)
         output = self.head(combined)
         if self.enforce_monotonic and self.quantiles is not None:
             median = output[:, 1:2]
@@ -95,9 +87,8 @@ class HeadStreamModel(ChunkedForwardMixin, LPUStreamModel):
     def __init__(self, n_out: int, dropout: float = 0.3, **kwargs):
         super().__init__(quantiles=None, dropout=dropout, **kwargs)
         self.n_outputs = n_out
-        head_input = self.hidden_size if self.no_static else self.hidden_size + self.embed_dim
         self.head = nn.Sequential(
-            nn.Linear(head_input, self.hidden_size // 2),
+            nn.Linear(self.hidden_size + self.embed_dim, self.hidden_size // 2),
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(self.hidden_size // 2, n_out),
@@ -180,10 +171,6 @@ class GaussianQuantileStream(HeadStreamModel):
         z = torch.special.ndtri(torch.tensor(taus, device=raw.device))
         return mu + sigma * z.unsqueeze(0)
 
-
-# Alias for the archived artifact name ``umal.pt``: it identifies this
-# Gaussian head and does not implement asymmetric Laplacian UMAL.
-UMALStream = GaussianQuantileStream
 
 # --------------------------------------------------------- MC + noise head --
 class NoiseStream(HeadStreamModel):

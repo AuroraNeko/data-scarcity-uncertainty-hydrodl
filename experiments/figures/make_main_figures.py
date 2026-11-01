@@ -140,7 +140,7 @@ def main():
     rows('s19_perbasin_rows.tex',per)
     dec=[]
     for label,dim,col,gr in [('Pooled PICP','pooled','picp',None),('Observed high PICP','observed_flow','picp','high'),
-                             ('Predicted high PICP','predicted_flow','picp','high'),('Top 2\% PICP','tail','picp',None),('Winkler','pooled','winkler',None)]:
+                             ('Predicted high PICP','predicted_flow','picp','high'),('Top 2\\% PICP','tail','picp',None),('Winkler','pooled','winkler',None)]:
         row=[label]
         for year in [1,15]:
             for method in ['global','predicted','decile']:

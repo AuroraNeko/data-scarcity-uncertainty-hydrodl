@@ -9,7 +9,7 @@ from scipy.stats import spearmanr
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
 from src.evaluation.protocol import (PRIMARY_CUTS,conformal_radius,scores,interval_arrays,
     interval_metrics,fit_basin_thresholds,assign_basin_groups,observed_groups,predicted_group_intervals,
-    project_nonempty,nse,bootstrap_basin,clean,dump)
+    project_nonempty,nse,bootstrap_basin,dump)
 from src.corrections.common import load
 BASE=ROOT/'results';SEEDS=[42,123,456];YEARS=[1,3,5,15];NBOOT=5000
 

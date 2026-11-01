@@ -21,10 +21,11 @@ for spec in jobs:
     if result.exists():
         existing=json.loads(result.read_text())
         if existing.get('completed') and existing['spec']==spec:
-            for key in ['checkpoint','predictions']:
-                p=ROOT/existing[key]
-                assert p.exists() and sha256_file(p)==existing[key+'_sha256']
-            done.append(spec['id']);print('SKIP validated',spec['id'],flush=True);continue
+            valid=all((ROOT/existing[key]).exists() and sha256_file(ROOT/existing[key])==existing[key+'_sha256']
+                      for key in ['checkpoint','predictions'])
+            if valid:
+                done.append(spec['id']);print('SKIP validated',spec['id'],flush=True);continue
+            print('STALE',spec['id'],'stored artifacts missing or altered; retraining',flush=True)
     path=BASE/f'logs/{spec["id"]}.log'
     write_status({'running':spec['id'],'completed_this_invocation':done,'total_declared_jobs':len(jobs),'elapsed_seconds':time.time()-started})
     print('RUN',spec['id'],flush=True)

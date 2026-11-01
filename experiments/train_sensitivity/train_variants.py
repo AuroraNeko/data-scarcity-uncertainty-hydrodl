@@ -5,7 +5,6 @@ target dates enter the loss and normalization fit. Test data never select a mode
 """
 from pathlib import Path
 import argparse
-import copy
 import json
 import math
 import sys
@@ -83,11 +82,13 @@ def run(spec,benchmark=False):
     if result.exists() and not benchmark:
         existing=json.loads(result.read_text())
         if existing.get('completed') and existing['spec']==spec:
-            for key in ['checkpoint','predictions']:
-                p=ROOT/existing[key]
-                assert p.exists() and sha256_file(p)==existing[key+'_sha256']
-            print('SKIP validated',tag,flush=True);return
-        raise RuntimeError(f'Existing result does not match protocol: {tag}')
+            valid=all((ROOT/existing[key]).exists() and sha256_file(ROOT/existing[key])==existing[key+'_sha256']
+                      for key in ['checkpoint','predictions'])
+            if valid:
+                print('SKIP validated',tag,flush=True);return
+            print('RETRAIN',tag,'stored artifacts missing or altered',flush=True)
+        else:
+            raise RuntimeError(f'Existing result does not match protocol: {tag}')
     device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     torch.set_num_threads(2);set_seed(spec['seed'],deterministic=True)
     # Match the original cuDNN default so a rerun reproduces the archived

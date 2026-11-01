@@ -8,11 +8,13 @@ other and shared logic lives in `src/`.
 
 ## Environment
 
-Python 3.11, PyTorch 2.11.0+cu128 (reference GPU: RTX 5060 Ti, 8 GB).
-`pip install -r requirements.txt`; the pinned reference environment is
-`requirements-reference-cu128.txt`. Stages 2, 3 and 5 retrain models and
-require CUDA. Stage 6 reloads trained checkpoints for inference and also
-finishes on CPU. Stages 1, 4, 7, 8 and 9 are table-driven and run on CPU.
+Python 3.11 (3.10 or newer required), PyTorch 2.11.0+cu128 (reference GPU:
+RTX 5060 Ti, 8 GB). `pip install -r requirements.txt`; the exact pinned
+reference environment is `requirements-reference-cu128.txt`. Stages 2, 3
+and 5 retrain models and require CUDA. Stage 6 reloads trained checkpoints
+for inference; every script in it except `export_dense_taus.py` (whose
+timing suite needs CUDA) also finishes on CPU. Stages 1, 4, 7, 8 and 9 are
+table-driven and run on CPU.
 
 ## Data
 
@@ -28,8 +30,10 @@ losses, calibration and evaluation.
 ## Determinism and verification
 
 - Training uses fixed seeds (basin-selection seed 42; model seeds 42/123/456)
-  and fixed final checkpoints; the sensitivity queue verifies protocol
-  identities and artifact hashes before reusing anything.
+  and fixed final checkpoints. Reruns resume where possible: the primary
+  fits, the ensemble, the dense-tau export, and the sensitivity queue skip
+  completed work after re-checking artifact hashes and retrain anything that
+  fails; the remaining stage-3 baseline trainers always retrain from scratch.
 - The evaluation protocol (`src/evaluation/protocol.py`) uses exact
   non-interpolated split-conformal ranks, within-basin 0.33/0.67 group cuts
   with ties in the lower group, and empty-set midpoint projection.
@@ -62,7 +66,9 @@ bytes are kept unchanged so archived hashes stay valid; readers should know:
 
 Everything regenerates under `results/` (gitignored): `results/tables/`
 (compact summaries), `results/figures/`, `results/predictions/`,
-`results/checkpoints/`, `results/cache/`, `results/logs/`. Nothing under
+`results/checkpoints/`, `results/cache/`, `results/logs/`,
+`results/drafts/` (generated LaTeX rows and macros for the manuscript), and
+`results/qa/` (verification reports). Nothing under
 `results/` is tracked by git, so a git tag pins code only. The complete
 frozen artifact set (compact tables, per-sample prediction archives,
 checkpoints, figures) is packaged as three release archives with a SHA-256

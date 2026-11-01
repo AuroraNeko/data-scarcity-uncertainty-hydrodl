@@ -107,21 +107,6 @@ def gaussian_crps(y,mu,sigma):
     z=(y-mu)/sigma
     return sigma*(z*(2*ndtr(z)-1)+2*np.exp(-z*z/2)/np.sqrt(2*np.pi)-1/np.sqrt(np.pi))
 
-def gaussian_mixture_crps(y,means,scales,weights):
-    """Analytic CRPS for finite Gaussian mixtures, evaluated in bounded chunks."""
-    means=np.asarray(means,dtype=float);scales=np.asarray(scales,dtype=float);weights=np.asarray(weights,dtype=float)
-    if np.any(scales<=0) or not np.allclose(weights.sum(axis=1),1):raise ValueError('Invalid Gaussian mixture')
-    def a(delta,sd):
-        z=delta/sd
-        return 2*sd*np.exp(-z*z/2)/np.sqrt(2*np.pi)+delta*(2*ndtr(z)-1)
-    first=(weights*a(np.asarray(y)[:,None]-means,scales)).sum(axis=1)
-    second=np.zeros(len(means))
-    for j in range(means.shape[1]):
-        delta=means[:,j,None]-means
-        sd=np.sqrt(scales[:,j,None]**2+scales**2)
-        second+=(weights[:,j,None]*weights*a(delta,sd)).sum(axis=1)
-    return first-0.5*second
-
 
 def nse(y, q):
     """Physical-scale Nash-Sutcliffe efficiency from log1p-scale inputs."""

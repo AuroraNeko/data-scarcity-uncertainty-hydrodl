@@ -5,7 +5,7 @@
 本仓库包含一项训练记录稀缺性研究的完整代码与数据流水线。研究回答两个
 问题：径流预报深度学习模型每多一年测流记录能带来多少提升？它的 90%
 不确定性区间要怎样才算达标？点预报技巧随记录稳定增长；区间覆盖率则
-不然，靠的是在一小段保留窗口上重校准。
+不然,要靠在一小段保留窗口上重校准才能恢复。
 
 ## 方法
 
@@ -14,7 +14,7 @@
 *每个模型只用 1995 年 9 月截点之前的最后 1、3、5 或 15 年标签训练。
 校准窗（1995-2000）与测试期（2000-2008）对所有训练长度完全相同。*
 
-**模型。** 所有实验共用同一个 LSTM 预报器。它每天读入之前 180 天的
+**模型。** 所有实验共用同一套 LSTM 架构。它每天读入之前 180 天的
 气象驱动和静态流域属性，输出径流中位数预报以及包围它的 0.05/0.95
 区间带。分位数（pinball）损失保证区间单调，上界不会低于中位数。
 
@@ -33,8 +33,8 @@
 互斥的 50 流域子集在 250 个独立流域上重复端点实验；671 流域基准
 比较八种不确定性构造；另有 48 个拟合覆盖架构与协议敏感性（TCN、
 13 分位数头、替代训练年份、365 天记忆）。标准 LSTM 作为单独的
-架构对照复跑两个端点。每个报告的效应都附带同时重采样流域与
-HUC2 分区的 bootstrap 区间。
+架构对照复跑两个端点。每个报告的效应都附带两种重采样方案的
+bootstrap 区间：等流域重采样与 HUC2 聚类重采样，并列报告。
 
 ## 关键结果
 
@@ -54,9 +54,11 @@ NSE 为 0.511，十五年升到 0.666，区间质量也随之改善。但原始 
 边际覆盖回到名义水平；再按预测流量分层修正，各流量组内部的覆盖也
 得到恢复。原始区间欠覆盖最重的高预测流量组改善最明显。
 
-![CQR 校准前后的条件覆盖](docs/figures/fig2_conditional_coverage.png)
+![CQR 校准后的条件覆盖](docs/figures/fig2_conditional_coverage.png)
 
-*按预测流量分组的覆盖率，在保留校准窗口上做 CQR 重校准前后对比。*
+*按观测流量分组的覆盖率。(a) 全局 CQR 重校准后,按训练长度;(b) 一年
+条件下:原始分位数带、全局 CQR、按预测流量分层 CQR,以及按观测流量
+分层的参照。半径在 1995-2000 校准窗口上拟合,覆盖率在测试期上统计。*
 
 | 结论 | 数值 |
 |---|---|
@@ -87,7 +89,8 @@ src/                    共享库层(data_preprocessing.py 也直接运行)
 experiments/            运行层,每脚本一个职责
 ├─ prepare/             缓存构建/校验、数据链与检查点审计
 ├─ train_primary/       主 12 拟合(队列驱动)、互斥子集、端点复跑
-├─ train_benchmark/     点模型与 671 流域八种构造、13 分位数稠密导出
+├─ train_benchmark/     点模型与 671 流域基准的训练脚本(第八种被比较的
+│                       构造——逐成员 split-CQR——在 evaluate/ 中组装)
 ├─ bias_correction/     中位数偏差修正诊断
 ├─ train_sensitivity/   48 个端点拟合(队列驱动)
 ├─ evaluate/            方法比较、逐成员 split-CQR、覆盖、评分、校准变体、无资料流域迁移
@@ -109,16 +112,20 @@ python download_camels.py
 python src/data/data_preprocessing.py
 python run_pipeline.py --list      # 查看阶段
 python run_pipeline.py --dry-run   # 只解析脚本路径,不运行
-python run_pipeline.py             # 全量重跑(阶段 2/3/5 需要 CUDA GPU)
+python run_pipeline.py             # 全量重跑(阶段 2/3/5 在 CUDA GPU 上
+                                    # 重训;阶段 6 有一个计时脚本也需要
+                                    # CUDA)
 ```
 
-参考环境:Python 3.11、PyTorch 2.11.0+cu128、RTX 5060 Ti(8GB);见
-`requirements-reference-cu128.txt`。数据、权重与逐样本预测不入库,各阶段在
-`results/` 下重建产物;冻结发布包及其 SHA-256 哈希见
+参考环境:Python 3.11(要求 3.10 及以上)、PyTorch 2.11.0+cu128、
+RTX 5060 Ti(8GB);精确固定版本见 `requirements-reference-cu128.txt`。
+数据、权重与逐样本预测不入库,各阶段在 `results/` 下重建产物;
+`docs/figures/` 下的图片是阶段 9 图表输出的提交副本,外加一张手工
+绘制的设计示意。冻结发布包及其 SHA-256 哈希见
 [REPRODUCIBILITY.md](REPRODUCIBILITY.md)。
 
 ## 引用与许可
 
 见 [CITATION.cff](CITATION.cff) 与 [LICENSE](LICENSE)。早期发布系列有 Zenodo
-概念 DOI [10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955),
-该概念记录不标识本轮修订。
+概念 DOI [10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955);
+概念记录汇聚所有版本,每个已发布版本有各自的 DOI。

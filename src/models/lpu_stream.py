@@ -51,16 +51,14 @@ class LPUStreamModel(nn.Module):
         embed_dim: int = 32,
         dropout: float = 0.3,
         quantiles: list[float] | None = None,
-        no_static: bool = False,
         enforce_monotonic: bool = False,
-        **kwargs,
+        **kwargs,  # saved model_config dicts carry extra descriptive keys
     ):
         super().__init__()
         self.hidden_size = hidden_size
-        self.embed_dim = 0 if no_static else embed_dim
+        self.embed_dim = embed_dim
         self.quantiles = quantiles  # None = point prediction, list = quantile mode
         self.n_outputs = len(quantiles) if quantiles else 1
-        self.no_static = no_static
         self.enforce_monotonic = enforce_monotonic
         if self.enforce_monotonic:
             if (
@@ -75,14 +73,11 @@ class LPUStreamModel(nn.Module):
                 )
 
         # Static catchment embedding
-        if not no_static:
-            self.embedding = StaticCatchmentEmbedding(n_static, embed_dim)
-        else:
-            self.embedding = None
+        self.embedding = StaticCatchmentEmbedding(n_static, embed_dim)
 
         # LSTM receives dynamic features + basin embedding at each timestep
         self.lstm = nn.LSTM(
-            input_size=n_dynamic if no_static else n_dynamic + embed_dim,
+            input_size=n_dynamic + embed_dim,
             hidden_size=hidden_size,
             num_layers=1,
             batch_first=True,
@@ -91,9 +86,8 @@ class LPUStreamModel(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         # Prediction head
-        head_input = hidden_size if no_static else hidden_size + embed_dim
         self.head = nn.Sequential(
-            nn.Linear(head_input, hidden_size // 2),
+            nn.Linear(hidden_size + embed_dim, hidden_size // 2),
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_size // 2, self.n_outputs),
@@ -108,25 +102,16 @@ class LPUStreamModel(nn.Module):
             point mode: (batch, 1)
             quantile mode: (batch, n_quantiles) e.g. [Q_0.05, Q_0.5, Q_0.95]
         """
-        # Basin embedding (skip if no_static)
-        if self.no_static:
-            z_basin = None
-            lstm_input = dynamic_seq
-        else:
-            z_basin = self.embedding(static_attrs)  # (batch, embed_dim)
-            z_expanded = z_basin.unsqueeze(1).expand(-1, dynamic_seq.size(1), -1)
-            lstm_input = torch.cat([dynamic_seq, z_expanded], dim=-1)
+        z_basin = self.embedding(static_attrs)  # (batch, embed_dim)
+        z_expanded = z_basin.unsqueeze(1).expand(-1, dynamic_seq.size(1), -1)
+        lstm_input = torch.cat([dynamic_seq, z_expanded], dim=-1)
 
         # LSTM encoding
         lstm_out, (h_n, _) = self.lstm(lstm_input)
         h_final = h_n[-1]  # (batch, hidden_size)
         h_final = self.dropout(h_final)
 
-        # Combine LSTM output with basin embedding (if available)
-        if self.no_static:
-            combined = h_final
-        else:
-            combined = torch.cat([h_final, z_basin], dim=-1)
+        combined = torch.cat([h_final, z_basin], dim=-1)
         output = self.head(combined)
         if self.enforce_monotonic and self.quantiles is not None:
             median = output[:, 1:2]

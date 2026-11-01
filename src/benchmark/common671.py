@@ -2,11 +2,12 @@
 
 Protocol mirrors the published full-basin comparison: the train window uses
 the original dataset path (365-day warm-up), calibration and test use the
-corrected context-supplying datasets, batch 1024, Adam 1e-3, 30 epochs,
-ReduceLROnPlateau(0.5, patience 3) on training loss, best state = minimum
-training loss. All splits are held GPU-resident (see gpu_loader) so the
-training stream never drains between batches. Predictions are de-standardized
-with the stored global target statistics before CQR and interval scoring.
+corrected context-supplying datasets, batch 1024, Adam 1e-3, up to 30 epochs
+with early stopping (patience 5), ReduceLROnPlateau(0.5, patience 3) on
+training loss, best state = minimum training loss. All splits are held
+GPU-resident (see gpu_loader) so the training stream never drains between
+batches. Predictions are de-standardized with the stored global target
+statistics before CQR and interval scoring.
 """
 from __future__ import annotations
 
@@ -22,7 +23,6 @@ import torch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # cudnn autotuning disabled on purpose: on this 8 GB WDDM card the
 # benchmarking pass reserves multi-GB transient workspaces, the allocator
@@ -31,9 +31,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 # per 300 batches mid-epoch). Fixed shapes make autotuning worthless anyway.
 torch.backends.cudnn.benchmark = False
 
-from src.data.dataset import CamelsDataset, get_basin_list  # noqa: E402
 from src.data.data_preprocessing import TRAIN_END, TRAIN_START  # noqa: E402
-from src.utils import get_device, set_seed  # noqa: E402
+from src.utils import get_device  # noqa: E402
 from src.corrections.common import ALPHA, conformal_radius  # noqa: E402
 from src.benchmark.gpu_loader import GpuSplitData  # noqa: E402
 
@@ -91,7 +90,8 @@ def build_loaders(device=None):
 
 def train_model(model, loss_fn, gpu_train, device, log_path: Path,
                 epochs: int = EPOCHS, selection_fn=None):
-    """Fixed 30-epoch budget; best state = minimum training (or selection) score."""
+    """Up to 30 epochs with early stopping (patience 5); the returned state
+    is the one with the minimum training (or selection) score."""
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=3)
@@ -151,6 +151,10 @@ def train_model(model, loss_fn, gpu_train, device, log_path: Path,
             with open(log_path, "a", encoding="utf-8") as handle:
                 handle.write(f"early stopping at epoch {epoch}\n")
             break
+    if best_state is None:
+        raise RuntimeError(
+            "no epoch produced a score below the initial best "
+            f"(last score {score:.6f}); training diverged")
     model.load_state_dict(best_state)
     return history, float(best_score)
 
@@ -176,6 +180,9 @@ def target_stats():
 
 
 def interval_metrics(lower, upper, y):
+    """Pooled interval scores; bounds are scored exactly as passed (the
+    corrections path additionally projects empty intervals, this one does
+    not, matching the archived benchmark tables)."""
     penalty = 2.0 / ALPHA
     width = upper - lower
     winkler = (

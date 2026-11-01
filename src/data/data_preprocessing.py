@@ -10,12 +10,10 @@ Usage:
 """
 
 import os
-import glob
 import argparse
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from datetime import datetime
 
 # Project paths
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -207,15 +205,6 @@ def apply_transform(series: pd.Series, transform: str) -> pd.Series:
         return np.log1p(series)
     elif transform == "sqrt":
         return np.sqrt(series)
-    return series
-
-
-def inverse_transform(series: pd.Series, transform: str) -> pd.Series:
-    """Inverse target variable transform."""
-    if transform == "log1p":
-        return np.expm1(series)
-    elif transform == "sqrt":
-        return np.square(series)
     return series
 
 

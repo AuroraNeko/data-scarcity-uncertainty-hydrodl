@@ -196,11 +196,6 @@ def crosscheck(cal, test, meta, tol: float = 5e-4) -> float:
     return radius
 
 
-def mean_sd(values):
-    arr = np.asarray(values, dtype=float)
-    return float(arr.mean()), float(arr.std(ddof=1))
-
-
 def load(year, seed):
     """Calibration/test arrays for one archived corrected scarcity run."""
     p = PROJECT_ROOT / f"results/predictions/corrected_scarcity/scarcity_{year}yr_basinseed42_modelseed{seed}.npz"

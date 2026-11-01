@@ -17,9 +17,10 @@ Usage:
 Stages 2, 3 and 5 retrain models and need a CUDA GPU (RTX-class, >=8 GB) plus
 the preprocessed CAMELS-US archive under data/. Stages 1, 4, 7, 8 and 9 are
 table-driven and run on CPU. Stage 6 reloads trained checkpoints for inference
-(method evaluation, ungauged transfer) and also completes on CPU, though it is
-much faster on GPU. Runtime for the full rerun is dominated by training
-(several GPU-days for all endpoints and seeds).
+(method evaluation, dense tau export, ungauged transfer); every script in it
+except export_dense_taus.py, whose timing suite needs CUDA, also completes on
+CPU, though much faster on GPU. Runtime for the full rerun is dominated by
+training (several GPU-days for all endpoints and seeds).
 """
 from __future__ import annotations
 
@@ -41,7 +42,7 @@ STAGES: dict[int, tuple[str, list[str]]] = {
         "experiments/train_primary/run_primary_fits.py",
         "experiments/train_primary/run_endpoint_replications.py",
     ]),
-    3: ("train-benchmark: point and uncertainty baselines on all 671 basins, dense tau grids", [
+    3: ("train-benchmark: point and uncertainty baselines on all 671 basins", [
         "experiments/train_benchmark/prepare_gpu.py",
         "experiments/train_benchmark/train_point_model.py",
         "experiments/train_benchmark/train_single_qr.py",
@@ -50,7 +51,6 @@ STAGES: dict[int, tuple[str, list[str]]] = {
         "experiments/train_benchmark/train_gaussian_quantile.py",
         "experiments/train_benchmark/train_mc_dropout_noise.py",
         "experiments/train_benchmark/train_point_reselect.py",
-        "experiments/train_benchmark/export_dense_taus.py",
     ]),
     4: ("correct: median-bias-fix diagnostics on the archived scarcity runs", [
         "experiments/bias_correction/apply_bias_fix.py",
@@ -59,8 +59,9 @@ STAGES: dict[int, tuple[str, list[str]]] = {
         "experiments/train_sensitivity/run_queue.py",
         "experiments/train_sensitivity/verify_chunked_recurrence.py",
     ]),
-    6: ("evaluate: corrected-method comparison, memberwise split-CQR, coverage groups, ungauged transfer", [
+    6: ("evaluate: corrected-method comparison, memberwise split-CQR, dense tau grids, coverage groups, ungauged transfer", [
         "experiments/evaluate/evaluate_corrected_methods.py",
+        "experiments/train_benchmark/export_dense_taus.py",
         "experiments/evaluate/memberwise_splitcqr.py",
         "experiments/evaluate/coverage_groups.py",
         "experiments/evaluate/distribution_scores.py",

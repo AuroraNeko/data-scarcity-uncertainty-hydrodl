@@ -49,13 +49,25 @@ class GpuSplitData:
         self.arange = torch.arange(seq_len, device=device)
         self.n = int(self.win_start.shape[0])
         self.basin_ids = list(dataset.basin_ids)
-        dates = np.empty(self.n, dtype="datetime64[D]")
-        for sample, (bidx, start) in enumerate(dataset.indices):
-            dates[sample] = dataset.basin_data[bidx]["dates"][start + seq_len]
-        self.target_dates = dates
+        if len(dataset.indices) != self.n:
+            raise ValueError(
+                "GpuSplitData mirrors every sliding window and ignores "
+                "target_start_date/target_end_date filters, so it only "
+                "accepts unfiltered CamelsDataset splits "
+                f"({len(dataset.indices)} windows passed, {self.n} total)")
+        # Target dates in the same (basin, window) order as win_start above.
+        self.target_dates = np.concatenate([
+            bd["dates"][seq_len:] for bd in dataset.basin_data
+        ]).astype("datetime64[D]")
         self._generator = None
 
     def batches(self, batch_size: int, shuffle: bool = False, seed: int | None = None):
+        """Yield (dynamic, static, target, mask) batches over all windows.
+
+        The shuffle generator is created on the first shuffled call and then
+        continues its stream, so successive epochs draw different permutations;
+        `seed` sets that first state and is ignored afterwards.
+        """
         if shuffle:
             if self._generator is None:
                 self._generator = torch.Generator(device=self.device)
