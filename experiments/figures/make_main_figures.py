@@ -30,11 +30,20 @@ def select_mean(frame,**selection):
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--require-complete',action='store_true');parser.add_argument('--preview',action='store_true');args=parser.parse_args()
     assert not(args.preview and args.require_complete)
+    training_path=BASE/'tables/revision_training_summary.json'
+    if not args.preview:
+        if not training_path.exists():raise RuntimeError('Completed training analysis is required for publication outputs')
+        declared=json.loads(training_path.read_text(encoding='utf-8'))
+        if declared.get('missing') or len(declared.get('available',[]))!=48:
+            raise RuntimeError('All 48 sensitivity fits are required; --preview is only for author layout work')
     GEN.mkdir(parents=True,exist_ok=True);FIG.mkdir(parents=True,exist_ok=True);(BASE/'figures').mkdir(parents=True,exist_ok=True)
+    from src.visualization.supplement_tables import supplementary_tables
+    supplementary_tables(ROOT,rows)
     cf=pd.read_csv(BASE/'tables/coverage_cells.csv');bf=pd.read_csv(BASE/'tables/basin_metrics.csv',dtype={'basin':str,'huc2':str})
     tail=pd.read_csv(BASE/'tables/tail_thresholds.csv');win=pd.read_csv(BASE/'tables/calibration_windows.csv')
     cov=json.loads((BASE/'tables/coverage_summary.json').read_text());comp=json.loads((BASE/'tables/method_comparison.json').read_text())
-    macros=dict(re.findall(r'\\newcommand\{\\(\w+)\}\{(.*)\}',Path(__file__).with_name('publication_base_macros.tex').read_text()))
+    from src.visualization.result_macros import control_macros
+    macros,bindings=control_macros(BASE/'tables')
     def pooled(year,method):return select_mean(cf,year=year,method=method,dimension='pooled')
     def group(year,method,dimension,label):return select_mean(cf,year=year,method=method,dimension=dimension,group=label)
     def nse_values(year,method='raw'):
@@ -49,6 +58,8 @@ def main():
         raw=pooled(year,'raw');cal=pooled(year,'global')
         for suffix,value in [('MedianNSE',np.mean(nse_values(year))),('RawPICP',raw.picp.mean()),('CQRPICP',cal.picp.mean()),
                              ('RawWidth',raw.mpiw.mean()),('RawWinkler',raw.winkler.mean())]:macros[prefix+suffix]=num(value)
+    for metric,name in [('mpiw','OneYearRawWidthIncreasePct'),('winkler','OneYearRawWinklerIncreasePct')]:
+        macros[name]=num(100*(pooled(1,'raw')[metric].mean()/pooled(15,'raw')[metric].mean()-1),0)+r'\%'
     ep=cov['endpoint_effects'];macros['ScarcityMedianNSEDelta']=num(ep['raw_nse']['estimate']);macros['ScarcityMedianNSEDeltaCI']=ci(ep['raw_nse']['basin_ci95'])
     macros['RevisionNSESpatialCI']=ci(ep['raw_nse']['huc2_cluster_ci95'])
     for key,prefix in [('raw_picp','RawPICPEndpoint'),('global_picp','CQRPICPEndpoint'),('raw_high_picp','RawHighPICPEndpoint'),('global_high_picp','CQRHighPICPEndpoint')]:
@@ -233,7 +244,9 @@ def main():
             vv=[pooled(y,method)[metric].to_numpy() for y in [1,3,5,15]]
             ax.errorbar(xx,[np.mean(v) for v in vv],yerr=[np.std(v,ddof=1) for v in vv],marker='o',label=label,color=color,capsize=3)
         ax.set_ylabel({'picp':'Pooled coverage','mpiw':'MPIW (log-flow)','winkler':'Winkler (log-flow)'}[metric])
-    axes[0,1].axhline(.9,color='black',ls='--',lw=.8);axes[1,0].legend(frameon=False);save(fig,'revision_scarcity')
+    axes[0,1].axhline(.9,color='black',ls='--',lw=.8);axes[1,0].legend(frameon=False)
+    for ax,letter in zip(axes.flat,'abcd'):ax.text(-.13,1.04,letter,transform=ax.transAxes,fontweight='bold',fontsize=13)
+    save(fig,'revision_scarcity')
     fig,axes=plt.subplots(2,2,figsize=(9,6),layout='constrained')
     for row,(dimension,title) in enumerate([('observed_flow','Observed outcomes'),('predicted_flow','Predicted flow')]):
         for g,color in zip(['low','middle','high'],[COLORS[1],COLORS[2],COLORS[3]]):
@@ -254,6 +267,7 @@ def main():
         vv=[select_mean(tail,year=1,method=method,requested_upper_fraction=f).picp.to_numpy() for f in fractions]
         axes[1].errorbar(np.asarray(fractions)*100,[v.mean() for v in vv],yerr=[v.std(ddof=1) for v in vv],marker='o',color=color,label=label,capsize=2)
     for ax in axes:ax.set_xscale('log');ax.set_xlim(36,1.8);ax.set_xticks([33,20,10,5,2],[33,20,10,5,2]);ax.set_xlabel('Requested upper share (%)');ax.set_ylabel('Observed-tail coverage');ax.axhline(.9,color='black',ls='--',lw=.8);ax.legend(frameon=False,fontsize=8)
+    for ax,letter in zip(axes,'ab'):ax.text(-.16,1.06,letter,transform=ax.transAxes,fontweight='bold',fontsize=13)
     save(fig,'revision_tail')
     fig,axes=plt.subplots(1,2,figsize=(9,3.8),layout='constrained')
     for ax,year in zip(axes,[1,15]):
@@ -295,9 +309,10 @@ def main():
             training_outputs(tr,macros,rows,save)
         elif args.require_complete:raise RuntimeError(f'{len(tr["missing"])} training fits missing')
     elif args.require_complete:raise RuntimeError('Training analysis is missing')
-    macros['RevisionPackageID']='1.1.0'
+    macros['RevisionPackageID']=re.search(r'^version:\s*"?([^"\s]+)',(ROOT/'CITATION.cff').read_text(),re.M).group(1)
     (GEN/'result_macros.tex').write_text('\n'.join('\\newcommand{\\'+k+'}{'+str(v)+'}' for k,v in macros.items())+'\n',encoding='utf-8')
     dump(BASE/'tables/publication_macro_values.json',macros)
+    dump(BASE/'tables/publication_control_macro_bindings.json',bindings)
     print('Publication tables and core figures generated',flush=True)
 
 if __name__=='__main__':main()
