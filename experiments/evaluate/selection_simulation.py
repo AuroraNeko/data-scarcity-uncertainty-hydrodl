@@ -16,6 +16,7 @@ from src.evaluation.protocol import interval_metrics
 from src.evaluation.protocol import dump
 
 def main():
+    (ROOT/'results/figures').mkdir(parents=True,exist_ok=True)
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
@@ -41,7 +42,7 @@ def main():
         for j,name in enumerate(schemes):
             values=[r['picp'] for r in rows if r['model']==name and r['grouping']==dim]
             ax.plot(range(3),values,marker='o',label=name,color=colors[j])
-        ax.axhline(.9,color='#777777',linestyle='--');ax.set_xticks(range(3),['Low','Middle','High']);ax.set_ylim(.45,1.)
+        ax.axhline(.9,color='#777777',linestyle='--');ax.set_xticks(range(3),['Low','Middle','High']);ax.set_ylim(.35,1.)
         ax.set_title(title,fontsize=10);ax.set_ylabel('90% interval coverage')
     axes[0].legend(frameon=False,fontsize=8);fig.savefig(ROOT/'results/figures/selection_simulation.png',dpi=220);plt.close(fig)
     print('Known-quantile selection simulation complete',flush=True)
