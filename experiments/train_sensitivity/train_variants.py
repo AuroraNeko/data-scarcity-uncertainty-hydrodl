@@ -23,6 +23,7 @@ from src.data.windows import Windows
 from src.heads.dense_heads import ChunkedPrimary
 from src.sensitivity import specs
 from src.utils import set_seed,sha256_file
+from src.sensitivity_identity import training_input_identity, require_input_identity, completed_run_valid
 
 BASE=ROOT/'results'
 TAUS3=[0.05,0.5,0.95]
@@ -78,17 +79,12 @@ def validation_loss(model,windows,idx,taus,batch=512):
     return float((tot/cnt).item())
 
 def run(spec,benchmark=False):
+    identity=training_input_identity(BASE,spec)
+    for directory in ['tables','logs','checkpoints/sensitivity','predictions/sensitivity']:
+        (BASE/directory).mkdir(parents=True,exist_ok=True)
     tag=spec['id'];result=BASE/f'tables/training_{tag}.json'
-    if result.exists() and not benchmark:
-        existing=json.loads(result.read_text())
-        if existing.get('completed') and existing['spec']==spec:
-            valid=all((ROOT/existing[key]).exists() and sha256_file(ROOT/existing[key])==existing[key+'_sha256']
-                      for key in ['checkpoint','predictions'])
-            if valid:
-                print('SKIP validated',tag,flush=True);return
-            print('RETRAIN',tag,'stored artifacts missing or altered',flush=True)
-        else:
-            raise RuntimeError(f'Existing result does not match protocol: {tag}')
+    if not benchmark and completed_run_valid(ROOT,BASE,spec,identity):
+        print('SKIP validated',tag,flush=True);return
     device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     torch.set_num_threads(2);set_seed(spec['seed'],deterministic=True)
     # Match the original cuDNN default so a rerun reproduces the archived
@@ -97,6 +93,7 @@ def run(spec,benchmark=False):
     torch.backends.cuda.matmul.allow_tf32=False
     raw=np.load(BASE/'cache/primary_raw.npz')
     windows=Windows(raw,spec['train_start'],spec['train_end'],device,seq=spec.get('seq_len',180))
+    if windows.norm!=identity['normalization']:raise RuntimeError('Window normalization changed after input validation')
     train=windows.indices(spec['train_start'],spec['train_end'])
     # A validation target is separate from all training targets and CQR targets.
     validation=windows.indices('1995-10-01','1996-09-30') if spec['validation'] else None
@@ -114,11 +111,14 @@ def run(spec,benchmark=False):
     start_epoch=0;history=[];best=math.inf;best_state=None;steps=0;budget_order=None;budget_cursor=0
     if progress.exists() and not benchmark:
         saved=torch.load(progress,map_location=device,weights_only=False)
-        assert saved['spec']==spec
+        require_input_identity(saved,identity,f'{tag} resume')
+        if saved['spec']!=spec:raise RuntimeError('Resume protocol differs')
         model.load_state_dict(saved['model']);optimizer.load_state_dict(saved['optimizer']);scheduler.load_state_dict(saved['scheduler'])
         start_epoch=saved['epoch'];history=saved['history'];best=saved['best'];best_state=saved['best_state'];steps=saved['steps']
         budget_order=saved.get('budget_order');budget_cursor=saved.get('budget_cursor',0)
-        torch.set_rng_state(saved['rng_cpu'].cpu());torch.cuda.set_rng_state(saved['rng_cuda'].cpu())
+        torch.set_rng_state(saved['rng_cpu'].cpu())
+        if device.type=='cuda' and saved.get('rng_cuda') is not None:
+            torch.cuda.set_rng_state(saved['rng_cuda'].cpu())
         print('RESUME',tag,start_epoch,flush=True)
     print('START',tag,'targets',len(train),'updates/round',updates_per_round,flush=True)
     started=time.time()
@@ -140,7 +140,7 @@ def run(spec,benchmark=False):
             loss=loss_fn(model(d,s),y,m,taus);loss.backward();nn.utils.clip_grad_norm_(model.parameters(),1.0);optimizer.step()
             n=m.sum();total+=loss.detach()*n;count+=n;steps+=1
             if benchmark and ib==19:
-                torch.cuda.synchronize()
+                if device.type=='cuda':torch.cuda.synchronize()
                 print('BENCHMARK',tag,'20 batches seconds',time.time()-tick,'reserved_MB',torch.cuda.memory_reserved()/2**20,flush=True)
                 return
         train_loss=float((total/count).item());scheduler.step(train_loss)
@@ -153,17 +153,17 @@ def run(spec,benchmark=False):
              'validation_pinball_log':None if val is None else val*windows.norm['target_std'],
              'learning_rate':optimizer.param_groups[0]['lr'],'seconds':time.time()-tick}
         history.append(row);print(tag,json.dumps(row),flush=True)
-        state={'spec':spec,'model':model.state_dict(),'optimizer':optimizer.state_dict(),'scheduler':scheduler.state_dict(),
+        state={'spec':spec,'input_identity':identity,'model':model.state_dict(),'optimizer':optimizer.state_dict(),'scheduler':scheduler.state_dict(),
                'epoch':epoch+1,'history':history,'best':best,'best_state':best_state,'steps':steps,
                'budget_order':budget_order,'budget_cursor':budget_cursor,
-               'rng_cpu':torch.get_rng_state(),'rng_cuda':torch.cuda.get_rng_state()}
+               'rng_cpu':torch.get_rng_state(),'rng_cuda':torch.cuda.get_rng_state() if device.type=='cuda' else None}
         temp=progress.with_suffix('.tmp');torch.save(state,temp);temp.replace(progress)
-        atomic(BASE/f'tables/progress_{tag}.json',{'spec':spec,'history':history,'completed':False})
+        atomic(BASE/f'tables/progress_{tag}.json',{'spec':spec,'input_identity':identity,'history':history,'completed':False})
     final_state={k:v.detach().cpu().clone() for k,v in model.state_dict().items()}
-    torch.save({'spec':spec,'final_state':final_state,'validation_selected_state':best_state if validation is not None else None,
+    torch.save({'spec':spec,'input_identity':identity,'final_state':final_state,'validation_selected_state':best_state if validation is not None else None,
                 'selection':'minimum_independent_validation_pinball' if validation is not None else 'final_epoch',
                 'normalization':windows.norm,'quantiles':taus_list,'history':history},checkpoint)
-    arrays={'taus':np.asarray(taus_list),'normalization_json':json.dumps(windows.norm)}
+    arrays={'taus':np.asarray(taus_list),'normalization_json':json.dumps(windows.norm),'input_identity_json':json.dumps(identity)}
     for split,idx in [('calibration',cal),('test',test)]:
         b,dates=windows.metadata(idx);i=idx.cpu().numpy();bb=i//windows.nd;tt=i%windows.nd
         arrays[f'{split}_basin']=b;arrays[f'{split}_dates']=dates
@@ -184,7 +184,7 @@ def run(spec,benchmark=False):
         for split,idx in [('calibration',cal),('test',test)]:
             arrays[f'{split}_selected_quantiles_log']=predict(model,windows,idx).astype(np.float32)
     prediction=BASE/f'predictions/sensitivity/{tag}.npz';np.savez_compressed(prediction,**arrays)
-    atomic(result,{'completed':True,'spec':spec,'train_target_count':len(train),'optimizer_updates':steps,
+    atomic(result,{'completed':True,'spec':spec,'input_identity':identity,'train_target_count':len(train),'optimizer_updates':steps,
         'n_parameters':sum(p.numel() for p in model.parameters()),'normalization':windows.norm,'history':history,
         'checkpoint':checkpoint.relative_to(ROOT).as_posix(),'checkpoint_sha256':sha256_file(checkpoint),
         'predictions':prediction.relative_to(ROOT).as_posix(),'predictions_sha256':sha256_file(prediction),

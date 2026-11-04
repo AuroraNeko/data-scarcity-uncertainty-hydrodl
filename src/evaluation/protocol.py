@@ -149,4 +149,6 @@ def clean(value):
 def dump(path, value):
     """Write a JSON file with numpy-safe serialization."""
     from pathlib import Path
-    Path(path).write_text(json.dumps(clean(value), indent=2, allow_nan=False), encoding="utf-8")
+    path=Path(path)
+    path.parent.mkdir(parents=True,exist_ok=True)
+    path.write_text(json.dumps(clean(value), indent=2, allow_nan=False), encoding="utf-8")

@@ -8,7 +8,7 @@ from scipy.special import ndtri
 
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
 from src.evaluation.protocol import integrated_quantile_score,gaussian_crps,conformal_radius,scores,interval_metrics,project_nonempty
-from src.evaluation.protocol import dump
+from src.evaluation.protocol import dump, observed_groups
 BASE=ROOT/'results';ARCH=ROOT/'results/predictions/corrected_full_671'
 
 def main():
@@ -16,12 +16,15 @@ def main():
     stats=json.loads((ROOT/'data/metadata/normalization_stats.json').read_text())
     mu,sd=stats['target_mean'],stats['target_std'];mask=arch['mask']>0
     y=arch['target'][mask].astype(float)*sd+mu;b=arch['basin_index'][mask];cuts=np.quantile(y,[.33,.67])
-    obs=np.searchsorted(cuts,y,side='left');taus3=np.array([.05,.5,.95]);rows=[];by_basin={};audits=[];levels=[];reliability={}
+    pooled_groups=np.searchsorted(cuts,y,side='left')
+    obs=observed_groups(y,b);taus3=np.array([.05,.5,.95]);rows=[];by_basin={};audits=[];levels=[];reliability={}
     archive_cal=np.load(ARCH/'calibration_predictions.npz');calmask=archive_cal['mask']>0
     cy=archive_cal['target'][calmask].astype(float)*sd+mu
     def score(name,kind,values,grid):
         key=f'{name}_{kind}';row={'method':name,'score':kind,'grid':grid,'scale':'log1p(mm/day)',
-            'pooled':float(values.mean()),'n':len(y),'low':float(values[obs==0].mean()),'high':float(values[obs==2].mean())}
+            'pooled':float(values.mean()),'n':len(y),'low':float(values[obs==0].mean()),'high':float(values[obs==2].mean()),
+            'absolute_pooled_low':float(values[pooled_groups==0].mean()),'absolute_pooled_high':float(values[pooled_groups==2].mean()),
+            'low_n':int((obs==0).sum()),'high_n':int((obs==2).sum())}
         sums=np.bincount(b,weights=values,minlength=671);n=np.bincount(b,minlength=671)
         by_basin[key]={'sum':sums,'n':n}
         rng=np.random.default_rng(20261030);draws=rng.integers(0,671,(2000,671))
@@ -39,6 +42,10 @@ def main():
         assert delta<1e-6
         q=dense['test'][mask].astype(float);taus=dense['taus'];cols=[int(np.flatnonzero(np.isclose(taus,t))[0]) for t in taus3]
         cq=dense['calibration'][calmask].astype(float)
+        # These overlaps bind the dense grid to the same fitted predictor as
+        # the three-quantile comparison, including after a checkpoint rerun.
+        for split,valid in [('test',mask),('calibration',calmask)]:
+            assert np.max(np.abs(dense[split][valid][:,cols]-own[split+'_quantiles_log'][valid]))<1e-6,(name,split,'dense/three-quantile mismatch')
         assert np.array_equal(dense['calibration_mask']>0,calmask)
         assert np.array_equal(own['calibration_dates'],index['calibration_dates'])
         assert np.max(np.abs(own['target_calibration'][calmask]-cy))<1e-6
@@ -82,7 +89,10 @@ def main():
                                          'basin_ci95':np.quantile(dif,[.025,.975])}
     pd.DataFrame(rows).to_csv(BASE/'tables/distribution_scores.csv',index=False)
     pd.DataFrame(levels).to_csv(BASE/'tables/dense_level_metrics.csv',index=False)
-    dump(BASE/'tables/scoring_summary.json',{'rows':rows,'alignment_audit':audits,'common_grid_paired_differences':paired,
+    dump(BASE/'tables/scoring_summary.json',{'group_definitions':{'low_high':'Within-basin observed test Q0.33/Q0.67; ties in lower group; retrospective',
+        'absolute_pooled_low_high':'Absolute observed test Q0.33/Q0.67 over all basins; ties in lower group',
+        'absolute_pooled_thresholds_log':cuts.tolist(),'changed_membership':int((obs!=pooled_groups).sum())},
+        'rows':rows,'alignment_audit':audits,'common_grid_paired_differences':paired,
         'level_reliability':reliability,'central_interval_levels':levels,
         'correction':'Old dense scoring mixed standardized targets with log-scale quantiles. Old reference scores were standardized, not log scale.',
         'common_grid_interpretation':'Finite-grid IQS; not a complete-distribution CRPS.',

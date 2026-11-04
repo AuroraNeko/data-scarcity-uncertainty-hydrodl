@@ -1,10 +1,13 @@
-"""Point-model checkpoint reselection on an independent segment.
+"""Point-model retraining with checkpoint selection on its training-period tail.
 
 The archived point checkpoint (MC Dropout base) was selected by validation
 MSE on 1995-2000, which the CQR calibration later reuses. This retraining
 selects on the training-period tail 1992-10-01..1995-09-30 instead, so no
 1995-2000 information influences checkpoint selection; the training window
-and every other hyperparameter follow the archived protocol. MC Dropout
+matches the archived period. This implementation schedules learning rate on
+training loss; the archived point-model entry point schedules on validation
+loss. The comparison therefore changes both selection data and optimization.
+It estimates sensitivity across these fixed fits. MC Dropout
 intervals (50 passes, empirical 5th/50th/95th percentiles) are then
 re-evaluated with the reselected checkpoint.
 """

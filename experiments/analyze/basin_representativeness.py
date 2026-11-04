@@ -27,7 +27,7 @@ from src.data.dataset import PROCESSED_DIR, get_basin_list, primary_basin_ids
 SELECTION_SEED = 42
 N_SCARCITY_BASINS = 50
 TABLE_DIR = PROJECT_ROOT / "results" / "tables"
-GENERATED_DIR = PROJECT_ROOT / "paper" / "generated"
+GENERATED_DIR = PROJECT_ROOT / "results" / "drafts" / "generated"
 
 STATIC_COLUMNS = [
     "elev_mean",

@@ -11,6 +11,7 @@ import os
 import urllib.request
 import sys
 import time
+import zipfile
 
 # Configuration
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "raw", "camels_us")
@@ -39,7 +40,9 @@ def download_file(filename, dest_dir, max_retries=3):
     filepath = os.path.join(dest_dir, filename)
 
     # Skip if already downloaded
-    if os.path.exists(filepath):
+    if os.path.exists(filepath) and os.path.getsize(filepath)>0 and (
+        not filename.endswith('.zip') or zipfile.is_zipfile(filepath)
+    ):
         size_mb = os.path.getsize(filepath) / (1024 * 1024)
         print(f"[SKIP] {filename} already exists ({size_mb:.1f} MB)")
         return True
@@ -63,7 +66,11 @@ def download_file(filename, dest_dir, max_retries=3):
                         print(f"\r  Progress: {pct:.1f}% ({dl_mb:.0f}/{total_mb:.0f} MB) "
                               f"| {speed:.1f} MB/s", end="", flush=True)
 
-            urllib.request.urlretrieve(url, filepath, reporthook=report_progress)
+            partial=filepath+'.part'
+            urllib.request.urlretrieve(url, partial, reporthook=report_progress)
+            if os.path.getsize(partial)==0 or (filename.endswith('.zip') and not zipfile.is_zipfile(partial)):
+                raise ValueError('Download is empty or is not a complete ZIP archive')
+            os.replace(partial,filepath)
 
             elapsed = time.time() - start_time
             size_mb = os.path.getsize(filepath) / (1024 * 1024)
@@ -72,8 +79,9 @@ def download_file(filename, dest_dir, max_retries=3):
 
         except Exception as e:
             print(f"\n  [ERROR] Attempt {attempt}/{max_retries}: {e}")
-            if os.path.exists(filepath):
-                os.remove(filepath)
+            partial=filepath+'.part'
+            if os.path.exists(partial):
+                os.remove(partial)
             if attempt < max_retries:
                 wait = 5 * attempt
                 print(f"  Retrying in {wait}s...")

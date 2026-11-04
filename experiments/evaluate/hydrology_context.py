@@ -18,6 +18,7 @@ def longest_true_run(mask):
     return int((ends-starts).max()) if len(starts) else 0
 
 def main():
+    (BASE/'figures').mkdir(parents=True,exist_ok=True)
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt

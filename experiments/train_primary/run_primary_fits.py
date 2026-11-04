@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from src.utils import repository_path, sha256_file  # noqa: E402
+from src.primary_identity import require_current_inputs
 
 TRAIN_SCRIPT = ROOT / "experiments" / "train_primary" / "train_scarcity_corrected.py"
 MODEL_SEEDS = [42, 123, 456]
@@ -54,6 +55,7 @@ def result_complete(years: int, model_seed: int) -> bool:
             artifact = repository_path(ROOT, result[path_key])
             if not artifact.is_file() or sha256_file(artifact) != result[hash_key]:
                 return False
+        require_current_inputs(ROOT, result)
         return True
     except (KeyError, OSError, TypeError, ValueError):
         return False

@@ -92,11 +92,15 @@ def contains_absolute_path(value: object) -> bool:
     return False
 
 
-def sanitize_result(path: Path) -> bool:
+def sanitize_result(path: Path, migrate: bool = False) -> bool:
     result = json.loads(path.read_text(encoding="utf-8"))
     checkpoint_path = repository_path(result["checkpoint"])
+    if sha256(checkpoint_path) != result.get('checkpoint_sha256'):
+        raise ValueError(f'Checkpoint hash changed before metadata audit: {checkpoint_path}')
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     state_digest = tensor_state_sha256(checkpoint["model_state_dict"])
+    if state_digest != result.get('checkpoint_tensor_sha256'):
+        raise ValueError(f'Trusted tensor digest missing or changed: {checkpoint_path}')
 
     args = checkpoint.get("args")
     rewritten = False
@@ -106,6 +110,8 @@ def sanitize_result(path: Path) -> bool:
         if not normalized.lower().endswith(CANONICAL_SUBSET_PATH.lower()):
             raise ValueError(f"Unexpected basin-list path in {checkpoint_path}: {value!r}")
         if value != CANONICAL_SUBSET_PATH:
+            if not migrate:
+                raise ValueError('Legacy path requires explicit --migrate-paths after identity verification')
             args["basin_list_file"] = CANONICAL_SUBSET_PATH
             rewritten = True
 
@@ -123,9 +129,14 @@ def sanitize_result(path: Path) -> bool:
             raise ValueError(f"Tensor state changed while sanitizing {checkpoint_path}")
         temp.replace(checkpoint_path)
 
+    if not rewritten:
+        return False
+    previous_hash = result['checkpoint_sha256']
     result["checkpoint_sha256"] = sha256(checkpoint_path)
     result["checkpoint_tensor_sha256"] = state_digest
     result["checkpoint_metadata_sanitized"] = True
+    result['metadata_migration'] = {'previous_checkpoint_sha256': previous_hash,
+                                  'tensor_sha256': state_digest, 'operation': 'relative_subset_path'}
     temp_json = path.with_suffix(path.suffix + ".tmp")
     temp_json.write_text(json.dumps(result, indent=2), encoding="utf-8")
     temp_json.replace(path)
@@ -133,6 +144,10 @@ def sanitize_result(path: Path) -> bool:
 
 
 def main() -> None:
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--migrate-paths', action='store_true')
+    args = parser.parse_args()
     paths = []
     for group in GROUPS:
         directory = ROOT / "results" / "tables" / group
@@ -144,7 +159,7 @@ def main() -> None:
     if not paths:
         raise FileNotFoundError("No v3 scarcity sensitivity result files found")
 
-    rewritten = sum(sanitize_result(path) for path in paths)
+    rewritten = sum(sanitize_result(path, args.migrate_paths) for path in paths)
     print(f"Audited {len(paths)} checkpoint/result pairs; rewrote {rewritten} checkpoints")
     print("Model-state tensor digests were unchanged")
 

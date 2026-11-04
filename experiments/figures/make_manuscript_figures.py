@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import csv
 import json
-import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -25,7 +24,6 @@ REPLICATION_PATH = ROOT / "results" / "tables" / "scarcity_replications" / "scar
 EQUAL_UPDATE_PATH = ROOT / "results" / "tables" / "scarcity_equal_updates" / "equal_update_summary.json"
 ARCHITECTURE_PATH = ROOT / "results" / "tables" / "scarcity_standard_lstm" / "architecture_sensitivity_summary.json"
 OUTPUT_DIR = ROOT / "results" / "figures" / "corrected"
-PAPER_DIR = ROOT / "paper" / "figures"
 STALE_FIGURE_STEMS = (
     "fig1_degradation",
     "fig2_method_comparison",
@@ -123,7 +121,6 @@ def edge_panel_label(axis, label: str) -> None:
 
 def save_figure(figure, stem: str, *, crop: bool = True) -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    PAPER_DIR.mkdir(parents=True, exist_ok=True)
     pdf = OUTPUT_DIR / f"{stem}.pdf"
     png = OUTPUT_DIR / f"{stem}.png"
     options = {"facecolor": "white"}
@@ -131,14 +128,12 @@ def save_figure(figure, stem: str, *, crop: bool = True) -> None:
         options.update({"bbox_inches": "tight", "pad_inches": 0.04})
     figure.savefig(pdf, **options)
     figure.savefig(png, **options)
-    shutil.copy2(pdf, PAPER_DIR / pdf.name)
-    shutil.copy2(png, PAPER_DIR / png.name)
     plt.close(figure)
 
 
 def remove_stale_figure_aliases() -> None:
     """Remove superseded numbered copies that could be mistaken for current figures."""
-    for directory in (OUTPUT_DIR, PAPER_DIR):
+    for directory in (OUTPUT_DIR,):
         for stem in STALE_FIGURE_STEMS:
             for suffix in (".pdf", ".png"):
                 path = directory / f"{stem}{suffix}"
@@ -306,10 +301,11 @@ def make_protocol_figure(summary: dict, methods: dict) -> None:
         fontsize=7.8,
         color=INK,
     )
-    axis.text(0.035, 0.08, "Only supervised record length changes", fontsize=7.4, color=GRAY)
-    axis.text(0.555, 0.80, "Independent method comparison", fontsize=8.4, fontweight="semibold", color=INK)
-    axis.text(0.555, 0.51, f"{methods['protocol']['n_basins']} basins x 3 base methods", fontsize=7.8, color=INK)
-    axis.text(0.555, 0.29, f"Raw/CQR = {len(methods['metrics'])} evaluated variants", fontsize=7.8, color=INK)
+    axis.text(0.035, 0.08, "Training years and update counts also differ", fontsize=7.4, color=GRAY)
+    axis.text(0.555, 0.80, "Separate full-basin comparison", fontsize=8.4, fontweight="semibold", color=INK)
+    expanded=load_json(ROOT/'results/tables/method_comparison.json')
+    axis.text(0.555, 0.51, f"{methods['protocol']['n_basins']} basins x {len(expanded['methods'])} interval constructions", fontsize=7.8, color=INK)
+    axis.text(0.555, 0.29, "Raw and calibrated intervals evaluated separately", fontsize=7.8, color=INK)
     axis.text(0.555, 0.08, "Common grid; 365-day sequences", fontsize=7.4, color=GRAY)
     edge_panel_label(axis, "b")
 
@@ -891,7 +887,7 @@ def make_replication_figure(summary: dict) -> None:
         edge_panel_label(axis, chr(ord("a") + panel_index))
     axes[0].set_yticklabels(labels)
     axes[1].tick_params(axis="y", which="both", left=False, labelleft=False)
-    save_figure(figure, "figS5_subset_replication", crop=False)
+    save_figure(figure, "subset_replication", crop=False)
 
 
 def make_equal_update_figure(summary: dict) -> None:
@@ -1044,7 +1040,7 @@ def main() -> None:
     make_replication_figure(replication)
     make_equal_update_figure(equal_updates)
     make_architecture_figure(architecture)
-    print(f"Corrected figures written to {OUTPUT_DIR} and synchronized to {PAPER_DIR}")
+    print(f"Corrected figures written to {OUTPUT_DIR}")
 
 
 if __name__ == "__main__":

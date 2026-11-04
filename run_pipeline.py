@@ -74,7 +74,9 @@ STAGES: dict[int, tuple[str, list[str]]] = {
         "experiments/evaluate/selection_simulation.py",
     ]),
     7: ("audit: data-chain and checkpoint hygiene checks", [
+        "experiments/prepare/audit_raw_sources.py",
         "experiments/prepare/audit_processed_data.py",
+        "experiments/prepare/audit_artifact_identity.py",
         "experiments/prepare/audit_checkpoint_metadata.py",
     ]),
     8: ("analyze: training summaries, paired effects, representativeness, learning curves", [
@@ -84,10 +86,12 @@ STAGES: dict[int, tuple[str, list[str]]] = {
         "experiments/analyze/conditional_robustness.py",
         "experiments/analyze/basin_representativeness.py",
         "experiments/analyze/learning_curves.py",
+        "experiments/analyze/submission_diagnostics.py",
     ]),
     9: ("figures: all paper figures from the frozen tables", [
         "experiments/figures/make_main_figures.py",
         "experiments/figures/make_manuscript_figures.py",
+        "experiments/figures/make_readme_figures.py",
     ]),
 }
 

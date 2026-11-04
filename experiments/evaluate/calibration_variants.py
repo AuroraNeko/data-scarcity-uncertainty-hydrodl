@@ -21,6 +21,7 @@ from src.evaluation.protocol import dump
 BASE=ROOT/'results'
 
 def main():
+    (BASE/'figures').mkdir(parents=True,exist_ok=True)
     rows=[];daily=[];asymrows=[]
     for year in [1,3,5,15]:
         for seed in [42,123,456]:

@@ -1,6 +1,6 @@
 """Training-loss trajectories for the equal-update sensitivity.
 
-Produces paper/figures/figS8_learning_curves.pdf:
+Produces results/figures/figS5_learning_curves.pdf:
   (a) masked pinball training loss vs cumulative optimizer updates for the
       15-year fixed-epoch run (16,050 updates), the 15-year equal-update run
       (1,080 updates), and the 1-year equal-update run (1,080 updates);
@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "paper" / "figures" / "figS8_learning_curves.pdf"
+OUT = ROOT / "results" / "figures" / "figS5_learning_curves.pdf"
 
 BLUE = "#0072B2"
 VERMILLION = "#D55E00"
@@ -142,6 +142,7 @@ def main() -> None:
     ax.grid(axis="y", alpha=0.35, linewidth=0.5)
     ax.text(-0.20, 1.04, "c", transform=ax.transAxes, fontsize=11, fontweight="bold", va="top")
 
+    OUT.parent.mkdir(parents=True,exist_ok=True)
     figure.savefig(OUT)
     print("saved:", OUT)
 

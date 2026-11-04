@@ -8,16 +8,24 @@ import numpy as np
 import torch
 
 
+def fit_normalization(raw, train_start, train_end):
+    """Fit the declared statistics without allocating GPU window tensors."""
+    dates=raw['dates'];fit=(dates>=np.datetime64(train_start))&(dates<=np.datetime64(train_end))
+    dyn=raw['dynamic'];y=raw['target'];valid=(raw['mask']>0)&np.isfinite(y)
+    dv=dyn[:,fit,:].reshape(-1,dyn.shape[-1]);tv=y[:,fit][valid[:,fit]]
+    return {'fit_start':train_start,'fit_end':train_end,'target_mean':float(tv.mean()),'target_std':float(tv.std()+1e-8),
+            'dynamic_mean':np.nanmean(dv,axis=0).tolist(),'dynamic_std':(np.nanstd(dv,axis=0)+1e-8).tolist(),
+            'static_mean':np.nanmean(raw['static'],axis=0).tolist(),'static_std':(np.nanstd(raw['static'],axis=0)+1e-8).tolist()}
+
+
 class Windows:
     def __init__(self,raw,train_start,train_end,device,seq=180):
         self.raw=raw;self.device=device;self.seq=seq
         self.dates=raw['dates'];self.basins=raw['basins'];self.nb=len(self.basins);self.nd=len(self.dates)
-        fit=(self.dates>=np.datetime64(train_start))&(self.dates<=np.datetime64(train_end))
         dyn=raw['dynamic'];y=raw['target'];valid=(raw['mask']>0)&np.isfinite(y)
-        dv=dyn[:,fit,:].reshape(-1,dyn.shape[-1]);tv=y[:,fit][valid[:,fit]]
-        dm=np.nanmean(dv,axis=0);ds=np.nanstd(dv,axis=0)+1e-8
-        tm=float(tv.mean());ts=float(tv.std()+1e-8)
-        sm=np.nanmean(raw['static'],axis=0);ss=np.nanstd(raw['static'],axis=0)+1e-8
+        self.norm=fit_normalization(raw,train_start,train_end)
+        dm=self.norm['dynamic_mean'];ds=self.norm['dynamic_std'];tm=self.norm['target_mean'];ts=self.norm['target_std']
+        sm=self.norm['static_mean'];ss=self.norm['static_std']
         # Match CamelsDataset's float32 normalization arithmetic.
         dn=dyn.astype(np.float32)
         for c in range(dn.shape[-1]):dn[:,:,c]=(dn[:,:,c]-float(dm[c]))/float(ds[c])
@@ -29,8 +37,6 @@ class Windows:
         self.mask=torch.tensor(valid.astype(np.float32),device=device)
         self.static=torch.tensor(np.nan_to_num(sn),device=device)
         self.lags=torch.arange(-seq,0,device=device)
-        self.norm={'fit_start':train_start,'fit_end':train_end,'target_mean':tm,'target_std':ts,
-                   'dynamic_mean':dm.tolist(),'dynamic_std':ds.tolist(),'static_mean':sm.tolist(),'static_std':ss.tolist()}
     def indices(self,start,end):
         days=np.flatnonzero((self.dates>=np.datetime64(start))&(self.dates<=np.datetime64(end)))
         assert len(days) and days.min()>=self.seq

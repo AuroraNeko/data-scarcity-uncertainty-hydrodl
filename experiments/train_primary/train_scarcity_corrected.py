@@ -1,6 +1,6 @@
 """Run the controlled training-record scarcity experiment and sensitivities.
 
-Protocol v2 changes only the number of supervised training years. Every
+Protocol v2 varies supervised training years with a fixed epoch budget. Every
 condition shares the same basin set, training end date, 180-day input memory,
 batch size, calibration targets, test targets, optimizer, and epoch budget.
 Normalization is fitted separately from the allowed training basins and dates.
@@ -530,6 +530,8 @@ def main() -> None:
         raise FileExistsError(f"Result already exists: {result_path}; pass --force to replace it")
 
     train_target_start = TRAIN_STARTS[args.years]
+    from src.primary_identity import processed_source_hashes
+    initial_sources = processed_source_hashes(PROJECT_ROOT, selected_basins)
     normalization = compute_normalization_stats(
         selected_basins, train_target_start, TRAIN_END
     )
@@ -709,6 +711,8 @@ def main() -> None:
         valid_target, test_prediction_log[test_valid, 1]
     )
 
+    if processed_source_hashes(PROJECT_ROOT, selected_basins) != initial_sources:
+        raise RuntimeError('Processed inputs changed during fitting; preserve existing artifacts')
     checkpoint_temp = checkpoint_path.with_suffix(".tmp.pt")
     checkpoint_args = vars(args).copy()
     if args.basin_list_file:
@@ -786,6 +790,8 @@ def main() -> None:
         "predictions_sha256": sha256(prediction_path),
         "timestamp": datetime.now().isoformat(),
     }
+    from src.primary_identity import input_identity
+    result['input_identity'] = input_identity(PROJECT_ROOT, result)
     atomic_json(result_path, result)
 
     print("\nControlled scarcity result", flush=True)

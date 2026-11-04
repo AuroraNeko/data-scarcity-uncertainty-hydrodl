@@ -1,0 +1,122 @@
+{
+  "generator": "experiments/figures/make_readme_figures.py",
+  "generator_sha256": "56d7efcacf96333b0a4b6be8e96873a18d2506e9f785b21c09a04c35d981887e",
+  "inputs_sha256": {
+    "results/tables/coverage_cells.csv": "daecf94cda34ff985761ba2f86c9f64ac83760c8bd10e773a026d9e2195c7879",
+    "results/tables/basin_metrics.csv": "9709f9fdbddb2817e567884e424b91fc086babe6ea5030ef6e6c6092f664e594",
+    "results/tables/coverage_summary.json": "3fc37f5b3a6375309f66d893357f71847828b4571d42d87efb8c62a0453a05aa"
+  },
+  "uncertainty": "Mean and sample SD over three model seeds; plotted SD bars are not confidence intervals.",
+  "groups": [
+    {
+      "dimension": "predicted_flow",
+      "method": "raw",
+      "group": "low",
+      "mean_picp": 0.8366882743894886
+    },
+    {
+      "dimension": "predicted_flow",
+      "method": "raw",
+      "group": "middle",
+      "mean_picp": 0.7703478716092781
+    },
+    {
+      "dimension": "predicted_flow",
+      "method": "raw",
+      "group": "high",
+      "mean_picp": 0.7153923756655876
+    },
+    {
+      "dimension": "predicted_flow",
+      "method": "global",
+      "group": "low",
+      "mean_picp": 0.9444400763277474
+    },
+    {
+      "dimension": "predicted_flow",
+      "method": "global",
+      "group": "middle",
+      "mean_picp": 0.9032733370565508
+    },
+    {
+      "dimension": "predicted_flow",
+      "method": "global",
+      "group": "high",
+      "mean_picp": 0.8315544257431798
+    },
+    {
+      "dimension": "predicted_flow",
+      "method": "predicted",
+      "group": "low",
+      "mean_picp": 0.8905448275524245
+    },
+    {
+      "dimension": "predicted_flow",
+      "method": "predicted",
+      "group": "middle",
+      "mean_picp": 0.9062199383369794
+    },
+    {
+      "dimension": "predicted_flow",
+      "method": "predicted",
+      "group": "high",
+      "mean_picp": 0.8815198778508703
+    },
+    {
+      "dimension": "observed_flow",
+      "method": "raw",
+      "group": "low",
+      "mean_picp": 0.7830115684387325
+    },
+    {
+      "dimension": "observed_flow",
+      "method": "raw",
+      "group": "middle",
+      "mean_picp": 0.7965183298475216
+    },
+    {
+      "dimension": "observed_flow",
+      "method": "raw",
+      "group": "high",
+      "mean_picp": 0.7489105277424466
+    },
+    {
+      "dimension": "observed_flow",
+      "method": "global",
+      "group": "low",
+      "mean_picp": 0.9316902250152547
+    },
+    {
+      "dimension": "observed_flow",
+      "method": "global",
+      "group": "middle",
+      "mean_picp": 0.9104595059120747
+    },
+    {
+      "dimension": "observed_flow",
+      "method": "global",
+      "group": "high",
+      "mean_picp": 0.8412254912181933
+    },
+    {
+      "dimension": "observed_flow",
+      "method": "predicted",
+      "group": "low",
+      "mean_picp": 0.8960727698201514
+    },
+    {
+      "dimension": "observed_flow",
+      "method": "predicted",
+      "group": "middle",
+      "mean_picp": 0.917030778682018
+    },
+    {
+      "dimension": "observed_flow",
+      "method": "predicted",
+      "group": "high",
+      "mean_picp": 0.866761191851373
+    }
+  ],
+  "observed_group_rule": "Within-basin test Q0.33/Q0.67, ties in the lower group; retrospective.",
+  "predicted_group_rule": "Within-basin calibration-predicted Q0.33/Q0.67; radii pooled across relative calibration strata."
+}

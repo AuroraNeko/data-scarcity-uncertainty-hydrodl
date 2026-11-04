@@ -11,8 +11,21 @@ from src.data.dataset import DYNAMIC_VARS, STATIC_COLS, primary_basin_ids
 
 def main():
     out=ROOT/'results/cache/primary_raw.npz'
+    out.parent.mkdir(parents=True,exist_ok=True)
     if out.exists():
-        print('Existing raw cache:',out,flush=True)
+        metadata=out.with_suffix('.json')
+        if not metadata.exists():raise RuntimeError('Raw cache has no source manifest; rebuild it before fitting')
+        saved=json.loads(metadata.read_text(encoding='utf-8'))
+        expected=primary_basin_ids()
+        if set(saved['source_sha256'])!=set(expected):raise RuntimeError('Raw cache basin set changed; rebuild it before fitting')
+        for b,digest in saved['source_sha256'].items():
+            p=ROOT/f'data/processed/camels_us/{b}.csv'
+            if hashlib.sha256(p.read_bytes()).hexdigest()!=digest:
+                raise RuntimeError(f'Raw cache source changed: {b}; rebuild it before fitting')
+        with np.load(out) as raw:
+            assert raw['basins'].tolist()==expected,'Raw cache basin order differs'
+            assert raw['dynamic'].shape[:2]==raw['target'].shape==raw['mask'].shape
+        print('Existing raw cache source hashes verified:',out,flush=True)
         return
     # The primary basin set is derived from metadata alone, so this stage
     # does not depend on any training-stage output.

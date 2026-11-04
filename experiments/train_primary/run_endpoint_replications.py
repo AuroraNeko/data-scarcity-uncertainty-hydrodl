@@ -11,6 +11,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+from src.primary_identity import require_current_inputs
 TRAIN_SCRIPT = ROOT / "experiments" / "train_primary" / "train_scarcity_corrected.py"
 SUBSET_FILE = ROOT / "results" / "tables" / "scarcity_replications" / "replication_subsets.csv"
 MODEL_SEEDS = [42, 123, 456]
@@ -81,6 +83,7 @@ def result_complete(
             artifact = repository_path(result[path_key])
             if not artifact.is_file() or sha256(artifact) != result[hash_key]:
                 return False
+        require_current_inputs(ROOT, result, subset_id)
         return True
     except (KeyError, OSError, TypeError, ValueError):
         return False

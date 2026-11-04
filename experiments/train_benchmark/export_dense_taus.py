@@ -59,6 +59,45 @@ MODEL_CLASSES = {
     "mc_dropout_noise": NoiseStream,
 }
 
+def cache_inputs():
+    paths=[ROOT/'data/metadata/normalization_stats.json',TABLE_DIR/'dense_reliability.json']
+    for name in MODEL_CLASSES:
+        paths.extend([CKPT_DIR/f'{name}.pt',PRED_DIR/f'{name}_predictions.npz',PRED_DIR/f'dense_{name}_taus.npz'])
+    for name in ['calibration_predictions.npz','test_predictions.npz','evaluation_index.npz']:
+        paths.append(ROOT/'results/predictions/corrected_full_671'/name)
+    return {p.relative_to(ROOT).as_posix():sha256_file(p) for p in paths}
+
+def validate_grid_contents():
+    """Bind legacy grids to their current three-tau predictions and weights."""
+    for name in MODEL_CLASSES:
+        meta=json.loads((TABLE_DIR/f'{name}.json').read_text(encoding='utf-8'))
+        assert sha256_file(CKPT_DIR/f'{name}.pt')==meta['checkpoint_sha256']
+        assert sha256_file(PRED_DIR/f'{name}_predictions.npz')==meta['predictions_sha256']
+        with np.load(PRED_DIR/f'dense_{name}_taus.npz') as dense, np.load(PRED_DIR/f'{name}_predictions.npz') as own:
+            assert np.array_equal(dense['taus'],np.asarray(TAUS))
+            cols=[tau_index(t) for t in [.05,.5,.95]]
+            for split in ['calibration','test']:
+                valid=own[f'{split}_mask']>0
+                assert np.array_equal(dense[f'{split}_mask']>0,valid)
+                assert dense[split].shape==(len(valid),len(TAUS))
+                assert np.isfinite(dense[split][valid]).all()
+                assert np.max(abs(dense[split][valid][:,cols]-own[f'{split}_quantiles_log'][valid]))<1e-6
+
+def completed_cache_valid():
+    """Reuse only a cache whose grids, weights and reference inputs still match."""
+    manifest=TABLE_DIR/'dense_grid_manifest.json'
+    try:
+        current=cache_inputs()
+        if manifest.exists():
+            return json.loads(manifest.read_text(encoding='utf-8'))['files']==current
+        # Older exports predate the manifest. Adopt them only after checking
+        # all overlapping quantiles and upstream checkpoint/prediction hashes.
+        validate_grid_contents()
+        manifest.write_text(json.dumps({'files':current,'validation':'full shared-quantile check before legacy-cache adoption'},indent=2),encoding='utf-8')
+        return True
+    except (OSError,KeyError,ValueError,AssertionError):
+        return False
+
 
 def tau_index(tau):
     """Nearest-tau lookup; alpha/2 floats like 0.15000000000000002 break ==."""
@@ -343,7 +382,7 @@ def main():
     have_grids = all(
         (PRED_DIR / f"dense_{name}_taus.npz").exists() for name in MODEL_CLASSES
     )
-    if have_grids and reliability_path.exists() and not force:
+    if have_grids and reliability_path.exists() and not force and completed_cache_valid():
         print("SKIP completed dense tau grids and reliability table", flush=True)
         return
 
@@ -401,6 +440,8 @@ def main():
     out["timing_reproduction_check"] = fresh
     TABLE_DIR.mkdir(parents=True, exist_ok=True)
     reliability_path.write_text(json.dumps(out, indent=2), encoding="utf-8")
+    validate_grid_contents()
+    (TABLE_DIR/'dense_grid_manifest.json').write_text(json.dumps({'files':cache_inputs(),'validation':'fresh export and full shared-quantile check'},indent=2),encoding='utf-8')
     print("wrote", reliability_path, flush=True)
     for name in MODEL_CLASSES:
         print(f"dense_{name}_taus.npz sha256 {sha256_file(PRED_DIR / f'dense_{name}_taus.npz')}",

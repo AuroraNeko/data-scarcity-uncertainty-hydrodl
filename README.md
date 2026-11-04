@@ -1,156 +1,87 @@
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](README.md) · [简体中文](README.zh-CN.md)
 
-# How supervised training-record length affects point skill and interval reliability in streamflow forecasting
+# Training-record length, forecast skill and interval reliability
 
-This repository holds the full pipeline for a study of training-record
-scarcity in deep-learning streamflow forecasting: how much does the model
-gain from each additional year of gauge record, and what does it take for
-its 90% uncertainty bands to reach their nominal coverage? Point skill grows
-steadily with the record. Interval coverage does not; it is restored by
-recalibrating on a short held-out window.
+Code for **How supervised training-record length affects point skill and interval reliability in streamflow forecasting**.
 
-## Approach
+How do point predictions and uncertainty intervals change when a regional streamflow model has fewer years of training labels? On the primary CAMELS-US experiment, longer records improve point skill and interval scores. CQR brings pooled 90% coverage close to nominal, while reliability still varies across basins and forecast conditions.
 
-![Experiment design](docs/figures/design_timeline.png)
+[Experiment and results](#experiment-and-results) · [Reproduce](#reproduce) · [Repository guide](#repository-guide) · [Protocol and artifact guide](REPRODUCIBILITY.md)
 
-*Each model is trained on the last 1, 3, 5, or 15 years of labels before the
-September 1995 cutoff. The calibration window (1995-2000) and the test
-period (2000-2008) are identical for every training length.*
+## Experiment and results
 
-**The model.** All experiments share one LSTM architecture. Each day it reads
-the previous 180 days of weather forcings plus static catchment attributes
-and outputs a median streamflow forecast with a 0.05/0.95 band around it. A
-quantile (pinball) loss keeps the band monotone, so the upper bound never
-falls below the median.
+![Training, calibration and test periods for the primary experiment](docs/figures/design_timeline.png)
 
-**The question.** Gauge records are expensive, and many basins have only a
-few years of measurements, so it matters whether a forecaster needs the full
-record or works well with a short one. The same model is trained four times
-per basin and seed, on the last 1, 3, 5, or 15 years of labels before the
-September 1995 cutoff. Nothing after the cutoff is used for training.
+The primary experiment fits **one regional model across the same 50 basins** for each combination of 1, 3, 5 or 15 supervised years and three model seeds: **12 fits**. All training ends on 30 September 1995. Calibration uses October 1995–September 2000; testing uses October 2000–December 2008.
 
-**Calibration.** The raw quantile bands of a neural network usually miss
-their nominal coverage. Every model is therefore recalibrated with split
-conformalized quantile regression (CQR): the held-out 1995-2000 window
-measures how far the bands are off, and a single constant widens or narrows
-all intervals by that amount. Three variants are compared: a global
-correction, per-basin corrections, and corrections stratified by predicted
-flow level.
+Each forecast uses the preceding 180 days of weather and 13 static attributes, with no observed streamflow input. The LSTM predicts three ordered quantiles, 0.05/0.50/0.95. **Softplus offsets enforce their ordering**; a masked pinball loss trains them. The 15 supplied weather channels contain 13 distinct series because two upstream temperature pairs are duplicated.
 
-**Scale.** The primary set covers 50 CAMELS-US basins with three training
-seeds each. Four disjoint 50-basin subsets repeat the endpoints on 250 unique
-basins, a 671-basin benchmark compares eight uncertainty constructions, and
-48 further fits cover architecture and protocol sensitivities (TCN, a
-13-quantile head, alternative training years, 365-day memory). A standard
-LSTM repeats both endpoints as a separate architecture check. Every reported
-effect carries bootstrap intervals from two resampling schemes, an
-equal-basin resample and a HUC2-cluster resample, reported side by side.
+The observation budget matters: **one year of training labels still comes with five separate years of calibration flow observations**. Nested windows also change the years represented and the number of optimizer updates under a fixed epoch budget. The study evaluates this historical allocation of observations, with sensitivity experiments to test its limits.
 
-## Key results
+### Point skill and interval quality
 
-Two figures summarize the findings; the table lists the exact numbers.
+![Point skill and pooled raw versus global-CQR coverage across four training lengths](docs/figures/fig1_scarcity_effects.png)
 
-**A longer record improves accuracy but not coverage.** Median basin NSE
-rises from 0.511 with one supervised year to 0.666 with fifteen, and
-interval quality improves along with it. Raw 90% coverage, however, stays
-below the nominal level at every training length: 0.776 at one year, 0.821
-at fifteen. Longer records alone therefore do not make uncalibrated
-quantile predictions reliable.
+Median basin NSE rises from **0.511 to 0.666** between the one- and fifteen-year conditions. Raw 90% coverage rises from **0.776 to 0.821**, remaining below nominal. Short-record intervals are wider and have worse interval scores. Error bars above show sample SD across three model seeds; paired confidence intervals are reported separately below.
 
-![Effect of supervised training-record length](docs/figures/fig1_scarcity_effects.png)
+### Pooled coverage and subgroup reliability
 
-*Supervised training-record length against point skill and interval behavior
-on the 50 primary basins. Skill and coverage grow with the record; raw
-coverage stays below the nominal 0.90 until recalibration.*
+![One-year model coverage in calibration-predicted groups and retrospective observed-flow groups](docs/figures/fig2_conditional_coverage.png)
 
-**Calibration is what restores coverage.** Recalibrating on the held-out
-1995-2000 window with conformalized quantile regression brings marginal
-coverage back to the nominal level, and stratifying the correction on
-predicted flow restores coverage within each flow regime. The high
-predicted-flow group, where raw intervals miss most, gains the most.
+The left panel groups days using calibration-period predicted-flow thresholds, so group membership is available before observing the outcome. In the high predicted-flow group, stratified CQR improves coverage from **0.832 to 0.882**, leaving a shortfall below 0.90. The right panel selects groups by realized test flow: these are retrospective stress tests, whose coverage can be reduced by outcome selection itself. The two groupings answer different questions.
 
-![Conditional coverage after CQR calibration](docs/figures/fig2_conditional_coverage.png)
-
-*Coverage by observed-flow regime. (a) After global CQR recalibration, by
-training length. (b) The 1-year condition: raw quantile bands, global CQR,
-predicted-regime CQR, and an observed-regime reference. Radii are fitted on
-the 1995-2000 calibration window; coverage is scored on the test window.*
-
-| Claim | Value |
+| Quantity | Result and interpretation |
 |---|---|
-| Median basin NSE, 1yr → 15yr | 0.511 → 0.666; paired median effect 0.140 [0.104, 0.173] |
-| Raw pooled 90% coverage, 1yr → 15yr | 0.776 → 0.821; equal-basin effect +4.6 pp [1.5, 7.7], 72% of basins positive |
-| One-year high **predicted**-flow coverage, global → stratified CQR | 0.832 → 0.882; gain +5.0 pp, positive under basin, HUC2 and synchronous-year resampling |
-| Dense distribution scores (13-point IQS, log1p scale) | MDN 0.077511, Gaussian head 0.078314, noise-MC 0.081902; analytic Gaussian CRPS 0.080759 |
-| Multi-level counterexample | 50% raw coverage 0.420 (1yr) vs 0.370 (15yr); TCN over-covers 0.930/0.922 |
-| Matched 365-vs-180-day memory NSE effect | +0.0002 [-0.0022, 0.0070] short; +0.0072 [0.0002, 0.0125] long |
+| Primary NSE, 1 → 15 years | 0.511 → 0.666; paired median difference **0.140 [0.104, 0.173]**; 94% of basins improve |
+| Raw pooled 90% coverage | 0.776 → 0.821; equal-basin difference **+4.6 percentage points [1.5, 7.7]**; 72% of basins improve |
+| One-year high predicted-flow coverage | Global → stratified CQR: **0.832 → 0.882**; gain +5.0 percentage points, positive under basin, HUC2 and synchronous-year resampling |
+| Common 13-point distribution score | MDN 0.077511; Gaussian head 0.078314; noise-MC 0.081902. These are finite-grid IQS on the log-flow scale; complete Gaussian CRPS is 0.080759 |
+| Coverage counterexamples | At nominal 50%, raw coverage is 0.420 / 0.370 for 1 / 15 years. TCN raw 90% intervals over-cover at both endpoints: 0.930 / 0.922 |
+| Matched 365 − 180-day memory effect on NSE | Short record: +0.0002 [−0.0022, 0.0070]; long record: +0.0072 [0.0002, 0.0125] |
 
-Across the resampling schemes, score and point-skill directions are more
-stable than raw coverage, and no universal raw-coverage gradient is claimed.
+Brackets are 95% paired whole-basin bootstrap intervals conditional on fitted models and the selected historical periods. HUC2 intervals provide an additional dependence sensitivity; they do not measure independent retraining uncertainty. A difference between endpoint medians and a median of paired basin differences have different aggregation orders.
 
-## Repository layout
-
-```
-src/                    shared library (data_preprocessing.py also runs directly)
-├─ evaluation/          scoring protocol: CQR radius, interval scores, IQS,
-│                       analytic CRPS, group rules, empty-set projection
-├─ models/              LSTM (LPU-Stream), standard LSTM, TCN
-├─ heads/               dense distribution heads (MDN, Gaussian, noise)
-├─ benchmark/           671-basin benchmark loaders
-├─ corrections/         shared loaders for the corrected scarcity runs
-├─ visualization/       training-output figure panels
-├─ data/                CAMELS reading, preprocessing, normalization
-├─ losses/              pinball loss, CQR calibrator
-└─ utils.py             seeding, hashing, device helpers
-
-experiments/            runnable pipeline, one job per script
-├─ prepare/             cache build/verify, data-chain and checkpoint audits
-├─ train_primary/       the 12 main fits (queue driver), replication subsets,
-│                       endpoint reruns
-├─ train_benchmark/     point model and the trained 671-basin constructions
-│                       (the eighth compared construction, memberwise
-│                       split-CQR, is assembled in evaluate/)
-├─ bias_correction/     median-bias-fix diagnostics
-├─ train_sensitivity/   the 48 endpoint fits (queue-driven)
-├─ evaluate/            method comparison, memberwise split-CQR, coverage,
-│                       scores, calibration variants, ungauged-basin transfer
-├─ analyze/             summaries, paired effects, representativeness, curves
-└─ figures/             all paper figures from the frozen tables
-
-run_pipeline.py         single entry point; runs the stages in order
-download_camels.py      fetches the CAMELS-US archive
-```
-
-Dependencies flow one way: `run_pipeline.py` calls the scripts in
-`experiments/`, and those scripts import shared logic from `src/`. Scripts
-do not import each other.
+The extended evidence includes four additional disjoint 50-basin subsets (**250 unique basins in total**, with endpoint replication), a separate **671-basin comparison of eight interval constructions**, and **48 additional fits** covering alternative years, independent validation and update budgets, multiple nominal levels, TCN and input memory. A standard-LSTM endpoint check is also available. Point-skill and interval-score directions are more consistent than raw-coverage directions across these checks.
 
 ## Reproduce
+
+Python 3.10 or newer is required; the reference runs used Python 3.11, PyTorch 2.11.0+cu128 and an RTX 5060 Ti with 8 GB VRAM. [Pinned reference packages](requirements-reference-cu128.txt) accompany the portable dependency list.
 
 ```bash
 pip install -r requirements.txt
 python download_camels.py
 python src/data/data_preprocessing.py
-python run_pipeline.py --list      # inspect the stages
-python run_pipeline.py --dry-run   # resolve every script path, run nothing
-python run_pipeline.py             # full rerun (stages 2/3/5 retrain on a
-                                    # CUDA GPU; stage 6 needs CUDA for one
-                                    # timing script)
+
+python run_pipeline.py --list       # stages and their scripts
+python run_pipeline.py --dry-run    # validate script paths without execution
+python run_pipeline.py              # train, evaluate, audit, summarize and plot
 ```
 
-Reference environment: Python 3.11 (3.10 or newer required), PyTorch
-2.11.0+cu128, RTX 5060 Ti (8 GB); the exact pinned environment is in
-`requirements-reference-cu128.txt`. Data, trained weights and per-sample
-prediction arrays are not tracked; each stage regenerates its outputs under
-`results/`. The images under `docs/figures/` are committed copies of the
-stage-9 figure outputs, plus one hand-made design sketch. See
-[REPRODUCIBILITY.md](REPRODUCIBILITY.md) for the frozen release packages and
-their SHA-256 hashes.
+Full reproduction involves GPU training and can take several GPU-days. Stages 2, 3 and 5 train models; stage 6 includes GPU inference and timing. The [reproducibility guide](REPRODUCIBILITY.md) distinguishes a full rerun from re-evaluating frozen predictions, specifies calibration information and precision settings, and explains artifact identities.
+
+Data, weights, prediction arrays and numerical outputs are built under gitignored directories. The Git repository contains code and the README figure copies. A frozen numerical release additionally needs its source/results and prediction/checkpoint archives with SHA-256 manifests; publication of those attachments is a separate author action.
+
+## Repository guide
+
+| Path | Purpose |
+|---|---|
+| [`run_pipeline.py`](run_pipeline.py) | Nine-stage execution order and entry point |
+| [`src/data/`](src/data/) | CAMELS preprocessing, training-only normalization and target-date windows |
+| [`src/models/`](src/models/) and [`src/heads/`](src/heads/) | Regional LSTM, standard LSTM, TCN and probabilistic heads |
+| [`src/evaluation/protocol.py`](src/evaluation/protocol.py) | CQR ranks, group boundaries, interval scores, finite-grid IQS and analytic CRPS |
+| [`src/sensitivity.py`](src/sensitivity.py) | The 48 declared sensitivity configurations |
+| [`experiments/`](experiments/) | Preparation, training, evaluation, audit, analysis and figure scripts |
+| [`docs/figures/`](docs/figures/) | README figures and their input-hash provenance |
+| `results/` (generated) | Tables, figures, checkpoints, predictions, caches and QA reports |
+
+Dependencies flow from `run_pipeline.py` to `experiments/` to `src/`. Stage scripts share library functions rather than importing one another. Figure generation writes to `results/`; the author manuscript workspace is maintained separately.
+
+To regenerate the README figures after recomputing the numerical tables:
+
+```bash
+python experiments/figures/make_readme_figures.py --copy-to-docs
+```
 
 ## Citation and license
 
-See [CITATION.cff](CITATION.cff) and [LICENSE](LICENSE). The earlier release
-series has Zenodo concept DOI
-[10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955); the
-concept record groups all versions, and each published version receives its
-own DOI.
+[CITATION.cff](CITATION.cff) provides software citation metadata; the code uses the [MIT license](LICENSE). The earlier release series has Zenodo concept DOI [10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955). Cite the version and artifact manifest used for a reproduction, since the concept record groups multiple versions.
