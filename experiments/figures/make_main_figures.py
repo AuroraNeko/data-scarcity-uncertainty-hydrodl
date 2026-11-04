@@ -84,6 +84,8 @@ def main():
         for label in ['low','middle','high']:
             conditional.append([title,label.capitalize(),*[num(group(1,m,dimension,label).picp.mean()) for m in ['raw','global','predicted']]])
     rows('revision_conditional_rows.tex',conditional)
+    zh_group={'Observed':'实测','Predicted':'预测'};zh_flow={'Low':'低','Middle':'中','High':'高'}
+    rows('revision_conditional_rows_zh.tex',[[zh_group[r[0]],zh_flow[r[1]],*r[2:]] for r in conditional])
     for m,label in [('global','Global'),('predicted','Predicted')]:
         f=select_mean(tail,year=1,method=m,requested_upper_fraction=.02)
         macros['RevisionTail'+label+'Two']=num(f.picp.mean())
@@ -111,6 +113,8 @@ def main():
         method_rows.append([labels[m['id']],num(m['median_basin_nse']),num(m['raw']['picp']),
             num(m['cqr']['picp'])+' '+ci(m['ci']['picp']['basin_ci95']),num(m['cqr']['mpiw']),num(m['cqr']['winkler']),m['passes']])
     rows('revision_method_rows.tex',method_rows)
+    labels_zh={'mc_dropout':'归档扰动 MC','single_qr':'单 QR','ensemble':'均值分位数集成','mc_dropout_noise':'含高斯噪声 MC','mc_dropout_reselect':'尾段选模 MC','mdn':'高斯 MDN ($K=5$)','umal':'高斯分位数头','memberwise_cqr':'逐成员 split-CQR 平均'}
+    rows('revision_method_rows_zh.tex',[[labels_zh[m['id']]]+r[1:] for m,r in zip(comp['methods'],method_rows)])
     for key,prefix in [('single_qr','FullSingle'),('ensemble','FullEnsemble'),('mc_dropout','FullMC')]:
         m=methods[key]
         for suffix,value in [('RawPICP',m['raw']['picp']),('CQRPICP',m['cqr']['picp']),('CQRWinkler',m['cqr']['winkler'])]:macros[prefix+suffix]=num(value)
@@ -266,7 +270,7 @@ def main():
     for method,color,label in zip(['raw','global','predicted'],METHOD_COLORS,['Raw QR','Global CQR','Predicted-regime CQR']):
         vv=[select_mean(tail,year=1,method=method,requested_upper_fraction=f).picp.to_numpy() for f in fractions]
         axes[1].errorbar(np.asarray(fractions)*100,[v.mean() for v in vv],yerr=[v.std(ddof=1) for v in vv],marker='o',color=color,label=label,capsize=2)
-    for ax in axes:ax.set_xscale('log');ax.set_xlim(36,1.8);ax.set_xticks([33,20,10,5,2],[33,20,10,5,2]);ax.set_xlabel('Requested upper share (%)');ax.set_ylabel('Observed-tail coverage');ax.axhline(.9,color='black',ls='--',lw=.8);ax.legend(frameon=False,fontsize=8)
+    for ax in axes:ax.set_xscale('log');ax.set_xlim(36,1.8);ax.set_xticks([33,20,10,5,2],[33,20,10,5,2]);ax.set_xlabel('Requested upper share (%)');ax.set_ylabel('Observed-tail coverage');ax.axhline(.9,color='black',ls='--',lw=.8);ax.legend(frameon=False,fontsize=8,loc='lower left')
     for ax,letter in zip(axes,'ab'):ax.text(-.16,1.06,letter,transform=ax.transAxes,fontweight='bold',fontsize=13)
     save(fig,'revision_tail')
     fig,axes=plt.subplots(1,2,figsize=(9,3.8),layout='constrained')
