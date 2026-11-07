@@ -1,8 +1,9 @@
 """Train the four additional members of the full-basin quantile ensemble.
 
 This script uses the same train-loss checkpoint selection as train_single_qr.py.
-The corrected, common-grid comparison is performed separately by
-evaluate_corrected_methods.py.
+Members run the full fixed epoch budget with no early stopping, so the kept
+state is always the minimum training-loss state. The corrected, common-grid
+comparison is performed separately by evaluate_corrected_methods.py.
 
 RESUMABLE (crash-safe): each member's checkpoint is overwritten every epoch
 with the FULL training state (model + optimizer + scheduler + RNG + best

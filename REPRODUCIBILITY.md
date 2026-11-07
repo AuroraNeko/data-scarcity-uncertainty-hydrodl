@@ -16,7 +16,10 @@ Python 3.10 or newer.
 Stages 2, 3 and 5 train models. Full reproduction can take several GPU-days.
 Stage 6 includes checkpoint inference, and `export_dense_taus.py` needs CUDA
 when grids and timings must be rebuilt. Stages 1, 4, 7, 8 and 9 perform
-preparation, offline analysis, verification and plotting on CPU.
+preparation, offline analysis, verification and plotting on CPU. Stage 5
+runs its declared fits serially through `run_queue.py`; after an
+interruption, `continue_queue.py` waits for the active batch, reuses it if
+it still validates, and continues the queue.
 
 The 48 additional sensitivity fits use float32 tensors with
 `torch.backends.cudnn.allow_tf32=True` and
@@ -59,11 +62,13 @@ affine normalization across all 671 processed basins.
 
 ## Frozen predictions and offline evaluation
 
-After extracting both revision archives, run
+After extracting both release archives, run
 `python experiments/prepare/verify_submission_snapshot.py --output verification.json`.
 This CPU check recomputes the two primary endpoints, a masked within-basin
 high-flow group and the full-basin common-grid score directly from delivered
-arrays. It uses the two archived metadata files and needs no raw CAMELS download.
+arrays. It uses the two archived per-run records plus the archived coverage
+table, normalization statistics and scoring summary, and needs no raw CAMELS
+download.
 Git blob hashes and ZIP file hashes describe different byte representations
 where checkout line endings differ; use the corresponding manifest.
 
@@ -163,7 +168,7 @@ Publication prose and control-table values read the same result JSON files.
 field, formatting and scale for the retained architecture, update-budget and
 spatial-replication prose macros. Missing source fields stop generation.
 
-The local version-1.1.3 submission attachment set has three separate ZIPs:
+The local version-1.1.4 submission attachment set has three separate ZIPs:
 source/results, predictions/checkpoints, and author submission materials.
 Each carries a file manifest; the local `release_index.json` records archive
 SHA-256 hashes. Public candidate source packages include the current pipeline

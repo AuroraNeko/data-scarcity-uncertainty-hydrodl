@@ -300,8 +300,14 @@ def create_dataloaders(
 ) -> tuple[DataLoader, DataLoader, DataLoader]:
     """Create train/val/test DataLoaders over all basins (temporal split).
 
-    Used by the 671-basin benchmark trainings; the scarcity experiments
+    Used by the 671-basin benchmark trainers; the scarcity experiments
     construct CamelsDataset directly with condition-specific statistics.
+    Windows register a target only after one full sequence of context, so
+    the train split starts supervised targets on the declared warm-up day
+    and the val/test splits omit the first seq_len days of their declared
+    periods. Full-period calibration and test evaluation therefore uses
+    the context-prepended mirrors built by
+    experiments/train_benchmark/prepare_gpu.py instead of these loaders.
     """
     from src.data.data_preprocessing import TRAIN_START, TRAIN_END, VAL_START, VAL_END, TEST_START, TEST_END
 

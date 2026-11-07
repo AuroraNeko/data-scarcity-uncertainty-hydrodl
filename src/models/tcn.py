@@ -4,7 +4,7 @@ TCN (Temporal Convolutional Network) for streamflow prediction.
 Reference: Bai et al. (2018) "An Empirical Evaluation of Generic Convolutional
 and Recurrent Networks for Sequence Modeling"
 
-Architecture (paper Section 8.5):
+Architecture:
     Causal dilated Conv1D -> residual blocks -> prediction head
     Static attributes concatenated at the end.
 """

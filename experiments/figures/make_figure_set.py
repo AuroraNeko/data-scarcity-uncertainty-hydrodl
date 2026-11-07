@@ -1,4 +1,4 @@
-"""Generate manuscript figures from the corrected experiment artifacts."""
+"""Generate the figure set from the corrected experiment artifacts."""
 
 from __future__ import annotations
 
@@ -132,7 +132,7 @@ def save_figure(figure, stem: str, *, crop: bool = True) -> None:
 
 
 def remove_stale_figure_aliases() -> None:
-    """Remove superseded numbered copies that could be mistaken for current figures."""
+    """Remove figures from superseded layouts of this script so they cannot be mistaken for current outputs."""
     for directory in (OUTPUT_DIR,):
         for stem in STALE_FIGURE_STEMS:
             for suffix in (".pdf", ".png"):
@@ -190,126 +190,10 @@ def draw_context(axis, y: float, start: str, height: float = 0.54) -> None:
 
 
 def make_protocol_figure(summary: dict, methods: dict) -> None:
-    protocol = summary["protocol"]
-    figure = plt.figure(figsize=(7.25, 4.45))
-    grid = figure.add_gridspec(
-        2,
-        1,
-        height_ratios=[3.15, 1.0],
-        left=0.16,
-        right=0.985,
-        bottom=0.075,
-        top=0.89,
-        hspace=0.40,
-    )
-    axis = figure.add_subplot(grid[0])
-
-    positions = {15: 4.2, 5: 3.2, 3: 2.2, 1: 1.2}
-    for years in [15, 5, 3, 1]:
-        start, end = protocol["training_target_periods"][str(years)]
-        draw_context(axis, positions[years], start)
-        draw_period(axis, positions[years], start, end, BLUE)
-
-    calibration_start, calibration_end = protocol["calibration_target_period"]
-    test_start, test_end = protocol["test_target_period"]
-    evaluation_y = -0.05
-    draw_context(axis, evaluation_y, calibration_start)
-    draw_period(axis, evaluation_y, calibration_start, calibration_end, GREEN)
-    draw_context(axis, evaluation_y, test_start)
-    draw_period(axis, evaluation_y, test_start, test_end, AMBER)
-
-    axis.text(
-        (date_number(calibration_start) + date_number(calibration_end)) / 2,
-        evaluation_y,
-        "Calibration",
-        ha="center",
-        va="center",
-        fontsize=7.6,
-        color="white",
-        fontweight="semibold",
-    )
-    axis.text(
-        (date_number(test_start) + date_number(test_end)) / 2,
-        evaluation_y,
-        "Test",
-        ha="center",
-        va="center",
-        fontsize=7.6,
-        color=INK,
-        fontweight="semibold",
-    )
-
-    common_end = date_number(calibration_start)
-    axis.axvline(common_end, color=INK, linestyle="--", linewidth=0.9, zorder=0)
-    axis.text(
-        common_end - 120,
-        4.82,
-        "Common training end",
-        ha="right",
-        va="bottom",
-        fontsize=7.2,
-        color=INK,
-    )
-    axis.axhline(0.58, color=LIGHT_GRAY, linewidth=0.7)
-    axis.set_yticks(
-        [positions[15], positions[5], positions[3], positions[1], evaluation_y],
-        ["15-year training", "5-year training", "3-year training", "1-year training", "Shared evaluation"],
-    )
-    axis.set_xlim(date_number("1979-12-15"), date_number("2009-02-01"))
-    axis.set_ylim(-0.55, 5.25)
-    axis.xaxis.set_major_locator(mdates.YearLocator(5))
-    axis.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-    axis.grid(axis="x")
-    axis.tick_params(axis="y", length=0)
-    axis.legend(
-        handles=[
-            Patch(facecolor=BLUE, label="Supervised targets"),
-            Patch(facecolor=LIGHT_GRAY, edgecolor=GRAY, hatch="////", label="180-day input context"),
-            Patch(facecolor=GREEN, label="Calibration targets"),
-            Patch(facecolor=AMBER, label="Test targets"),
-        ],
-        frameon=False,
-        loc="lower left",
-        bbox_to_anchor=(0.0, 1.005),
-        ncol=4,
-        borderaxespad=0,
-        columnspacing=1.15,
-        handlelength=1.4,
-    )
-    edge_panel_label(axis, "a")
-
-    axis = figure.add_subplot(grid[1])
-    axis.set_xlim(0, 1)
-    axis.set_ylim(0, 1)
-    axis.axis("off")
-    axis.axvline(0.5, ymin=0.05, ymax=0.95, color=LIGHT_GRAY, linewidth=0.9)
-    axis.plot([0.015, 0.015], [0.12, 0.88], color=BLUE, linewidth=3.2, solid_capstyle="butt")
-    axis.plot([0.535, 0.535], [0.12, 0.88], color=GREEN, linewidth=3.2, solid_capstyle="butt")
-    axis.text(0.035, 0.80, "Primary controlled gradient", fontsize=8.4, fontweight="semibold", color=INK)
-    axis.text(
-        0.035,
-        0.51,
-        f"{len(summary['years'])} record lengths x {len(summary['model_seeds'])} seeds",
-        fontsize=7.8,
-        color=INK,
-    )
-    axis.text(
-        0.035,
-        0.29,
-        f"= {protocol['n_model_fits']} quantile-model fits on "
-        f"{summary['n_basins']} shared basins",
-        fontsize=7.8,
-        color=INK,
-    )
-    axis.text(0.035, 0.08, "Training years and update counts also differ", fontsize=7.4, color=GRAY)
-    axis.text(0.555, 0.80, "Separate full-basin comparison", fontsize=8.4, fontweight="semibold", color=INK)
-    expanded=load_json(ROOT/'results/tables/method_comparison.json')
-    axis.text(0.555, 0.51, f"{methods['protocol']['n_basins']} basins x {len(expanded['methods'])} interval constructions", fontsize=7.8, color=INK)
-    axis.text(0.555, 0.29, "Raw and calibrated intervals evaluated separately", fontsize=7.8, color=INK)
-    axis.text(0.555, 0.08, "Common grid; 365-day sequences", fontsize=7.4, color=GRAY)
-    edge_panel_label(axis, "b")
-
-    save_figure(figure, "fig_protocol_timeline", crop=False)
+    import sys
+    sys.path.insert(0, str(ROOT))
+    from src.visualization.protocol_figure import draw_protocol
+    draw_protocol(summary, methods, OUTPUT_DIR)
 
 
 def make_scarcity_figure(summary: dict) -> None:
@@ -840,7 +724,7 @@ def make_replication_figure(summary: dict) -> None:
         "stratified_4",
     ]
     labels = [
-        "Primary sample",
+        "Primary (50 basins)",
         "Stratified sample 1",
         "Stratified sample 2",
         "Stratified sample 3",

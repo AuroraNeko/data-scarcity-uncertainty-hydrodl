@@ -11,8 +11,13 @@ from src.evaluation.protocol import dump
 from src.corrections.common import load
 from src.evaluation.protocol import conformal_radius,scores,predicted_group_intervals
 BASE=ROOT/'results';DRAFT=BASE/'drafts';GEN=DRAFT/'generated';FIG=DRAFT/'figures'
-COLORS=['#345b78','#6b93a5','#cf9a52','#963e39'];METHOD_COLORS=['#868686','#345b78','#b66d35']
-plt.rcParams.update({'font.family':'DejaVu Sans','font.size':12,'axes.spines.top':False,'axes.spines.right':False,'pdf.fonttype':42})
+COLORS=['#176A96','#087D75','#B5682F','#80568B'];METHOD_COLORS=['#808B93','#176A96','#B5682F']
+METHOD_MARKERS={'raw':'o','global':'s','predicted':'^'}
+METHOD_LINES={'raw':':','global':'-','predicted':'--'}
+plt.rcParams.update({'font.family':'DejaVu Sans','font.size':11.5,'axes.spines.top':False,'axes.spines.right':False,
+    'axes.edgecolor':'#9AAAB3','axes.linewidth':.8,'text.color':'#183746','axes.labelcolor':'#183746',
+    'xtick.color':'#526874','ytick.color':'#526874','lines.linewidth':1.7,'lines.markersize':5.5,
+    'pdf.fonttype':42,'ps.fonttype':42})
 
 def num(v,d=3):return f'{v:.{d}f}'
 def ci(v,d=3,mult=1):return '['+', '.join(num(x*mult,d) for x in v)+']'
@@ -20,7 +25,11 @@ def pm(values,d=3):return num(np.mean(values),d)+r' $\pm$ '+num(np.std(values,dd
 def rows(name,values):
     (GEN/name).write_text('\n'.join(' & '.join(str(x) for x in row)+r' \\' for row in values)+'\n',encoding='utf-8')
 def save(fig,name):
+    for ax in fig.axes:
+        ax.set_axisbelow(True)
+        ax.grid(axis='x' if name=='revision_methods' else 'y',color='#E1E8EC',lw=.6)
     fig.savefig(BASE/f'figures/{name}.pdf',bbox_inches='tight');fig.savefig(BASE/f'figures/{name}.png',dpi=220,bbox_inches='tight')
+    fig.savefig(BASE/f'figures/{name}.svg',bbox_inches='tight')
     shutil.copy2(BASE/f'figures/{name}.pdf',FIG/f'{name}.pdf');plt.close(fig)
 def select_mean(frame,**selection):
     f=frame
@@ -246,31 +255,33 @@ def main():
     for ax,metric in [(axes[0,1],'picp'),(axes[1,0],'mpiw'),(axes[1,1],'winkler')]:
         for method,color,label in [('raw',METHOD_COLORS[0],'Raw QR'),('global',METHOD_COLORS[1],'Global CQR')]:
             vv=[pooled(y,method)[metric].to_numpy() for y in [1,3,5,15]]
-            ax.errorbar(xx,[np.mean(v) for v in vv],yerr=[np.std(v,ddof=1) for v in vv],marker='o',label=label,color=color,capsize=3)
+            ax.errorbar(xx,[np.mean(v) for v in vv],yerr=[np.std(v,ddof=1) for v in vv],marker=METHOD_MARKERS[method],ls=METHOD_LINES[method],label=label,color=color,capsize=3)
         ax.set_ylabel({'picp':'Pooled coverage','mpiw':'MPIW (log-flow)','winkler':'Winkler (log-flow)'}[metric])
     axes[0,1].axhline(.9,color='black',ls='--',lw=.8);axes[1,0].legend(frameon=False)
     for ax,letter in zip(axes.flat,'abcd'):ax.text(-.13,1.04,letter,transform=ax.transAxes,fontweight='bold',fontsize=13)
     save(fig,'revision_scarcity')
     fig,axes=plt.subplots(2,2,figsize=(9,6),layout='constrained')
-    for row,(dimension,title) in enumerate([('observed_flow','Observed outcomes'),('predicted_flow','Predicted flow')]):
-        for g,color in zip(['low','middle','high'],[COLORS[1],COLORS[2],COLORS[3]]):
+    for row,(dimension,title) in enumerate([('observed_flow','Observed-outcome'),('predicted_flow','Predicted-flow')]):
+        for g,color,marker,ls in zip(['low','middle','high'],[COLORS[1],COLORS[2],COLORS[3]],['o','s','^'],['-','--',':']):
             vv=[group(y,'global',dimension,g).picp.to_numpy() for y in [1,3,5,15]]
-            axes[row,0].errorbar(xx,[v.mean() for v in vv],yerr=[v.std(ddof=1) for v in vv],marker='o',color=color,label=g.capitalize(),capsize=2)
+            axes[row,0].errorbar(xx,[v.mean() for v in vv],yerr=[v.std(ddof=1) for v in vv],marker=marker,ls=ls,color=color,label=g.capitalize(),capsize=3)
         axes[row,0].set_xticks(xx,[1,3,5,15]);axes[row,0].set_xlabel('Supervised training years');axes[row,0].set_title(title+' groups, global CQR',fontsize=10)
         for offset,(method,color,label) in enumerate(zip(['raw','global','predicted'],METHOD_COLORS,['Raw QR','Global CQR','Predicted-regime CQR'])):
             vv=[group(1,method,dimension,g).picp.to_numpy() for g in ['low','middle','high']]
-            axes[row,1].errorbar(np.arange(3)+(offset-1)*.14,[v.mean() for v in vv],yerr=[v.std(ddof=1) for v in vv],marker='o',color=color,label=label,capsize=2)
+            axes[row,1].errorbar(np.arange(3)+(offset-1)*.14,[v.mean() for v in vv],yerr=[v.std(ddof=1) for v in vv],marker=METHOD_MARKERS[method],ls=METHOD_LINES[method],color=color,label=label,capsize=3)
         axes[row,1].set_xticks(range(3),['Low','Middle','High']);axes[row,1].set_title(title+' groups, 1-year model',fontsize=10)
-        for ax in axes[row]:ax.axhline(.9,color='black',ls='--',lw=.8);ax.set_ylim(.65,1.);ax.set_ylabel('Coverage')
-    axes[0,0].legend(frameon=False,fontsize=8);axes[1,1].legend(frameon=False,fontsize=7);save(fig,'revision_conditional')
+        for ax in axes[row]:ax.axhline(.9,color='black',ls='--',lw=.8);ax.set_ylim(.65,1.01);ax.set_ylabel('Coverage')
+    axes[0,0].legend(frameon=False,fontsize=9,loc='lower left');axes[1,1].legend(frameon=False,fontsize=8.5,loc='lower left')
+    for ax,letter in zip(axes.flat,'abcd'):ax.text(-.13,1.05,letter,transform=ax.transAxes,fontweight='bold',fontsize=13)
+    save(fig,'revision_conditional')
     fig,axes=plt.subplots(1,2,figsize=(9,3.5),layout='constrained');fractions=[.33,.2,.1,.05,.02]
-    for year,color in zip([1,3,5,15],COLORS):
+    for year,color,marker,ls in zip([1,3,5,15],COLORS,['o','s','^','D'],['-',':','--','-.']):
         vv=[select_mean(tail,year=year,method='global',requested_upper_fraction=f).picp.to_numpy() for f in fractions]
-        axes[0].errorbar(np.asarray(fractions)*100,[v.mean() for v in vv],yerr=[v.std(ddof=1) for v in vv],marker='o',color=color,label=f'{year} yr',capsize=2)
+        axes[0].errorbar(np.asarray(fractions)*100,[v.mean() for v in vv],yerr=[v.std(ddof=1) for v in vv],marker=marker,ls=ls,color=color,label=f'{year} yr',capsize=3)
     for method,color,label in zip(['raw','global','predicted'],METHOD_COLORS,['Raw QR','Global CQR','Predicted-regime CQR']):
         vv=[select_mean(tail,year=1,method=method,requested_upper_fraction=f).picp.to_numpy() for f in fractions]
-        axes[1].errorbar(np.asarray(fractions)*100,[v.mean() for v in vv],yerr=[v.std(ddof=1) for v in vv],marker='o',color=color,label=label,capsize=2)
-    for ax in axes:ax.set_xscale('log');ax.set_xlim(36,1.8);ax.set_xticks([33,20,10,5,2],[33,20,10,5,2]);ax.set_xlabel('Requested upper share (%)');ax.set_ylabel('Observed-tail coverage');ax.axhline(.9,color='black',ls='--',lw=.8);ax.legend(frameon=False,fontsize=8,loc='lower left')
+        axes[1].errorbar(np.asarray(fractions)*100,[v.mean() for v in vv],yerr=[v.std(ddof=1) for v in vv],marker=METHOD_MARKERS[method],ls=METHOD_LINES[method],color=color,label=label,capsize=3)
+    for ax in axes:ax.set_xscale('log');ax.set_xlim(36,1.8);ax.set_ylim(.55,.93);ax.set_xticks([33,20,10,5,2],[33,20,10,5,2]);ax.set_xlabel('Requested upper share (%)');ax.set_ylabel('Observed-tail coverage');ax.axhline(.9,color='black',ls='--',lw=.8);ax.legend(frameon=False,fontsize=8.5,loc='lower left')
     for ax,letter in zip(axes,'ab'):ax.text(-.16,1.06,letter,transform=ax.transAxes,fontweight='bold',fontsize=13)
     save(fig,'revision_tail')
     fig,axes=plt.subplots(1,2,figsize=(9,3.8),layout='constrained')
@@ -294,6 +305,11 @@ def main():
         ax.errorbar(values,yy,xerr=np.vstack([values-bounds[:,0],bounds[:,1]-values]),fmt='o',capsize=3,color=COLORS[0]);ax.set_yticks(yy,names_plot if ax==axes[0] else []);ax.invert_yaxis()
     axes[0].axvline(.9,color='#777777',ls='--');axes[0].set_xlabel('Calibrated PICP');axes[1].set_xlabel('Calibrated Winkler (log-flow)')
     axes[2].scatter([m['seconds_per_million'] for m in comp['methods']],yy,color=COLORS[2]);axes[2].set_xscale('log');axes[2].set_yticks(yy,[]);axes[2].invert_yaxis();axes[2].set_xlabel('Seconds / million samples')
+    for ax,letter,title in zip(axes,'abc',['Coverage','Interval score','Inference cost']):
+        ax.set_title(f'{letter}  {title}',loc='left',fontsize=12,weight='bold',pad=10)
+        for row in range(len(comp['methods'])):
+            if row%2==0:ax.axhspan(row-.5,row+.5,color='#F2F6F8',lw=0,zorder=0)
+    axes[2].set_xticks([40,200,1000],['40','200','1,000'])
     save(fig,'revision_methods')
     sscore=json.loads((BASE/'tables/scoring_summary.json').read_text());fig,axes=plt.subplots(1,2,figsize=(9,3.5),layout='constrained')
     for method,color in zip(['mdn','umal','mc_dropout_noise'],[COLORS[0],COLORS[2],COLORS[3]]):

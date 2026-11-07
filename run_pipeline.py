@@ -90,7 +90,7 @@ STAGES: dict[int, tuple[str, list[str]]] = {
     ]),
     9: ("figures: all paper figures from the frozen tables", [
         "experiments/figures/make_main_figures.py",
-        "experiments/figures/make_manuscript_figures.py",
+        "experiments/figures/make_figure_set.py",
         "experiments/figures/make_readme_figures.py",
     ]),
 }

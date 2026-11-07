@@ -1,6 +1,6 @@
 """Custom-head LPU-Stream variants for the full-671 baselines.
 
-All variants reuse the published LPU-Stream backbone unchanged (static
+All variants reuse the base LPU-Stream backbone unchanged (static
 embedding at every time step, 128-unit LSTM, 64-unit head) and replace only
 the output width and the loss/quantile semantics:
 

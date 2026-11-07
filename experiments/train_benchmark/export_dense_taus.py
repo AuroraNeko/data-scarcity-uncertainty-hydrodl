@@ -325,11 +325,11 @@ def archived_reference():
 
 # Published per-method inference cost of the timing suite below, archived
 # 2026-08-22 on the recording workstation (RTX 5060 Ti, batch 1024,
-# GPU-resident inputs). The manuscript's inference-cost prose and figure
-# quote these values, so they stay fixed; each rerun's fresh measurement is
-# recorded alongside in timing_reproduction_check instead of replacing them
-# (a rerun right after hours of sustained grid regeneration measures a
-# throttled GPU and shifts every entry by double-digit percentages).
+# GPU-resident inputs). These are the frozen reference measurements, so
+# they stay fixed; each rerun's fresh measurement is recorded alongside in
+# timing_reproduction_check instead of replacing them (a rerun right after
+# hours of sustained grid regeneration measures a throttled GPU and shifts
+# every entry by double-digit percentages).
 ARCHIVED_TIMING = {
     "single_qr": {
         "seconds_per_million": 35.77158691413729,

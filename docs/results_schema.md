@@ -1,4 +1,4 @@
-# Revision scoring fields
+# Scoring fields
 
 The scientific source/results archive supplies machine-readable results under
 `results/tables/`. All log-flow interval and distribution scores use the
@@ -17,7 +17,7 @@ de-standardized log1p(mm/day) coordinate.
   predicted-flow coverage intervals, direct MC Winkler contrasts and an
   upstream area-list exclusion. Seeds, draw counts and conditioning are
   explicit. `experiments/analyze/submission_diagnostics.py` regenerates it
-  and the bilingual S24 fragments using raw flag files and frozen arrays.
+  and the bilingual S25 fragments using raw flag files and frozen arrays.
 
 Use `python experiments/prepare/verify_submission_snapshot.py` for the
 small offline verification that needs only the delivered arrays and metadata.

@@ -1,6 +1,6 @@
 {
   "generator": "experiments/figures/make_readme_figures.py",
-  "generator_sha256": "56d7efcacf96333b0a4b6be8e96873a18d2506e9f785b21c09a04c35d981887e",
+  "generator_sha256": "0613c61980afb0ede358f933ab30e4383696bb135f46496423b1c8dfd6cd2202",
   "inputs_sha256": {
     "results/tables/coverage_cells.csv": "daecf94cda34ff985761ba2f86c9f64ac83760c8bd10e773a026d9e2195c7879",
     "results/tables/basin_metrics.csv": "9709f9fdbddb2817e567884e424b91fc086babe6ea5030ef6e6c6092f664e594",
@@ -118,5 +118,9 @@
     }
   ],
   "observed_group_rule": "Within-basin test Q0.33/Q0.67, ties in the lower group; retrospective.",
-  "predicted_group_rule": "Within-basin calibration-predicted Q0.33/Q0.67; radii pooled across relative calibration strata."
+  "predicted_group_rule": "Within-basin calibration-predicted Q0.33/Q0.67; radii pooled across relative calibration strata.",
+  "schematic_dependencies_sha256": {
+    "src/visualization/architecture.py": "536d6ea45136d07a03cafd03c1fce835b563a3ce05f535a6397f3a4f562cbd0a",
+    "src/models/lpu_stream.py": "f88959bca3edc4fdf4161b7c627a5ace672eb05441c992a4bae8995816db48de"
+  }
 }

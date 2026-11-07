@@ -74,28 +74,9 @@ def groups(cells):
     save(fig,'fig2_conditional_coverage');return records
 
 def architecture():
-    fig,ax=plt.subplots(figsize=(8.8,4.3));ax.set(xlim=(0,12),ylim=(0,5));ax.axis('off')
-    def box(x,y,w,h,label,color='#EAF2F6'):
-        ax.add_patch(FancyBboxPatch((x,y),w,h,boxstyle='round,pad=0.06,rounding_size=0.08',facecolor=color,edgecolor='#B5C8D2',lw=1))
-        ax.text(x+w/2,y+h/2,label,ha='center',va='center',fontsize=11.5,color=INK)
-    def arrow(a,b):ax.annotate('',xy=b,xytext=a,arrowprops={'arrowstyle':'->','color':GREY,'lw':1.3,'shrinkA':3,'shrinkB':4})
-    box(.1,3,2,.9,'Weather history\nL × 15 channels')
-    box(.1,.5,2,.9,'Static attributes\n13 descriptors')
-    box(2.6,.5,2,.9,'Static MLP\n13 → 64 → 32')
-    box(2.6,3,2,.9,'Concatenate\nat each step')
-    box(5.1,3,1.8,.9,'LSTM\n128 units')
-    box(7.5,3,2,.9,'Head MLP\n160 → 64 → 3')
-    box(10.1,3,1.8,.9,'Quantiles\n'+r'$q_{.05}\leq q_{.50}\leq q_{.95}$')
-    box(7.5,.5,2,.9,'Calibration\nflow + quantiles','#E7F2ED')
-    box(10.1,.5,1.8,.9,'CQR\n90% interval','#E7F2ED')
-    for a,b in [((2.1,3.45),(2.6,3.45)),((2.1,.95),(2.6,.95)),((3.6,1.4),(3.6,3)),((4.6,3.45),(5.1,3.45)),((6.9,3.45),(7.5,3.45)),((9.5,3.45),(10.1,3.45)),((11,3),(11,1.4)),((9.5,.95),(10.1,.95))]:arrow(a,b)
-    ax.plot([4.6,8.5,8.5],[.95,1.95,3],color=GREY,lw=1.2)
-    arrow((8.5,2.6),(8.5,3))
-    ax.text(6.2,2.15,'Static embedding also enters the head',ha='center',fontsize=9,color=GREY)
-    ax.text(.1,4.6,'Regional model and held-out calibration',fontsize=14,weight='bold')
-    ax.text(.1,-.05,'L = 180; softplus offsets enforce quantile ordering.',fontsize=10,color=GREY)
-    fig.savefig(ROOT/'results/figures/architecture_overview.pdf',bbox_inches='tight',pad_inches=.12)
-    fig.savefig(OUT/'architecture_overview.png',dpi=190,bbox_inches='tight',pad_inches=.12);plt.close(fig)
+    from src.visualization.architecture import draw_architecture
+    draw_architecture(ROOT/'results/figures/architecture_overview.pdf', OUT/'architecture_overview.png')
+
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--copy-to-docs',action='store_true');args=parser.parse_args()
@@ -107,6 +88,7 @@ def main():
         'uncertainty':'Mean and sample SD over three model seeds; plotted SD bars are not confidence intervals.',
         'groups':group_values,'observed_group_rule':'Within-basin test Q0.33/Q0.67, ties in the lower group; retrospective.',
         'predicted_group_rule':'Within-basin calibration-predicted Q0.33/Q0.67; radii pooled across relative calibration strata.'}
+    manifest['schematic_dependencies_sha256']={rel:hashlib.sha256((ROOT/rel).read_bytes()).hexdigest() for rel in ['src/visualization/architecture.py','src/models/lpu_stream.py']}
     dump(OUT/'figure_provenance.json',manifest)
     if args.copy_to_docs:
         destination=ROOT/'docs/figures';destination.mkdir(parents=True,exist_ok=True)

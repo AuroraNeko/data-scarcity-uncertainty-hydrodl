@@ -1,4 +1,4 @@
-"""Rebuild revision quality-flag, direct-contrast, coverage and area diagnostics."""
+"""Rebuild quality-flag, direct-contrast, coverage and area diagnostics."""
 from pathlib import Path
 from collections import Counter
 import csv

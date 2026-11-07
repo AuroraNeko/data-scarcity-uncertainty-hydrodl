@@ -1,6 +1,6 @@
 """Shared training and evaluation infrastructure for the 671-basin baselines.
 
-Protocol mirrors the published full-basin comparison: the train window uses
+Protocol mirrors the archived full-basin comparison: the train window uses
 the original dataset path (365-day warm-up), calibration and test use the
 corrected context-supplying datasets, batch 1024, Adam 1e-3, up to 30 epochs
 with early stopping (patience 5), ReduceLROnPlateau(0.5, patience 3) on
