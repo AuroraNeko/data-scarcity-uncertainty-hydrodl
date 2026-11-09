@@ -43,7 +43,7 @@ def draw_architecture(pdf_path, png_path):
     panel(.1, 3.55, 11.8, 3.25, '#F3F7FA')
     text(.32, 6.48, 'a   Shared predictor', 12, blue, 'bold')
     text(11.65, 6.48, '104,099 trainable parameters', 10, muted, ha='right')
-    box(.35, 5.05, 1.85, .93, 'Weather inputs', r'$180\times15$ channels')
+    box(.35, 5.05, 1.85, .93, 'Weather inputs', r'$180\,$days $\times\,15$ channels')
     box(2.65, 5.05, 1.85, .93, 'Input fusion', r'$15+32=47$')
     box(4.95, 5.05, 1.75, .93, 'LSTM', '128 hidden units')
     box(7.15, 5.05, 1.9, .93, 'Prediction head', r'$160\to64\to3$')

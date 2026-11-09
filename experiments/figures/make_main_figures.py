@@ -317,7 +317,7 @@ def main():
         for mode,ls in [('raw','--'),('cqr','-')]:
             f=select_mean(dense,method=method,mode=mode).sort_values('nominal');axes[1].plot(f.nominal,f.picp,ls,marker='o',color=color)
     for ax in axes:ax.plot([0,1],[0,1],color='#888888',lw=.8);ax.set_xlim(0,1);ax.set_ylim(0,1)
-    axes[0].set_xlabel('Quantile level');axes[0].set_ylabel('Fraction below quantile');axes[0].legend(frameon=False,fontsize=7)
+    axes[0].set_xlabel('Quantile level');axes[0].set_ylabel('Fraction at or below quantile');axes[0].legend(frameon=False,fontsize=7)
     axes[1].set_xlabel('Nominal central coverage');axes[1].set_ylabel('Achieved interval coverage');save(fig,'revision_dense_reliability')
     # Publish training-specific outputs only when all declared fits are available.
     training_path=BASE/'tables/revision_training_summary.json'

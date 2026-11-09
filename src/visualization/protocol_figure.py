@@ -51,7 +51,7 @@ def draw_protocol(summary, methods, output_dir):
                         Patch(fc=orange,label='Test'),Patch(fc='#E7ECEF',ec=gray,hatch='////',label='180-day forcing context')],
                loc='upper left',bbox_to_anchor=(.17,.94),ncol=4,frameon=False,fontsize=9.5,
                columnspacing=1.4,handlelength=1.6)
-    fig.text(.18,.305,r'Forecast day $t$: forcings through $t-1$; observed flow is never an input.',fontsize=10,color=gray)
+    fig.text(.18,.305,r'Forecast day $t$: forcings through $t-1$; observed flow is not a dynamic input.',fontsize=10,color=gray)
     fig.text(.035,.255,'b   Experimental roles',fontsize=12.5,weight='bold',color=ink)
     expanded=json.loads((Path(__file__).resolve().parents[2]/'results/tables/method_comparison.json').read_text())
     cards=[(.035,blue,'Primary length gradient',
