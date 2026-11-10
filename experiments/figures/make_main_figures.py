@@ -294,7 +294,7 @@ def main():
             ax.scatter(j+rng.uniform(-.15,.15,len(values)),values,color=color,s=12,alpha=.65)
         ax.set_xticks([0,1,2],['Raw QR','Global CQR','Predicted CQR']);ax.set_ylim(.3,1.);ax.set_ylabel('Seed-averaged basin coverage');ax.set_title(f'{year}-year record')
         bands=[f'{100*np.mean((v>=.85)&(v<=.95)):.0f}%' for v in groups]
-        ax.text(.5,-.24,'Within 0.85--0.95: '+', '.join(bands),transform=ax.transAxes,ha='center',fontsize=9)
+        ax.text(.5,-.24,'Within 0.85–0.95: '+', '.join(bands),transform=ax.transAxes,ha='center',fontsize=9)
     save(fig,'revision_basin_calibration')
     fig,axes=plt.subplots(1,3,figsize=(9.5,5.2),layout='constrained',gridspec_kw={'width_ratios':[1,1,1]});yy=np.arange(len(comp['methods']))
     short_labels={'mc_dropout':'Archived MC','single_qr':'Single QR','ensemble':'Ensemble','mc_dropout_noise':'MC + noise',
