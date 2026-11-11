@@ -120,7 +120,7 @@
   "observed_group_rule": "Within-basin test Q0.33/Q0.67, ties in the lower group; retrospective.",
   "predicted_group_rule": "Within-basin calibration-predicted Q0.33/Q0.67; radii pooled across relative calibration strata.",
   "schematic_dependencies_sha256": {
-    "src/visualization/architecture.py": "536d6ea45136d07a03cafd03c1fce835b563a3ce05f535a6397f3a4f562cbd0a",
+    "src/visualization/architecture.py": "588369d4d01b269639ae3b5c2366fc67f7ca86b405ab04683182cdd4021bae2f",
     "src/models/lpu_stream.py": "f88959bca3edc4fdf4161b7c627a5ace672eb05441c992a4bae8995816db48de"
   }
 }
