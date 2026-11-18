@@ -96,11 +96,17 @@ results are stored separately because workstation load changes elapsed time.
 
 ## Reproduction scopes and their inputs
 
-- Offline scoring of the archived predictions (for example `--only
-  coverage_groups.py`, `distribution_scores.py` or `method_comparison.py`):
-  extract the source-results and predictions-checkpoints packages at the
-  repository root. Raw CAMELS files are needed only for the stage 7 raw-source
-  audit.
+- Offline scoring of the archived predictions: after extracting the
+  source-results and predictions-checkpoints packages at the repository root,
+  `--only distribution_scores.py` and the frozen-prediction verifier
+  (`experiments/prepare/verify_submission_snapshot.py`) run without further
+  inputs. The other two worked examples need workspace inputs beyond the two
+  packages: `coverage_groups.py` also reads the stage 1 training cache
+  (`results/cache/primary_raw.npz` with its JSON sidecar) for basin
+  attributes, and both `coverage_groups.py` and `method_comparison.py` read
+  the basin/HUC2 mapping `data/raw/camels_us/camels_name.txt`, which comes
+  from the raw CAMELS-US distribution. Raw CAMELS files are otherwise needed
+  only for the stage 7 raw-source audit.
 - Figure-only rebuilds (`python run_pipeline.py --stage 9`): the same two
   packages suffice. The 50-basin IDs, static attributes, dates and observation
   mask used for the descriptive strata and temporal label counts are packaged
@@ -108,8 +114,11 @@ results are stored separately because workstation load changes elapsed time.
   training cache (`results/cache/primary_raw.npz`) is not required. Four supplement figures
   are produced outside stage 9: Fig. S4 by `--only learning_curves.py`
   (stage 8), and Figs. S5, S10 and S12 by `--only calibration_variants.py`,
-  `hydrology_context.py` and `selection_simulation.py` (stage 6). Their
-  finished figures are already included in the source-results package.
+  `hydrology_context.py` and `selection_simulation.py` (stage 6). Of these,
+  Figs. S4, S5 and S12 rebuild from the two packages, while
+  `hydrology_context.py` (Fig. S10) additionally reads the stage 1 training
+  cache and the processed per-basin daily CSV files. Their finished figures
+  are already included in the source-results package.
 - Full reruns from raw CAMELS-US: run from stage 1 to rebuild the training
   cache. Stages 2, 3 and 5 train models and need a CUDA GPU.
 

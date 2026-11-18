@@ -154,7 +154,9 @@ def train_member(seed, train_loader, device):
             best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
         completed = (epoch >= CFG["epochs"])
         # --- resumable checkpoint: full state, every epoch ---
-        torch.save({
+        # Written to a sibling temp file and atomically replaced, so an
+        # interrupted save cannot corrupt the previous epoch's checkpoint.
+        checkpoint = {
             "seed": seed, "epoch": epoch,
             "model_state_dict": model.state_dict(),
             "optim_state": opt.state_dict(),
@@ -165,7 +167,10 @@ def train_member(seed, train_loader, device):
             "config": {**CFG, "seed": seed},
             "procedure": "train_loss", "completed": completed,
             "rng": get_rng_state(),
-        }, path)
+        }
+        tmp_path = path.with_suffix(path.suffix + ".tmp")
+        torch.save(checkpoint, tmp_path)
+        tmp_path.replace(path)
         log(f"  seed {seed} ep{epoch:2d}/{CFG['epochs']} "
             f"loss={tl:.4f} best={best_loss:.4f}@{best_epoch} "
             f"{'DONE' if completed else ''} {time.time()-t0:.0f}s")
