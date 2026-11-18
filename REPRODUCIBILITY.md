@@ -105,8 +105,10 @@ results are stored separately because workstation load changes elapsed time.
   (`results/cache/primary_raw.npz` with its JSON sidecar) for basin
   attributes, and both `coverage_groups.py` and `method_comparison.py` read
   the basin/HUC2 mapping `data/raw/camels_us/camels_name.txt`, which comes
-  from the raw CAMELS-US distribution. Raw CAMELS files are otherwise needed
-  only for the stage 7 raw-source audit.
+  from the raw CAMELS-US distribution. These offline scorers need no raw
+  CAMELS input; raw CAMELS files are otherwise read by the stage 7 raw-source
+  audit and by the stage 8 submission diagnostics (basin/HUC2 mapping and
+  raw USGS quality flags).
 - Figure-only rebuilds (`python run_pipeline.py --stage 9`): the same two
   packages suffice. The 50-basin IDs, static attributes, dates and observation
   mask used for the descriptive strata and temporal label counts are packaged

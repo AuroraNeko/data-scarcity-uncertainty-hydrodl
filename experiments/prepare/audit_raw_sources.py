@@ -35,15 +35,18 @@ def main():
             raw=pd.DataFrame(values[:,[5,6,8,9,10]],columns=cols,index=dates).reindex(d.index)
             a=raw.to_numpy();saved=d[[f'{c}_{source}' for c in cols]].to_numpy();diff=np.abs(a-saved)
             row={'basin':p.stem,'source':source,'n_days':len(raw),'raw_nonfinite':int((~np.isfinite(a)).sum()),
-                 'raw_sentinel_values':int(np.isin(a,[-999.,-9999.]).sum()),'max_abs_processed_difference':float(np.nanmax(diff)),
+                 'raw_sentinel_values':int(np.isin(a,[-999.,-9999.]).sum()),'saved_nonfinite':int((~np.isfinite(saved)).sum()),
+                 'max_abs_processed_difference':float(np.nanmax(diff)),
                  'n_difference_over_1e_minus6':int((diff>1e-6).sum()),'unequal_tmax_tmin_days':int((raw.tmax!=raw.tmin).sum())}
-            _require(row['raw_nonfinite']==row['raw_sentinel_values']==row['n_difference_over_1e_minus6']==0,row)
+            _require(row['raw_nonfinite']==row['raw_sentinel_values']==row['saved_nonfinite']==row['n_difference_over_1e_minus6']==0,row)
             forcing_rows.append(row)
         original=pd.read_csv(flow_index[p.stem],sep=r'\s+',header=None,names=['basin','year','month','day','q','qc'])
         dates=pd.to_datetime(dict(year=original.year,month=original.month,day=original.day))
         q=pd.Series(original.q.to_numpy(dtype=float),index=dates).reindex(d.index).to_numpy(copy=True);q[q<0]=np.nan
         mask=d.flow_mask.to_numpy()>0;masks_match=masks_match and bool(np.array_equal(np.isfinite(q),mask))
         _require(np.array_equal(np.isfinite(q),mask),(p.stem,'flow mask'))
+        processed=np.column_stack([d.streamflow_cfs.to_numpy()[mask],d.streamflow_mm.to_numpy()[mask],d.target.to_numpy()[mask],d.target_norm.to_numpy()[mask]])
+        _require(bool(np.all(np.isfinite(processed))),(p.stem,'processed target nonfinite',int((~np.isfinite(processed)).sum())))
         physical=q[mask]*.0283168*86400/(float(d.area_gages2.iloc[0])*1e6)*1000
         log=np.log1p(physical);affine=(log-stats['target_mean'])/stats['target_std']
         row={'basin':p.stem,'n_observed':int(mask.sum()),'max_cfs_difference':float(np.max(abs(q[mask]-d.streamflow_cfs.to_numpy()[mask]))),
