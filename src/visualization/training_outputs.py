@@ -30,7 +30,10 @@ def training_outputs(tr, macros, rows, save):
         assert len(z) == 1 and int(z.iloc[0].n_seeds) == 3, (group, variant, level, method)
         return z.iloc[0]
     temporal = []; window_years = [1985, 1990, 1991, 1992, 1993, 1994, 1995]
-    raw_cache = np.load(BASE / 'cache/primary_raw.npz'); dates = raw_cache['dates']
+    # Packaged replay metadata supplies dates/mask for figure-only rebuilds;
+    # stage 1 regenerates the full training cache for complete reruns.
+    meta = ROOT / 'data/metadata/primary_replay_metadata.npz'
+    raw_cache = np.load(meta if meta.is_file() else BASE / 'cache/primary_raw.npz'); dates = raw_cache['dates']
     for year in window_years:
         raw = condition(f'temporal_wy{year}'); cal = condition(f'temporal_wy{year}', method='global')
         effect = tr['archived_15yr_minus_alternative_year'][str(year)]['nse']

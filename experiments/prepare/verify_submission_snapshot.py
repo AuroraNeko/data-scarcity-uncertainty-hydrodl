@@ -12,6 +12,12 @@ from src.evaluation.protocol import conformal_radius, scores, interval_metrics, 
 from src.utils import sha256_file
 
 
+def _require(condition, message):
+    """Fail explicitly even when Python is run with -O/-OO."""
+    if not condition:
+        raise RuntimeError(message)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path)
@@ -21,7 +27,8 @@ def main():
     for years in [1, 15]:
         record = json.loads((tables / f'corrected_scarcity/scarcity_{years}yr_basinseed42_modelseed42.json').read_text())
         for key in ['checkpoint', 'predictions']:
-            assert sha256_file(ROOT / record[key]) == record[key + '_sha256']
+            _require(sha256_file(ROOT / record[key]) == record[key + '_sha256'],
+                     f'{years}yr {key} SHA-256 mismatch')
             checks.append(f'{years}yr_{key}_hash')
         with np.load(ROOT / record['predictions']) as z:
             cm, tm = z['val_mask'] > 0, z['test_mask'] > 0
@@ -38,7 +45,8 @@ def main():
                 (cells.method == 'global') & (cells.dimension == dimension) & (cells.group == group)].iloc[0]
             actual = interval_metrics(lo[selected], hi[selected], y[selected])
             for field in ['picp', 'mpiw', 'winkler', 'n']:
-                assert np.isclose(actual[field], expected[field], atol=1e-10, rtol=1e-10), (years, dimension, field)
+                _require(np.isclose(actual[field], expected[field], atol=1e-10, rtol=1e-10),
+                         f'{years}yr {dimension} {field} mismatch')
                 checks.append(f'{years}yr_{dimension}_{field}')
     norm = json.loads((ROOT / 'data/metadata/normalization_stats.json').read_text())
     with np.load(ROOT / 'results/predictions/corrected_full_671/test_predictions.npz') as z:
@@ -47,7 +55,7 @@ def main():
         q = z['single_qr'][valid].astype(float) * norm['target_std'] + norm['target_mean']
     value = integrated_quantile_score(y, q, [.05, .5, .95]).mean()
     expected = json.loads((tables / 'scoring_summary.json').read_text())['rows'][0]['pooled']
-    assert abs(value - expected) < 1e-12
+    _require(abs(value - expected) < 1e-12, 'full-basin common-grid IQS mismatch')
     checks.append('full_basin_common_grid_iqs')
     report = {'passed': True, 'checks': checks, 'n_checks': len(checks), 'single_qr_pooled_iqs': value,
               'scope': 'Frozen primary endpoints, masked within-basin high group, and full-basin IQS; no raw-data dependency'}

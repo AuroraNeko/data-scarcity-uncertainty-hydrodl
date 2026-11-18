@@ -61,7 +61,10 @@ def supplementary_tables(root,emit):
         d=unseen[f'{year}yr'];rows.append([year,*[f'{d[k][0]:.3f} $\\pm$ {d[k][1]:.3f}' for k in ['nse_median','raw_picp','transfer_picp','local_picp','raw_winkler','local_winkler']]])
     emit('ungauged_rows.tex',rows)
     # Rebuild descriptive hydroclimatic strata and aridity calibration pools.
-    with np.load(root/'results/cache/primary_raw.npz') as raw:
+    # Packaged static metadata keeps figure-only rebuilds independent of the
+    # full training cache; stage 1 regenerates that cache for full reruns.
+    meta=root/'data/metadata/primary_replay_metadata.npz'
+    with np.load(meta if meta.is_file() else root/'results/cache/primary_raw.npz') as raw:
         basins=raw['basins'];a=raw['static'];aridity=dict(zip(basins,a[:,STATIC_COLS.index('aridity')]))
         snow=dict(zip(basins,a[:,STATIC_COLS.index('frac_snow')]))
     c,_=load(15,42);flash={}

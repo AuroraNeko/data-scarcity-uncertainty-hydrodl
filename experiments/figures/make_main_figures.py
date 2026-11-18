@@ -230,7 +230,9 @@ def main():
             v=values[metric]
             difference_rows.append([labels[method],metric_label,num(v['estimate']*mult,digits),ci(v['basin_ci95'],digits,mult),ci(v['huc2_cluster_ci95'],digits,mult)])
     rows('revision_method_difference_rows.tex',difference_rows)
-    rows('revision_association_rows.tex',[[k.replace('_',r'\_'),num(v['spearman_rho']),ci(v['basin_ci95']),ci(v['huc2_cluster_ci95'])] for k,v in cov['basin_associations'].items()])
+    association_labels={'raw_high_picp':'Raw coverage, high observed flow','global_high_picp':'Global-CQR coverage, high observed flow',
+                        'raw_winkler':'Raw Winkler score','global_winkler':'Global-CQR Winkler score'}
+    rows('revision_association_rows.tex',[[association_labels.get(k,k.replace('_',r'\_')),num(v['spearman_rho']),ci(v['basin_ci95']),ci(v['huc2_cluster_ci95'])] for k,v in cov['basin_associations'].items()])
     hc=json.loads((BASE/'tables/hydrology_context_summary.json').read_text())['groups'];miss=[]
     for period,label in [('train_1yr','Training: 1 yr'),('train_3yr','Training: 3 yr'),('train_5yr','Training: 5 yr'),('train_15yr','Training: 15 yr'),
                          ('independent_validation','Independent validation'),('calibration_4yr','Calibration: 4 yr'),('calibration_5yr','Calibration: 5 yr'),('test','Test')]:

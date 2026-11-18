@@ -76,6 +76,7 @@ def groups(cells):
 def architecture():
     from src.visualization.architecture import draw_architecture
     draw_architecture(ROOT/'results/figures/architecture_overview.pdf', OUT/'architecture_overview.png')
+    shutil.copy2(OUT/'architecture_overview.png', ROOT/'results/figures/architecture_overview.png')
 
 
 def main():

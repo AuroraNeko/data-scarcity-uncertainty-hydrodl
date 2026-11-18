@@ -94,6 +94,25 @@ consume. `--from` and `--stage` do not reconstruct missing prerequisites.
 Method costs in the paper are archived reference measurements; fresh timing
 results are stored separately because workstation load changes elapsed time.
 
+## Reproduction scopes and their inputs
+
+- Offline scoring of the archived predictions (for example `--only
+  coverage_groups.py`, `distribution_scores.py` or `method_comparison.py`):
+  extract the source-results and predictions-checkpoints packages at the
+  repository root. Raw CAMELS files are needed only for the stage 7 raw-source
+  audit.
+- Figure-only rebuilds (`python run_pipeline.py --stage 9`): the same two
+  packages suffice. The 50-basin IDs, static attributes, dates and observation
+  mask used for the descriptive strata and temporal label counts are packaged
+  as `data/metadata/primary_replay_metadata.npz` (22 KB), so the stage 1
+  training cache (`results/cache/primary_raw.npz`) is not required. Four supplement figures
+  are produced outside stage 9: Fig. S4 by `--only learning_curves.py`
+  (stage 8), and Figs. S5, S10 and S12 by `--only calibration_variants.py`,
+  `hydrology_context.py` and `selection_simulation.py` (stage 6). Their
+  finished figures are already included in the source-results package.
+- Full reruns from raw CAMELS-US: run from stage 1 to rebuild the training
+  cache. Stages 2, 3 and 5 train models and need a CUDA GPU.
+
 ## Training selection and calibration information
 
 - The primary scarcity fits use condition-specific training-only statistics,
