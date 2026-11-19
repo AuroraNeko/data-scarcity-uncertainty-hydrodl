@@ -59,7 +59,7 @@ python run_pipeline.py              # 训练、评价、审计、汇总和绘图
 
 完整复现涉及 GPU 训练，可能需要数个 GPU 日。阶段 2、3、5 训练模型；阶段 6 包含 GPU 推理与计时。[复现说明](REPRODUCIBILITY.md) 区分全量重跑与冻结预测重评，并列出校准信息、精度策略和归档身份。
 
-数据、权重、预测数组及数值输出存放在 Git 忽略目录中；仓库保存代码和 README 图片副本。复现冻结数值还需要代码/结果包、预测/权重包及 SHA-256 清单，发布这些附件是单独的作者操作。
+如需用已保存的预测复现论文结果，请从 [Zenodo 1.1.4](https://doi.org/10.5281/zenodo.24361894) 下载两份归档。第一份包含源码、实验协议和汇总结果，第二份包含已保存的预测和模型权重。具体文件名及版本对应关系见[归档说明](REPRODUCIBILITY.md#outputs-and-release-identity)。
 
 ## 仓库导航
 
@@ -84,4 +84,4 @@ python experiments/figures/make_readme_figures.py --copy-to-docs
 
 ## 引用与许可
 
-软件引用元数据见 [CITATION.cff](CITATION.cff)，代码采用 [MIT 许可](LICENSE)。早期发布系列的 Zenodo 概念 DOI 为 [10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955)。概念记录汇总多个版本；复现时应注明实际版本及所用归档清单。
+软件引用元数据见 [CITATION.cff](CITATION.cff)，代码采用 [MIT 许可](LICENSE)。引用与论文结果对应的归档时，请使用版本 DOI `10.5281/zenodo.24361894`。[Zenodo 概念 DOI](https://doi.org/10.5281/zenodo.21256955) 汇总了所有归档版本。

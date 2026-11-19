@@ -198,10 +198,16 @@ Publication prose and control-table values read the same result JSON files.
 field, formatting and scale for the retained architecture, update-budget and
 spatial-replication prose macros. Missing source fields stop generation.
 
-The local version-1.1.4 submission attachment set has three separate ZIPs:
-source/results, predictions/checkpoints, and author submission materials.
-Each carries a file manifest; the local `release_index.json` records archive
-SHA-256 hashes. Public candidate source packages include the current pipeline
-entry point and documentation assets; author/reviewer material is separate.
-A Git tag fixes code only. Publishing release attachments or a new version
-DOI is a separate author action, and is not performed by the pipeline.
+The reported results correspond to GitHub tag
+[`v1.1.4`](https://github.com/AuroraNeko/data-scarcity-uncertainty-hydrodl/tree/v1.1.4)
+and Zenodo version DOI
+[`10.5281/zenodo.24361894`](https://doi.org/10.5281/zenodo.24361894).
+The Zenodo record provides two archives:
+
+| Archive | Contents |
+|---|---|
+| `1.1.4-source-results.zip` | Source code, experimental protocols, compact result tables and file manifests |
+| `1.1.4-predictions-checkpoints.zip` | Saved predictions and fitted model checkpoints used in the analyses |
+
+Use the two archives together for frozen replay and cite the version DOI to
+identify the exact artifacts used.

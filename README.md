@@ -59,7 +59,7 @@ python run_pipeline.py              # train, evaluate, audit, summarize and plot
 
 Full reproduction involves GPU training and can take several GPU-days. Stages 2, 3 and 5 train models; stage 6 includes GPU inference and timing. The [reproducibility guide](REPRODUCIBILITY.md) distinguishes a full rerun from re-evaluating frozen predictions, specifies calibration information and precision settings, and explains artifact identities.
 
-Data, weights, prediction arrays and numerical outputs are built under gitignored directories. The Git repository contains code and the README figure copies. A frozen numerical release additionally needs its source/results and prediction/checkpoint archives with SHA-256 manifests; publication of those attachments is a separate author action.
+To reproduce the reported results from saved predictions, download the two archives from [Zenodo 1.1.4](https://doi.org/10.5281/zenodo.24361894). One contains the source code, protocols and compact results. The other contains the saved predictions and fitted model checkpoints. See the [archive contents and version identifiers](REPRODUCIBILITY.md#outputs-and-release-identity).
 
 ## Repository guide
 
@@ -84,4 +84,4 @@ python experiments/figures/make_readme_figures.py --copy-to-docs
 
 ## Citation and license
 
-[CITATION.cff](CITATION.cff) provides software citation metadata; the code uses the [MIT license](LICENSE). The earlier release series has Zenodo concept DOI [10.5281/zenodo.21256955](https://doi.org/10.5281/zenodo.21256955). Cite the version and artifact manifest used for a reproduction, since the concept record groups multiple versions.
+[CITATION.cff](CITATION.cff) provides software citation metadata. The code uses the [MIT license](LICENSE). When citing the artifacts for the reported results, use the version DOI `10.5281/zenodo.24361894`. The [Zenodo concept DOI](https://doi.org/10.5281/zenodo.21256955) lists all archived versions.
